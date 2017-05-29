@@ -1,0 +1,13 @@
+modelname: debug
+save_checkpoint_every : 120
+cnn_model : resnet50
+caption_model : show_tell
+fc_feat_size : 2048
+cnn_fc_feat : fc6
+batch_size : 1
+input_json : data/coco/small_cocotalk.json
+input_h5 : data/coco/small_cocotalk.h5
+restart : 1
+val_images_use : -1 
+learning_rate_decay_start : 1
+lr_strategy : adaptive

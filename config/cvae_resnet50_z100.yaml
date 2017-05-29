@@ -1,0 +1,15 @@
+modelname: cvae_resnet50_z100
+z_size : 100
+save_checkpoint_every : 4000
+cnn_model : resnet50
+caption_model : show_tell_vae
+fc_feat_size : 2048
+cnn_fc_feat : fc6
+batch_size : 10
+beam_size : 3
+input_json : data/coco/cocotalk.json
+input_h5 : data/coco/cocotalk.h5
+restart : 1
+val_images_use : -1
+finetune_cnn_after : -1
+learning_rate : 1e-3
