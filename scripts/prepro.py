@@ -206,16 +206,18 @@ def main(params):
             txt = sent['tokens']
             caption = [w if w in wtoi else 'UNK' for w in txt]
             img['final_captions'].append(caption)
+            if len(img['final_captions']) >= 3:
+                break
 
     ################################################################################################################
-    #  L, label_start_ix, label_end_ix, label_length = encode_captions(imgs, params, wtoi)
-    L, Lsyn, label_start_ix, label_end_ix, label_length = encode_captions_syn(imgs, params, wtoi)
+    L, label_start_ix, label_end_ix, label_length = encode_captions(imgs, params, wtoi)
+    #  L, Lsyn, label_start_ix, label_end_ix, label_length = encode_captions_syn(imgs, params, wtoi)
 
     # create output h5 file
     N = len(imgs)
     f = h5py.File(params['output_h5'], "w")
     f.create_dataset("labels", dtype='uint32', data=L)
-    f.create_dataset("labels_syn", dtype='uint32', data=Lsyn)
+    #  f.create_dataset("labels_syn", dtype='uint32', data=Lsyn)
 
     f.create_dataset("label_start_ix", dtype='uint32', data=label_start_ix)
     f.create_dataset("label_end_ix", dtype='uint32', data=label_end_ix)
@@ -263,8 +265,8 @@ if __name__ == "__main__":
     # input json
     DATA_DIR = 'data/coco/'
     parser.add_argument('--input_json', default='%sdataset_coco.json' % DATA_DIR,  help='input json file to process into hdf5')
-    parser.add_argument('--output_json', default='%ssyn_cocotalk.json' % DATA_DIR, help='output json file')
-    parser.add_argument('--output_h5', default='%ssyn_cocotalk.h5' % DATA_DIR, help='output h5 file')
+    parser.add_argument('--output_json', default='%scaps3_cocotalk.json' % DATA_DIR, help='output json file')
+    parser.add_argument('--output_h5', default='%scaps3_cocotalk.h5' % DATA_DIR, help='output h5 file')
     # options
     parser.add_argument('--max_length', default=16, type=int, help='max length of a caption, in number of words. captions longer than this get clipped.')
     parser.add_argument('--imsize', default=256, type=int, help='image size.')

@@ -29,7 +29,23 @@ def plot_codes(source="save/textLM_vae/codes.pkl"):
     plot_tsne(X, S, "save/textLM_vae/code.png")
 
 
-def plot_tsne(X, Refs, figname):
+
+def plot_tsne_words(model):
+    words = pickle.load(open('save/%s/infos.pkl' % model, 'r'))
+    print words.keys()
+    words = words['vocab']
+    words['0'] = 'eos'
+    pth = torch.load('save/%s/model.pth' % model)
+    W = pth['embed.weight'].cpu().numpy()
+    tsne_model = TSNE(n_components=2, random_state=0, verbose=2)
+    X2d = tsne_model.fit_transform(W)
+    fig = plt.figure()
+    for i in range(len(words)):
+        plt.text(X2d[i, 0], X2d[i, 1], words[str(i)], fontsize=9)
+    plt.draw()
+    fig.savefig("save/%s/words.png" % model, bbox_inches='tight')
+
+def plot_tsne_codes(X, Refs, figname):
     """
     tedlt
     """
@@ -96,4 +112,6 @@ def make_dot(var, params):
 
 
 if __name__ == "__main__":
-    plot_codes()
+    #  plot_tsne_words('baseline_resnet50_glove')
+    plot_tsne_words('baseline_resnet50_glove_syn')
+    plot_tsne_words('baseline_resnet50_r300')

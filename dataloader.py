@@ -107,7 +107,7 @@ class DataLoader(object):
         self.opt = opt
         self.batch_size = self.opt.batch_size
         self.seq_per_img = self.opt.seq_per_img
-        self.load_syn = opt.use_synonyms
+        #  self.load_syn = opt.use_synonyms
 
         # load the json file which contains additional information about the dataset
         self.opt.logger.warn('DataLoader loading json file: %s' % opt.input_json)
@@ -175,7 +175,7 @@ class DataLoader(object):
 
         img_batch = np.ndarray([batch_size, 3, 224,224], dtype ='float32')
         label_batch = np.zeros([batch_size * self.seq_per_img, self.seq_length + 2], dtype ='int')
-        label_syn_batch = np.zeros([batch_size * self.seq_per_img, self.seq_length + 2], dtype ='int')
+        #  label_syn_batch = np.zeros([batch_size * self.seq_per_img, self.seq_length + 2], dtype ='int')
         mask_batch = np.zeros([batch_size * self.seq_per_img, self.seq_length + 2], dtype ='float32')
 
         max_index = len(split_ix)
@@ -206,24 +206,24 @@ class DataLoader(object):
             if ncap < self.seq_per_img:
                 # we need to subsample (with replacement)
                 seq = np.zeros([self.seq_per_img, self.seq_length], dtype = 'int')
-                if self.load_syn:
-                    seq_syn = np.zeros([self.seq_per_img, self.seq_length], dtype = 'int')
+                #  if self.load_syn:
+                #      seq_syn = np.zeros([self.seq_per_img, self.seq_length], dtype = 'int')
 
                 for q in range(self.seq_per_img):
                     ixl = random.randint(ix1,ix2)
                     seq[q, :] = self.h5_file['labels'][ixl, :self.seq_length]
-                    if self.load_syn:
-                        seq_syn[q, :] = self.h5_file['labels_syn'][ixl, :self.seq_length]
+                    #  if self.load_syn:
+                    #      seq_syn[q, :] = self.h5_file['labels_syn'][ixl, :self.seq_length]
 
             else:
                 ixl = random.randint(ix1, ix2 - self.seq_per_img + 1)
                 seq = self.h5_file['labels'][ixl: ixl + self.seq_per_img, :self.seq_length]
-                if self.load_syn:
-                    seq_syn = self.h5_file['labels_syn'][ixl: ixl + self.seq_per_img, :self.seq_length]
+                #  if self.load_syn:
+                #      seq_syn = self.h5_file['labels_syn'][ixl: ixl + self.seq_per_img, :self.seq_length]
 
             label_batch[i * self.seq_per_img : (i + 1) * self.seq_per_img, 1 : self.seq_length + 1] = seq
-            if self.load_syn:
-                label_syn_batch[i * self.seq_per_img : (i + 1) * self.seq_per_img, 1 : self.seq_length + 1] = seq_syn
+            #  if self.load_syn:
+            #      label_syn_batch[i * self.seq_per_img : (i + 1) * self.seq_per_img, 1 : self.seq_length + 1] = seq_syn
 
             # record associated info as well
             info_dict = {}
@@ -240,7 +240,7 @@ class DataLoader(object):
         data = {}
         data['images'] = img_batch
         data['labels'] = label_batch
-        data['labels_syn'] = label_syn_batch
+        #  data['labels_syn'] = label_syn_batch
         data['masks'] = mask_batch
         data['bounds'] = {'it_pos_now': self.iterators[split], 'it_max': len(split_ix), 'wrapped': wrapped}
         data['infos'] = infos

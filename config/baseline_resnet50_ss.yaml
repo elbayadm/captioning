@@ -16,4 +16,7 @@ learning_rate : 5e-4
 learning_rate_decay_start : 5
 learning_rate_decay_rate : 0.6
 learning_rate_decay_every: 3
-scheduled_sampling_start : 10
+scheduled_sampling_start : 15
+scheduled_sampling_increase_every: 3
+scheduled_sampling_increase_prob: 0.03
+scheduled_sampling_max_prob: 0.15

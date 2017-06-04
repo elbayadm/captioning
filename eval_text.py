@@ -87,8 +87,8 @@ parser.add_argument('--id', type=str, default='evalscript',
                      help='an id identifying this run/job. used only if language_eval = 1 for appending to intermediate files')
 
 opt = parser.parse_args()
-opt.infos_path = 'save/%s/infos.pkl' % opt.model
-opt.model_path = 'save/%s/model.pth' % opt.model
+opt.infos_path = 'save/textLM/%s/infos.pkl' % opt.model
+opt.model_path = 'save/textLM/%s/model.pth' % opt.model
 # Load infos
 with open(opt.infos_path) as f:
     infos = pickle.load(f)
@@ -115,14 +115,15 @@ vocab = infos['vocab'] # ix -> word mapping
 
 # Build the captioning model
 # Build the captioning model
-if saved_model_opt.lm_model == "rnn":
+try:
+    if saved_model_opt.lm_model == "rnn_vae":
+        opt.logger.warn('Injecting VAE block in the encoder-decoder model')
+        encoder = VAE_LM_encoder(opt)
+except:
+    saved_model_opt.lm_model = "rnn"
     opt.logger.warn('Using Basic RNN encoder-decoder')
     encoder = LM_encoder(opt)
-elif saved_model_opt.lm_model == "rnn_vae":
-    opt.logger.warn('Injecting VAE block in the encoder-decoder model')
-    encoder = VAE_LM_encoder(opt)
-else:
-    raise ValueError('Unknown LM model %s' % opt.lm_model)
+
 decoder = LM_decoder(opt)
 encoder.cuda()
 decoder.cuda()
@@ -144,8 +145,10 @@ else:
                             'coco_json': opt.coco_json,
                             'batch_size': opt.batch_size})
     loader.ix_to_word = infos['vocab']
-opt.val_images_use = 200
+opt.val_images_use = 5
+opt.lm_model = saved_model_opt.lm_model
 crit = utils.LanguageModelCriterion()
-loss = eval_utils.eval_lm_split(encoder, decoder, crit, loader, vars(opt))
-print "Loss:", loss
+#  loss = eval_utils.eval_lm_split(encoder, decoder, crit, loader, vars(opt))
+#  print "Loss:", loss
+eval_utils.generate_caps(encoder, decoder, crit, loader, vars(opt))
 

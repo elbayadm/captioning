@@ -37,6 +37,19 @@ from tensorflow.python.framework import dtypes
 from tensorflow.contrib.tensorboard.plugins import projector
 
 
+def log_optimizer(opt, optimizer):
+    opt.logger.debug('####################################')
+    print "Optimized params shapes:"
+    for p in optimizer.param_groups:
+        if isinstance(p, dict):
+            opt.logger.error('Dict: %s' % p.keys())
+            print 'LR:', p['lr']
+            for pp in p['params']:
+                print pp.size(),
+            print '\n'
+    opt.logger.debug('####################################')
+
+
 def manage_lr(epoch, opt, val_losses):
     if epoch > opt.learning_rate_decay_start and opt.learning_rate_decay_start >= 0:
         opt.logger.error('Updating the lr')
@@ -44,6 +57,7 @@ def manage_lr(epoch, opt, val_losses):
             frac = (epoch - opt.learning_rate_decay_start) // opt.learning_rate_decay_every
             decay_factor = opt.learning_rate_decay_rate  ** frac
             opt.current_lr = opt.learning_rate * decay_factor
+            opt.scale_lr = decay_factor
         elif opt.lr_strategy == "adaptive":
             opt.logger.error('Adaptive mode')
             print "val_losses:", val_losses
@@ -55,12 +69,15 @@ def manage_lr(epoch, opt, val_losses):
                     opt.logger.error('You have plateaued, decreasing the lr')
                     # decrease lr:
                     opt.current_lr = opt.current_lr * opt.learning_rate_decay_rate
+                    opt.scale_lr = opt.learning_rate_decay_factor
                     opt.lr_wait = 0
             else:
                 opt.current_lr = opt.learning_rate
+                opt.scale_lr = 1
 
     else:
         opt.current_lr = opt.learning_rate
+        opt.scale_lr = 1
     return opt
 
 
@@ -167,28 +184,32 @@ def train(opt):
     update_lr_flag = True
     # Assure in training mode
     model.train()
-    crit = utils.LanguageModelCriterion(use_syn=opt.use_synonyms)
-    optim_func = get_optimizer(opt.optim)
-    if not opt.finetune_cnn_only:
-        optimizer = optim_func(model.parameters(), lr=opt.learning_rate, weight_decay=opt.weight_decay)
+    if opt.raml_loss:
+        #  D = np.eye(opt.vocab_size + 1, dtype="float32")
+        #  D = np.random.uniform(size=(opt.vocab_size + 1, opt.vocab_size + 1)).astype(np.float32)
+        D = pickle.load(open('data/Glove/cocotalk_similarities_v2.pkl', 'r'))
+        D = D.astype(np.float32)
+        D = Variable(torch.from_numpy(D)).cuda()
+        crit = utils.SmoothLanguageModelCriterion(Dist=D,
+                                                  m=opt.raml_margin,
+                                                  tau=opt.raml_tau,
+                                                  version=opt.raml_version,
+                                                  isolate_gt=opt.raml_isolate,
+                                                  alpha=opt.raml_alpha,
+                                                  normalize=opt.raml_normalize)
+    elif opt.combine_caps_losses:
+        crit = utils.MultiLanguageModelCriterion(opt.seq_per_img)
     else:
-        optimizer = optim_func(model.img_embed.parameters(), lr=opt.learning_rate, weight_decay=opt.weight_decay)
-
+        crit = utils.LanguageModelCriterion()
+    optim_func = get_optimizer(opt.optim)
     if opt.finetune_cnn_after != -1 and epoch >= opt.finetune_cnn_after:
-        #  optimizer = optim_func([{'params': module.parameters(), 'lr': opt.cnn_learning_rate * opt.learning_rate} for module in cnn_model.to_finetune] +
-        #                         [{'params': model.parameters(), 'lr': opt.learning_rate}],
-        #                         lr=opt.learning_rate, weight_decay=opt.weight_decay)
-        #
-        cnn_optim_func = get_optimizer(opt.cnn_optim)
-        if opt.cnn_optim.lower() == "adam":
-            cnn_optimizer = cnn_optim_func([{'params': module.parameters()} for module in cnn_model.to_finetune],
-                                           lr=opt.cnn_learning_rate * opt.learning_rate,
-                                           betas=(0.8, 0.999),
-                                           weight_decay=opt.cnn_weight_decay)
-        else:
-            cnn_optimizer = cnn_optim_func([{'params': module.parameters()} for module in cnn_model.to_finetune],
-                                           lr=opt.cnn_learning_rate * opt.learning_rate,
-                                           weight_decay=opt.cnn_weight_decay)
+        cnn_params = [{'params': module.parameters(), 'lr': opt.cnn_learning_rate * opt.learning_rate} for module in cnn_model.to_finetune]
+        main_params = [{'params': model.parameters(), 'lr': opt.learning_rate}]
+        optimizer = optim_func(cnn_params + main_params,
+                               lr=opt.learning_rate, weight_decay=opt.weight_decay)
+    else:
+        optimizer = optim_func(model.parameters(), lr=opt.learning_rate, weight_decay=opt.weight_decay)
+
 
 
     # Load the optimizer
@@ -201,80 +222,47 @@ def train(opt):
                 except:
                     print "Starting with blank optimizer"
             else:
-                optimizer.load_state_dict(torch.load(osp.join(opt.start_from, 'optimizer.pth')))
-        if opt.finetune_cnn_after != -1 and epoch >= opt.finetune_cnn_after:
-            if osp.isfile(osp.join(opt.start_from, 'optimizer-cnn.pth')):
-                opt.logger.warn('Loading saved CNN optimizer')
-                if opt.start_from_best:
-                    cnn_optimizer.load_state_dict(torch.load(osp.join(opt.start_from, 'optimizer-cnn-best.pth'))) #FIXME save best
-                else:
-                    cnn_optimizer.load_state_dict(torch.load(osp.join(opt.start_from, 'optimizer-cnn.pth')))
+                try:
+                    optimizer.load_state_dict(torch.load(osp.join(opt.start_from, 'optimizer.pth')))
+                except:
+                    print "The laoded optimizer doesn't have the same parms :> starting a clean optimizer"
+    # Require grads
+    for p in optimizer.param_groups:
+        if isinstance(p, dict):
+            for pp in p['params']:
+                pp.requires_grad = True
 
-    #  opt.logger.debug('####################################')
-    #  print "CNN params shapes:"
-    #  for p in cnn_optimizer.param_groups:
-    #      if isinstance(p, dict):
-    #          print 'Dict:', p.keys()
-    #          print 'LR:', p['lr']
-    #          for pp in p['params']:
-    #              print pp.size()
-    #
-    #  print "RNN params shapes:"
-    #  for p in optimizer.param_groups:
-    #      if isinstance(p, dict):
-    #          print 'Dict:', p.keys()
-    #          print 'LR:', p['lr']
-    #          for pp in p['params']:
-    #              print pp.size()
-    #  opt.logger.debug('####################################')
+    log_optimizer(opt, optimizer)
     # Main loop
+    # To save before training:
+    iteration -= 1
     while True:
         if update_lr_flag:
             # Assign the learning rate
             opt = manage_lr(epoch, opt, val_losses)
-            utils.set_lr(optimizer, opt.current_lr) # set the decayed rate
+            #  utils.set_lr(optimizer, opt.current_lr) # set the decayed rate
+            utils.scale_lr(optimizer, opt.scale_lr) # set the decayed rate
+            log_optimizer(opt, optimizer)
+
             # Assign the scheduled sampling prob
             if epoch > opt.scheduled_sampling_start and opt.scheduled_sampling_start >= 0:
                 frac = (epoch - opt.scheduled_sampling_start) // opt.scheduled_sampling_increase_every
                 opt.ss_prob = min(opt.scheduled_sampling_increase_prob  * frac, opt.scheduled_sampling_max_prob)
                 model.ss_prob = opt.ss_prob
             # Update the training stage of cnn
-            if opt.finetune_cnn_after == -1 or epoch < opt.finetune_cnn_after:
-                for p in cnn_model.parameters():
-                    p.requires_grad = False
-                cnn_model.eval()
-            else:
-                for p in cnn_model.parameters():
-                    p.requires_grad = True
-                # Fix the first few layers:
-                for module in cnn_model.keep_asis:
-                    for p in module.parameters():
-                        p.requires_grad = False
-                try:
-                    cnn_optimizer
-                except:
-                    opt.logger.warn('Setting the cnn_optimizer (LATE)')
-                    cnn_optim_func = get_optimizer(opt.cnn_optim)
-                    cnn_optimizer = cnn_optim_func([{'params': module.parameters()} for module in cnn_model.to_finetune],
-                                                lr=opt.cnn_learning_rate * opt.current_lr,
-                                                weight_decay=opt.cnn_weight_decay)
-                    print "CNN params shapes:"
-                    for p in cnn_optimizer.param_groups:
-                        if isinstance(p, dict):
-                            print 'Dict:', p.keys()
-                            print 'LR:', p['lr']
-                            for pp in p['params']:
-                                print pp.size()
-
-                    # Load the optimizer
-                    #  if vars(opt).get('start_from', None) is not None:
-                    #      if osp.isfile(osp.join(opt.start_from, 'optimizer-cnn.pth')):
-                    #          cnn_optimizer.load_state_dict(torch.load(osp.join(opt.start_from, 'optimizer-cnn.pth')))
-                    #  cnn_optimizer.zero_grad()
-
+            #  if opt.finetune_cnn_after == -1 or epoch < opt.finetune_cnn_after:
+            #      for p in cnn_model.parameters():
+            #          p.requires_grad = False
+            #      cnn_model.eval()
+            #  else:
+            #      for p in cnn_model.parameters():
+            #          p.requires_grad = True
+            #      # Fix the first few layers:
+            #      for module in cnn_model.keep_asis:
+            #          for p in module.parameters():
+            #              p.requires_grad = False
                 cnn_model.train()
                 opt.current_cnn_lr = opt.cnn_learning_rate * opt.current_lr
-                #  utils.set_lr(cnn_optimizer, opt.current_cnn_lr) # TODO add decay to the cnn lr
             update_lr_flag = False
 
         torch.cuda.synchronize()
@@ -286,10 +274,10 @@ def train(opt):
         torch.cuda.synchronize()
         start = time.time()
 
-        tmp = [data['images'], data['labels'], data['labels_syn'], data['masks']]
+        tmp = [data['images'], data['labels'], data['masks']]
 
         tmp = [Variable(torch.from_numpy(_), requires_grad=False).cuda() for _ in tmp]
-        images, labels, labels_syn, masks = tmp
+        images, labels, masks = tmp
 
         if opt.use_feature_maps:
             ################################################## Att_feats and fc_feats from the same branch with att_feats as feature maps.
@@ -309,22 +297,18 @@ def train(opt):
             print "priorbox", priorbox.size()
 
         optimizer.zero_grad()
-        if opt.finetune_cnn_after != -1 and epoch >= opt.finetune_cnn_after:
-            cnn_optimizer.zero_grad()
         if opt.caption_model == "show_tell_vae":
             preds, recon_loss, kld_loss = model(fc_feats, att_feats, labels)
-            loss = crit(preds, labels[:, 1:], labels_syn[:, 1:], masks[:, 1:])
-            loss += opt.vae_weight * (recon_loss + kld_loss)  #FIXME add the scaling as parameter
+            real_loss, loss = crit(preds, labels[:, 1:], masks[:, 1:])
+            loss += opt.vae_weight * (recon_loss + opt.kld_weight * kld_loss)  #FIXME add the scaling as parameter
         else:
-            loss = crit(model(fc_feats, att_feats, labels), labels[:, 1:], labels_syn[:, 1:], masks[:, 1:])
+            real_loss, loss = crit(model(fc_feats, att_feats, labels), labels[:, 1:], masks[:, 1:])
         loss.backward()
         grad_norm = []
         grad_norm.append(utils.clip_gradient(optimizer, opt.grad_clip))
         optimizer.step()
-        if opt.finetune_cnn_after != -1 and epoch >= opt.finetune_cnn_after:
-            grad_norm.append(utils.clip_gradient(cnn_optimizer, opt.grad_clip))
-            cnn_optimizer.step()
         train_loss = loss.data[0]
+        train_real_loss = real_loss.data[0]
         try:
             train_kld_loss = kld_loss.data[0]
             train_recon_loss = recon_loss.data[0]
@@ -333,8 +317,8 @@ def train(opt):
         #  grad_norm = [utils.get_grad_norm(optimizer)]
         torch.cuda.synchronize()
         end = time.time()
-        message = "iter {} (epoch {}), train_loss = {:.3f}, lr = {:.2e}, grad_norm = {:.3e}"\
-                   .format(iteration, epoch, train_loss, opt.current_lr, grad_norm[0])
+        message = "iter {} (epoch {}), train_real_loss = {:.3f}, train_loss = {:.3f}, lr = {:.2e}, grad_norm = {:.3e}"\
+                   .format(iteration, epoch, train_real_loss,  train_loss, opt.current_lr, grad_norm[0])
 
         try:
             message += ", cnn_lr = {:.2e}, cnn_grad_norm = {:.3e}".format(opt.current_cnn_lr, grad_norm[1])
@@ -356,6 +340,7 @@ def train(opt):
         # Write the training loss summary
         if (iteration % opt.losses_log_every == 0):
             add_summary_value(tf_summary_writer, 'train_loss', train_loss, iteration)
+            add_summary_value(tf_summary_writer, 'train_real_loss', train_real_loss, iteration)
             add_summary_value(tf_summary_writer, 'learning_rate', opt.current_lr, iteration)
             add_summary_value(tf_summary_writer, 'scheduled_sampling_prob', model.ss_prob, iteration)
             add_summary_value(tf_summary_writer, 'RNN_grad_norm', grad_norm[0], iteration)
@@ -383,10 +368,12 @@ def train(opt):
             eval_kwargs = {'split': 'val',
                            'dataset': opt.input_json}
             eval_kwargs.update(vars(opt))
-            val_loss, predictions, lang_stats, unseen_grams = eval_utils.eval_split(cnn_model, model, crit, loader, eval_kwargs)
+            real_val_loss, val_loss, predictions, lang_stats, unseen_grams = eval_utils.eval_split(cnn_model, model, crit, loader, eval_kwargs)
 
             # Write validation result into summary
             add_summary_value(tf_summary_writer, 'validation loss', val_loss, iteration)
+            add_summary_value(tf_summary_writer, 'real validation loss', real_val_loss, iteration)
+
             for k, v in lang_stats.iteritems():
                 add_summary_value(tf_summary_writer, k, v, iteration)
             #  for k, v in unseen_grams.iteritems():
@@ -414,9 +401,6 @@ def train(opt):
                 opt.logger.info("cnn model saved to {}".format(cnn_checkpoint_path))
                 optimizer_path = osp.join(opt.modelname, 'optimizer.pth')
                 torch.save(optimizer.state_dict(), optimizer_path)
-                if opt.finetune_cnn_after != -1 and epoch >= opt.finetune_cnn_after:
-                    cnn_optimizer_path = osp.join(opt.modelname, 'optimizer-cnn.pth')
-                    torch.save(cnn_optimizer.state_dict(), cnn_optimizer_path)
 
                 # Dump miscalleous informations
                 infos['iter'] = iteration
@@ -442,9 +426,6 @@ def train(opt):
                     opt.logger.info("cnn model saved to {}".format(cnn_checkpoint_path))
                     optimizer_path = osp.join(opt.modelname, 'optimizer-best.pth')
                     torch.save(optimizer.state_dict(), optimizer_path)
-                    if opt.finetune_cnn_after != -1 and epoch >= opt.finetune_cnn_after:
-                        cnn_optimizer_path = osp.join(opt.modelname, 'optimizer-cnn-best.pth')
-                        torch.save(cnn_optimizer.state_dict(), cnn_optimizer_path)
                     with open(osp.join(opt.modelname, 'infos-best.pkl'), 'wb') as f:
                         pickle.dump(infos, f)
 

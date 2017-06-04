@@ -1,0 +1,10 @@
+# Generic
+# -------------------------
+modelname : textLMBooks50
+save_checkpoint_every : 1500
+batch_size : 200
+input_json : data/BookCorpus/freq50_books.json
+input_h5 : data/BookCorpus/freq50_books.h5
+restart : 1
+val_images_use : 5000
+learning_rate : 5e-5

@@ -35,7 +35,7 @@ parser.add_argument('--batch_size', type=int, default=0,
                     help='if > 0 then overrule, otherwise load from checkpoint.')
 parser.add_argument('--num_images', type=int, default=-1,
                     help='how many images to use when periodically evaluating the loss? (-1 = all)')
-parser.add_argument('--language_eval', type=int, default=0,
+parser.add_argument('--language_eval', type=int, default=1,
                     help='Evaluate language as well (1 = yes, 0 = no)? BLEU/CIDEr/METEOR/ROUGE_L? requires coco-caption code from Github.')
 parser.add_argument('--dump_images', type=int, default=0,
                     help='Dump images into vis/imgs folder for vis? (1=yes,0=no)')
@@ -47,9 +47,9 @@ parser.add_argument('--dump_path', type=int, default=0,
 # Sampling options
 parser.add_argument('--sample_max', type=int, default=1,
                     help='1 = sample argmax words. 0 = sample from distributions.')
-parser.add_argument('--beam_size', type=int, default=2,
+parser.add_argument('--beam_size', type=int, default=1,
                     help='used when sample_max = 1, indicates number of beams in beam search. Usually 2 or 3 works well. More is not better. Set this to 1 for faster runtime but a bit worse performance.')
-parser.add_argument('--temperature', type=float, default=1.0,
+parser.add_argument('--temperature', type=float, default=0.5,
                     help='temperature when sampling from distributions (i.e. when sample_max = 0). Lower = "safer" predictions.')
 # For evaluation on a folder of images:
 parser.add_argument('--image_folder', type=str, default='',
@@ -57,9 +57,9 @@ parser.add_argument('--image_folder', type=str, default='',
 parser.add_argument('--image_root', type=str, default='data/coco/images',
                     help='In case the image paths have to be preprended with a root path to an image folder')
 # For evaluation on MSCOCO images from some split:
-parser.add_argument('--input_h5', type=str, default='data/coco/cocotalk.h5',
+parser.add_argument('--input_h5', type=str, default='',
                     help='path to the h5file containing the preprocessed dataset')
-parser.add_argument('--input_json', type=str, default='data/coco/cocotalk.json',
+parser.add_argument('--input_json', type=str, default='',
                     help='path to the json file containing additional info and vocab. empty = fetch from model checkpoint.')
 parser.add_argument('--split', type=str, default='test',
                     help='if running on MSCOCO images, which split to use: val|test|train')
@@ -102,6 +102,14 @@ opt.cnn_model = infos['opt'].cnn_model
 opt.logger = opts.create_logger('./tmp_eval.log')
 opt.start_from = "save/" + opt.model
 opt.rnn_bias = 0
+try:
+    opt.use_glove = infos['opt'].use_glove
+except:
+    opt.use_glove = 0
+try:
+    opt.use_synonyms = infos['opt'].use_synonyms
+except:
+    opt.use_synonyms = 0
 # Setup the model
 if opt.use_feature_maps:
     ###############################################################################################################
@@ -125,7 +133,7 @@ model = models.setup(opt)
 model.load_state_dict(torch.load(opt.model_path))
 model.cuda()
 model.eval()
-crit = utils.LanguageModelCriterion()
+crit = utils.LanguageModelCriterion(opt.use_synonyms)
 
 # Create the Data Loader instance
 if len(opt.image_folder) == 0:
@@ -143,6 +151,7 @@ eval_kwargs = {'split': 'val',
                'dataset': opt.input_json}
 eval_kwargs.update(vars(infos['opt']))
 eval_kwargs.update(vars(opt))
+eval_kwargs['val_images_use'] = 100
 val_loss, predictions, lang_stats, unseen_grams = eval_utils.eval_split(cnn_model, model, crit, loader, eval_kwargs)
 print 'loss: ', val_loss
 if lang_stats:
@@ -150,4 +159,4 @@ if lang_stats:
 
 if opt.dump_json == 1:
     # dump the json
-    json.dump(predictions, open('vis/preds.json', 'w'))
+    json.dump(predictions, open('vis/preds_%s.json' % opt.model, 'w'))

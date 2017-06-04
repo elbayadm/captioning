@@ -174,6 +174,71 @@ def language_eval(dataset, preds):
 
     return out, unseen
 
+def generate_caps(encoder, decoder, crit, loader, eval_kwargs={}):
+    verbose = eval_kwargs.get('verbose', True)
+    val_images_use = eval_kwargs.get('val_images_use', -1)
+    split = eval_kwargs.get('split', 'train')
+    lang_eval = eval_kwargs.get('language_eval', 1)
+    dataset = eval_kwargs.get('dataset', 'coco')
+    beam_size = eval_kwargs.get('beam_size', 1)
+    beam_size = 1
+    logger = eval_kwargs.get('logger')
+    lm_model = eval_kwargs.get('lm_model')
+    vocab_size = eval_kwargs.get('vocab_size')
+    sample_max = eval_kwargs.get('sample_max')
+    temperature = eval_kwargs.get('temperature')
+    tries = eval_kwargs.get('tries', 5)
+
+    print 'Using sample_max = %d  ||  temperature %.2f' % (sample_max, temperature)
+
+    # Make sure in the evaluation mode
+    encoder.eval()
+    decoder.eval()
+    logger.warn('Generating captions for the full training set')
+    loader.reset_iterator(split)
+    n = 0
+    blobs = []
+    while True:
+        data = loader.get_batch(split)
+        n = n + loader.batch_size
+        # forward the model to get loss
+        infos = data['infos']
+        ids = [inf['id'] for inf in infos]
+        assert len(ids) == 1, "Batch size larger than 1"
+        tmp = [data['labels'], data['masks']]
+        tmp = [Variable(torch.from_numpy(_), volatile=True).cuda() for _ in tmp]
+        labels, masks = tmp
+        tr = 0
+        gt = utils.decode_sequence(loader.get_vocab(), labels[:,1:].data)
+        blob_batch = { "id": ids[0], "gt": gt, "sampled": []}
+        for igt in gt:
+            print _OKGREEN + igt + _ENDC
+
+        while tr < tries:
+            #  z_mu, z_var, codes = encoder(labels)
+            codes = encoder.sample(labels)
+            seq, _ = decoder.sample(codes, {'beam_size': beam_size,
+                                            "vocab_size": vocab_size,
+                                            "sample_max": sample_max,
+                                            "temperature": temperature})
+            sents = utils.decode_sequence(loader.get_vocab(), seq)
+            for isent in sents:
+                print _WARNING + isent + _ENDC
+            blob_batch['sampled'] += sents
+            tr += 1
+        ix0 = data['bounds']['it_pos_now']
+        ix1 = data['bounds']['it_max']
+        if data['bounds']['wrapped']:
+            break
+        if n >= ix1:
+            logger.warn('Evaluated the required samples (%s)' % n)
+            break
+        blobs.append(blob_batch)
+        print "Blob batch:", blob_batch
+    json.dump(blobs, open('data/coco/generated_captions.json', 'w'))
+    encoder.train()
+    decoder.train()
+    return 1
 
 def eval_lm_split(encoder, decoder, crit, loader, eval_kwargs={}):
     verbose = eval_kwargs.get('verbose', True)
@@ -186,7 +251,9 @@ def eval_lm_split(encoder, decoder, crit, loader, eval_kwargs={}):
     logger = eval_kwargs.get('logger')
     lm_model = eval_kwargs.get('lm_model')
     vocab_size = eval_kwargs.get('vocab_size')
-
+    sample_max = eval_kwargs.get('sample_max')
+    temperature = eval_kwargs.get('temperature')
+    print 'Using sample_max = %d  ||  temperature %.2f' % (sample_max, temperature)
 
     # Make sure in the evaluation mode
     encoder.eval()
@@ -230,7 +297,7 @@ def eval_lm_split(encoder, decoder, crit, loader, eval_kwargs={}):
         #      VAR = z_var.cpu().data.numpy()
         gt = utils.decode_sequence(loader.get_vocab(), labels[:,1:].data)
         SENTS += gt
-        seq, _ = decoder.sample(codes, {'beam_size': beam_size, "vocab_size": vocab_size})
+        seq, _ = decoder.sample(codes, {'beam_size': beam_size, "vocab_size": vocab_size, "sample_max": sample_max, "temperature": temperature})
         sents = utils.decode_sequence(loader.get_vocab(), seq)
         try:
             r_seq, _ = decoder.sample(r_codes, {'beam_size': beam_size, "vocab_size": vocab_size})
@@ -248,7 +315,7 @@ def eval_lm_split(encoder, decoder, crit, loader, eval_kwargs={}):
             for co, de in zip(gt, sents):
                 print co, _OKGREEN, "\n>>", de, _ENDC
 
-        loss = crit(decoder(codes, labels), labels[:,1:], masks[:,1:]).data[0]
+        loss = crit(decoder(codes, labels), labels[:,1:], masks[:,1:])[0].data[0]
         loss_sum = loss_sum + loss
         loss_evals = loss_evals + 1
 
@@ -296,6 +363,7 @@ def eval_split(cnn_model, model, crit, loader, eval_kwargs={}):
 
     n = 0
     loss_sum = 0
+    real_loss_sum = 0
     loss_evals = 0
     predictions = []
     Feats = []
@@ -304,9 +372,9 @@ def eval_split(cnn_model, model, crit, loader, eval_kwargs={}):
         n = n + loader.batch_size
 
         # forward the model to get loss
-        tmp = [data['images'], data['labels'], data['labels_syn'], data['masks']]
+        tmp = [data['images'], data['labels'], data['masks']]
         tmp = [Variable(torch.from_numpy(_), volatile=True).cuda() for _ in tmp]
-        images, labels, labels_syn, masks = tmp
+        images, labels, masks = tmp
         att_feats, fc_feats = cnn_model.forward(images)
         #  Feats.append(fc_feats.cpu().data.numpy())
         _att_feats = att_feats
@@ -315,12 +383,17 @@ def eval_split(cnn_model, model, crit, loader, eval_kwargs={}):
         fc_feats = fc_feats.unsqueeze(1).expand(*((fc_feats.size(0), loader.seq_per_img,) + fc_feats.size()[1:])).contiguous().view(*((fc_feats.size(0) * loader.seq_per_img,) + fc_feats.size()[1:]))
         if caption_model == "show_tell_vae":
             preds, recon_loss, kld_loss = model(fc_feats, att_feats, labels)
-            loss = crit(preds, labels[:, 1:], labels_syn[:, 1:], masks[:, 1:]).data[0]
+            real_loss, loss = crit(preds, labels[:, 1:], masks[:, 1:])
+            real_loss = real_loss.data[0]
+            loss = loss.data[0]
             loss += vae_weight * (recon_loss.data[0] + kld_loss.data[0])
             #  print "Incrementing loss" , loss
         else:
-            loss = crit(model(fc_feats, att_feats, labels), labels[:, 1:], labels_syn[:, 1:], masks[:, 1:]).data[0]
+            real_loss, loss = crit(model(fc_feats, att_feats, labels), labels[:, 1:], masks[:, 1:])
+            real_loss = real_loss.data[0]
+            loss = loss.data[0]
         loss_sum = loss_sum + loss
+        real_loss_sum += real_loss
         loss_evals = loss_evals + 1
 
         # forward the model to also get generated samples for each image
@@ -329,8 +402,12 @@ def eval_split(cnn_model, model, crit, loader, eval_kwargs={}):
         seq, _ = model.sample(fc_feats, att_feats, {'beam_size': beam_size, "vocab_size": vocab_size})
         #set_trace()
         sents = utils.decode_sequence(loader.get_vocab(), seq)
+        #  seq2, _ = model.sample(fc_feats, att_feats, {'beam_size': beam_size, "vocab_size": vocab_size})
+        #set_trace()
+        #  sents2 = utils.decode_sequence(loader.get_vocab(), seq2)
 
         for k, sent in enumerate(sents):
+            #  print _OKGREEN, '%d >> %s\n %s %8s %s' % (data['infos'][k]['id'], sent, _WARNING, '>>', sents2[k]), _ENDC
             entry = {'image_id': data['infos'][k]['id'], 'caption': sent}
             predictions.append(entry)
             #  logger.debug('image %s: %s' %(entry['image_id'], entry['caption']))
@@ -354,7 +431,7 @@ def eval_split(cnn_model, model, crit, loader, eval_kwargs={}):
     # Switch back to training mode
     model.train()
     #  pickle.dump(Feats, open('cnn_features.pkl', 'w'))
-    return loss_sum/loss_evals, predictions, lang_stats, unseen_grams
+    return real_loss_sum/loss_evals, loss_sum/loss_evals, predictions, lang_stats, unseen_grams
 
 
 # Evaluation fun(ction)

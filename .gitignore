@@ -1,8 +1,13 @@
 data
 models
 save
+obsolete
+textLM
+tmpcaps
 vis
+*.txt
 *.pyc
 *.json
+*.log
 misc/rpn
 misc/ssd

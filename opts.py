@@ -52,6 +52,9 @@ def parse_opt():
                help='path to the h5file containing the preprocessed dataset')
     parser.add('--use_feature_maps', type=int,
                default=1, help='use feature maps as context vectors otherwise (0) run with SSD')
+    parser.add('--smoothing_version', type=int,
+               default=1, help="between v=1, zeroing similarities below a margin or v=2 applying an rbf kernel")
+
     parser.add('--cnn_model', type=str,
                default='resnet50', help='CNN branch')
     parser.add('--cnn_fc_feat', type=str,
@@ -97,8 +100,24 @@ def parse_opt():
                default=512, help='the encoding size of each token in the vocabulary, and the image.')
     parser.add('--use_glove', type=int,
                default=0, help='whether or not to use glove embeddings.')
-    parser.add('--use_synonyms', type=int,
-               default=0, help='whether or not to use glove embeddings.')
+    # RAML Loss params:
+    parser.add('--raml_loss', type=int,
+               default=0, help='use smooth loss via similar words.')
+    parser.add('--raml_version', type=str,
+               default="exp", help='Version of RAML loss between (clip) and (exp)')
+    parser.add('--raml_tau', type=float,
+               default=0.8, help='Temperature for the rbf kernel')
+    parser.add('--raml_margin', type=float,
+               default=0.9, help='clipping margin for the similarities')
+    parser.add('--raml_isolate', type=int,
+                default=0, help='Whether to treat the gt separately or not')
+    parser.add('--raml_alpha', type=float,
+               default=0.9, help='Weight accorded to the gt is isolated')
+    parser.add('--raml_normalize', type=float,
+               default=0, help='Apply tempered softmax (exp version)')
+    #--------------------//RAML
+    parser.add('--combine_caps_losses', type=int,
+               default=0, help='combine the loss of the captions relative to a single image.')
     parser.add('--num_regions', type=int,
                default=512, help='the hidden size of the attention MLP; only useful in show_attend_tell; 0 if not using hidden layer')
     parser.add('--fc_feat_size', type=int,

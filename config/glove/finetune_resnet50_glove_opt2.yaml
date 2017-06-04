@@ -1,0 +1,21 @@
+# Generic
+# -------------------------
+modelname : finetune_resnet50_glove_opt2
+start_from : save/baseline_resnet50_glove
+cnn_model : resnet50
+caption_model : show_tell
+save_checkpoint_every : 4000
+fc_feat_size : 2048
+batch_size : 10
+beam_size : 3
+input_json : data/coco/cocotalk.json
+input_h5 : data/coco/cocotalk.h5
+restart : 1
+use_glove: 1
+val_images_use : -1
+finetune_cnn_after : 0
+learning_rate : 1e-4
+learning_rate_decay_start : 5
+learning_rate_decay_rate : 0.6
+learning_rate_decay_every: 5
+grad_clip : 1.0

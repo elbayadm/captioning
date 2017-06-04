@@ -1,0 +1,14 @@
+# Generic
+# -------------------------
+modelname : baseline_vgg16_norm2_dpx
+cnn_model : vgg16
+caption_model : show_tell
+save_checkpoint_every : 6000
+fc_feat_size : 4096
+cnn_fc_feat : fc6
+batch_size : 25
+input_json : data/coco/cocotalk.json
+input_h5 : data/coco/cocotalk.h5
+restart : 1
+val_images_use : -1
+finetune_cnn_after : 20

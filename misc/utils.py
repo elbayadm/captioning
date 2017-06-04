@@ -13,6 +13,7 @@ import torchvision.models as models
 from torchvision.models.vgg import make_layers
 import torch.utils.model_zoo as model_zoo
 import torch.nn.init as init
+import math
 
 model_urls = {
     'resnet50': 'https://download.pytorch.org/models/resnet50-19c8e357.pth',
@@ -34,6 +35,18 @@ def repackage(h):
         return Variable(h.data)
     else:
         return tuple(repackage(v) for v in h)
+
+
+def covariance(X, Z):
+    """
+    """
+    n = X.size(0)
+    assert Z.size(0) == n, "X and Z should have the same number of rows"
+    xdim = X.size(1)
+    Zdim = Z.size(1)
+    Xbar = X - torch.mean(X, 0).repeat(X.size(0), 1)
+    Zbar = Z - torch.mean(Z, 0).repeat(Z.size(0), 1)
+    cov = torch.sum(torch.t(Xbar) * Zbar) / n
 
 
 class L2Norm(nn.Module):
@@ -105,8 +118,8 @@ class ResNetModel(models.ResNet):
             opt.logger.debug('Setting CNN weigths from %s' % opt.start_from)
             self.load_state_dict(torch.load(osp.join(opt.start_from, 'model-cnn.pth')))
 
-        self.to_finetune = self._modules.values()[5:]
-        self.keep_asis = self._modules.values()[:5]
+        self.to_finetune = self._modules.values() #less = 6, otherwise 5
+        #  self.keep_asis = self._modules.values()[:6]
         #  print "RESNET:", self._modules
 
     def forward(self, x):
@@ -185,12 +198,130 @@ class VggNetModel(models.VGG):
         return att_feats, x
 
 
-class LanguageModelCriterion(nn.Module):
-    def __init__(self, use_syn):
-        super(LanguageModelCriterion, self).__init__()
-        self.use_syn = use_syn
+class SmoothLanguageModelCriterion(nn.Module):
+    def __init__(self, Dist, m, tau, version="clip", isolate_gt=1, alpha=0.3, normalize=0):
+        """
+        Inputs:
+            - Dist : similarity matrix d(y, y') for y,y' in vocab
+            - version: between clipping below m or exponential temperature
+                clip: params = {margin (m)}
+                exp : params = {temperature(tau)}
+            - isolate_gt : whether to include the gt in the smoother loss or not
+            - alpha : weight of the smoothed weight when isolating gt
 
-    def forward(self, input, target, syntarget, mask):
+        Returns:
+            - The original loss term (for reference)
+            - The smoothed loss.
+        """
+        super(SmoothLanguageModelCriterion, self).__init__()
+        self.Dist = Dist
+        self.margin = m
+        self.tau = tau
+        self.version = version.lower()
+        if self.version not in ['clip', 'exp']:
+            raise ValueError("Unknown smoothing version %s" % self.version)
+        self.alpha = alpha
+        self.isolate_gt = isolate_gt
+        self.normalize = normalize
+
+    def forward(self, input, target, mask):
+        # truncate to the same size
+        input_ = input
+        target = target[:, :input.size(1)]
+        mask =  mask[:, :input.size(1)]
+        input = to_contiguous(input).view(-1, input.size(2))
+        target = to_contiguous(target).view(-1, 1)
+        mask = to_contiguous(mask).view(-1, 1)
+        real_output = - input.gather(1, target) * mask
+        real_output = torch.sum(real_output) / torch.sum(mask)
+
+        #-------------------------------------------------------
+        dist = self.Dist[target.squeeze().data]
+        #  print "Dist:", dist
+        if self.version == "exp":
+            smooth_target = torch.exp(torch.mul(torch.add(dist, -1.), 1/self.tau))
+        elif self.version == "clip":
+            indices_up = dist.ge(self.margin)
+            smooth_target = dist * indices_up.float()
+        if self.isolate_gt:
+            indices_down = dist.lt(1.0)
+            smooth_target = smooth_target * indices_down.float()
+        if self.normalize:
+            # Make sur that each row of smoothtarget sum to 1:
+            Z = torch.sum(smooth_target, 1).repeat(1, smooth_target.size(1))
+            smooth_target = smooth_target / Z
+        #  print "Smooth target:", smooth_target
+        mask = mask.repeat(1, dist.size(1))
+        output = - input * smooth_target * mask
+        if torch.sum(smooth_target * mask).data[0] > 0:
+            output = torch.sum(output) / torch.sum(smooth_target * mask)
+        else:
+            print "Smooth targets weights sum to 0"
+            output = torch.sum(output)
+        if self.isolate_gt:
+            return real_output, self.alpha * output + (1 - self.alpha) * real_output
+        else:
+            return real_output, output
+
+
+
+#  class LanguageModelCriterion(nn.Module):
+#      def __init__(self, use_syn):
+#          super(LanguageModelCriterion, self).__init__()
+#          self.use_syn = use_syn
+#
+#      def forward(self, input, target, syntarget, mask):
+#          # truncate to the same size
+#          input_ = input
+#          target = target[:, :input.size(1)]
+#          mask =  mask[:, :input.size(1)]
+#          input = to_contiguous(input).view(-1, input.size(2))
+#          target = to_contiguous(target).view(-1, 1)
+#          mask = to_contiguous(mask).view(-1, 1)
+#          output = - input.gather(1, target) * mask
+#          output = torch.sum(output) / torch.sum(mask)
+#          if self.use_syn:
+#              syntarget = syntarget[:, :input_.size(1)]
+#              syntarget = to_contiguous(syntarget).view(-1, 1)
+#              synoutput = - input.gather(1, syntarget) * mask
+#              synoutput = torch.sum(synoutput) / torch.sum(mask)
+#          else:
+#              synoutput = 0
+#          return (1 - self.use_syn) * output + self.use_syn * synoutput
+
+
+
+class MultiLanguageModelCriterion(nn.Module):
+    def __init__(self, seq_per_img=5):
+        super(MultiLanguageModelCriterion, self).__init__()
+        self.seq_per_img = seq_per_img
+
+    def forward(self, input, target, mask):
+        # truncate to the same size
+        max_length = input.size(1)
+        num_img = input.size(0) // self.seq_per_img
+        target = target[:, :input.size(1)]
+        mask =  mask[:, :input.size(1)]
+        mask_ = mask
+        input = to_contiguous(input).view(-1, input.size(2))
+        target = to_contiguous(target).view(-1, 1)
+        mask = to_contiguous(mask).view(-1, 1)
+        output = - input.gather(1, target) * mask
+        real_output = torch.sum(output) / torch.sum(mask)
+        # ------------------------------------------------
+        output = output.view(-1, max_length)
+        sent_scores = output.sum(dim=1) / mask_.sum(dim=1)
+        sent_scores_per_image = sent_scores.chunk(num_img)
+        output = torch.sum(torch.cat([t.max() for t in sent_scores_per_image], dim=0))
+        output = output / num_img
+        return real_output, output
+
+
+class LanguageModelCriterion(nn.Module):
+    def __init__(self):
+        super(LanguageModelCriterion, self).__init__()
+
+    def forward(self, input, target, mask):
         # truncate to the same size
         target = target[:, :input.size(1)]
         mask =  mask[:, :input.size(1)]
@@ -199,35 +330,16 @@ class LanguageModelCriterion(nn.Module):
         mask = to_contiguous(mask).view(-1, 1)
         output = - input.gather(1, target) * mask
         output = torch.sum(output) / torch.sum(mask)
-        if self.use_syn:
-            syntarget = syntarget[:, :input.size(1)]
-            syntarget = to_contiguous(syntarget).view(-1, 1)
-            synoutput = - input.gather(1, syntarget) * mask
-            synoutput = torch.sum(synoutput) / torch.sum(mask)
+        return output, output
 
-        return (1 - self.use_syn) * output + self.use_syn * synoutput
-
-
-
-#  class LanguageModelCriterion(nn.Module):
-#      def __init__(self):
-#          super(LanguageModelCriterion, self).__init__()
-#
-#      def forward(self, input, target, mask):
-#          # truncate to the same size
-#          target = target[:, :input.size(1)]
-#          mask =  mask[:, :input.size(1)]
-#          input = to_contiguous(input).view(-1, input.size(2))
-#          target = to_contiguous(target).view(-1, 1)
-#          mask = to_contiguous(mask).view(-1, 1)
-#          output = - input.gather(1, target) * mask
-#          output = torch.sum(output) / torch.sum(mask)
-#          return output
-#
 
 def set_lr(optimizer, lr):
     for group in optimizer.param_groups:
         group['lr'] = lr
+
+def scale_lr(optimizer, scale):
+    for group in optimizer.param_groups:
+        group['lr'] *= scale
 
 
 def clip_gradient(optimizer, max_norm, norm_type=2):
