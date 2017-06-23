@@ -25,7 +25,7 @@ class DataLoaderRaw():
         self.seq_per_img = 1
 
         # load the json file which contains additional information about the dataset
-        print('DataLoaderRaw loading images from folder: ', self.folder_path)
+        print 'DataLoaderRaw loading images from folder: ', self.folder_path
 
         self.files = []
         self.ids = []
@@ -58,6 +58,8 @@ class DataLoaderRaw():
                         self.files.append(fullpath)
                         self.ids.append(str(n)) # just order them sequentially
                         n = n + 1
+                        if n > opt.max_images:
+                            break
 
         self.N = len(self.files)
         print('DataLoaderRaw found ', self.N, ' images')
