@@ -55,6 +55,9 @@ parser.add_argument('--temperature', type=float, default=0.5,
 # For evaluation on a folder of images:
 parser.add_argument('--image_folder', type=str, default='',
                     help='If this is nonempty then will predict on the images in this folder path')
+parser.add_argument('--max_images', type=int, default=-1,
+                    help='If not -1 limit the number of evaluated images')
+
 parser.add_argument('--image_root', type=str, default='data/coco/images',
                     help='In case the image paths have to be preprended with a root path to an image folder')
 # For evaluation on MSCOCO images from some split:
@@ -159,7 +162,7 @@ eval_kwargs = {'split': 'val',
                'dataset': opt.input_json}
 eval_kwargs.update(vars(infos['opt']))
 eval_kwargs.update(vars(opt))
-eval_kwargs['val_images_use'] = 100
+eval_kwargs['num_images'] = opt.max_images
 predictions = eval_utils.eval_external(cnn_model, model, crit, loader, eval_kwargs)
 
 if opt.dump_json == 1:

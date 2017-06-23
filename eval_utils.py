@@ -486,7 +486,7 @@ def eval_split(cnn_model, model, crit, loader, eval_kwargs={}):
 
 def eval_external(cnn_model, model, crit, loader, eval_kwargs={}):
     verbose = eval_kwargs.get('verbose', True)
-    val_images_use = eval_kwargs.get('val_images_use', -1)
+    num_images = eval_kwargs.get('num_images', -1)
     split = eval_kwargs.get('split', 'val')
     lang_eval = eval_kwargs.get('language_eval', 1)
     dataset = eval_kwargs.get('dataset', 'coco')
@@ -547,8 +547,8 @@ def eval_external(cnn_model, model, crit, loader, eval_kwargs={}):
         ix0 = data['bounds']['it_pos_now']
         ix1 = data['bounds']['it_max']
         #  logger.warn('ix1 = %d - ix0 = %d' % (ix1, ix0))
-        if val_images_use != -1:
-            ix1 = min(ix1, val_images_use)
+        if num_images != -1:
+            ix1 = min(ix1, num_images)
         for i in range(n - ix1):
             predictions.pop()
         #  logger.debug('validation loss ... %d/%d (%f)' %(ix0 - 1, ix1, loss))
