@@ -149,6 +149,7 @@ model.eval()
 crit = utils.LanguageModelCriterion()
 
 # Create the Data Loader instance
+start = time.time()
 if len(opt.image_folder) == 0:
   loader = DataLoader(opt)
 else:
@@ -169,7 +170,6 @@ eval_kwargs.update(vars(opt))
 eval_kwargs['num_images'] = opt.max_images
 eval_kwargs['beam_size'] = opt.beam_size
 print "Evaluation beam size:", eval_kwargs['beam_size']
-start = time.time()
 predictions = eval_utils.eval_external(cnn_model, model, crit, loader, eval_kwargs)
 print "Finished evaluation in ", (time.time() - start)
 if opt.dump_json == 1:
