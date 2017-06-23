@@ -515,7 +515,6 @@ def eval_external(cnn_model, model, crit, loader, eval_kwargs={}):
     seq_per_img = 5
     while True:
         data = loader.get_batch(split, seq_per_img=seq_per_img)
-        print data.keys()
         n = n + loader.batch_size
 
         # forward the model to get loss
@@ -544,7 +543,7 @@ def eval_external(cnn_model, model, crit, loader, eval_kwargs={}):
 
         for k, sent in enumerate(sents):
             spath = short_path(data['infos'][k]['file_path'])
-            print _OKGREEN, spath, ">>", sent, _ENDC
+            print spath, _OKGREEN, ">>", sent, _ENDC
             entry = {'image_path': spath, 'caption': sent}
             predictions.append(entry)
             #  logger.debug('image %s: %s' %(entry['image_id'], entry['caption']))
