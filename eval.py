@@ -164,8 +164,9 @@ eval_kwargs = {'split': 'val',
 eval_kwargs.update(vars(infos['opt']))
 eval_kwargs.update(vars(opt))
 eval_kwargs['num_images'] = opt.max_images
+start = time.time()
 predictions = eval_utils.eval_external(cnn_model, model, crit, loader, eval_kwargs)
-
+print "Finished evaluation in ", (time.time() - start)
 if opt.dump_json == 1:
     # dump the json
     json.dump(predictions, open(opt.output_json, 'w'))
