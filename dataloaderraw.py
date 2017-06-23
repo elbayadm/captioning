@@ -59,9 +59,10 @@ class DataLoaderRaw():
                         self.files.append(fullpath)
                         self.ids.append(str(n)) # just order them sequentially
                         n = n + 1
-                        if self.max_images != -1:
-                            if n > self.max_images:
-                                break
+                    if self.max_images != -1:
+                        if n > self.max_images:
+                            print "Loaded %d images" % n
+                            break
 
         self.N = len(self.files)
         print('DataLoaderRaw found ', self.N, ' images')
