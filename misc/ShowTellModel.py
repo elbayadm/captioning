@@ -99,6 +99,8 @@ class ShowTellModel(nn.Module):
     def sample_beam(self, fc_feats, att_feats, opt={}):
         beam_size = opt.get('beam_size', 10)
         batch_size = fc_feats.size(0)
+        forbid_unk = opt.get('forbid_unk', 1)
+
 
         assert beam_size <= self.vocab_size + 1, 'lets assume this for now, otherwise this corner case causes a few headaches down the road. can be dealt with in future if needed'
         seq = torch.LongTensor(self.seq_length, batch_size).zero_()
@@ -177,6 +179,9 @@ class ShowTellModel(nn.Module):
 
                 output, state = self.core(xt.unsqueeze(0), state)
                 logprobs = F.log_softmax(self.logit(output.squeeze(0)))
+                if forbid_unk:
+                    logprobs = logprobs[:, :-1]
+
 
             self.done_beams[k] = sorted(self.done_beams[k], key=lambda x: -x['p'])
             seq[:, k] = self.done_beams[k][0]['seq'] # the first beam has highest cumulative score
@@ -188,6 +193,8 @@ class ShowTellModel(nn.Module):
         sample_max = opt.get('sample_max', 1)
         beam_size = opt.get('beam_size', 1)
         temperature = opt.get('temperature', 1.0)
+        forbid_unk = opt.get('forbid_unk', 1)
+
         if beam_size > 1:
             return self.sample_beam(fc_feats, att_feats, opt)
 
@@ -230,5 +237,8 @@ class ShowTellModel(nn.Module):
 
             output, state = self.core(xt.unsqueeze(0), state)
             logprobs = F.log_softmax(self.logit(output.squeeze(0)))
+            if forbid_unk:
+                logprobs = logprobs[:, :-1]
+
 
         return torch.cat([_.unsqueeze(1) for _ in seq], 1), torch.cat([_.unsqueeze(1) for _ in seqLogprobs], 1)

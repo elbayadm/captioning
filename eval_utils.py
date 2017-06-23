@@ -532,7 +532,7 @@ def eval_external(cnn_model, model, crit, loader, eval_kwargs={}):
         # forward the model to also get generated samples for each image
         # Only leave one feature for each image, in case duplicate sample
         fc_feats, att_feats = _fc_feats, _att_feats
-        seq, _ = model.sample(fc_feats, att_feats, {'beam_size': beam_size, "vocab_size": vocab_size})
+        seq, _ = model.sample(fc_feats, att_feats, {'beam_size': beam_size, "vocab_size": vocab_size, 'forbid_unk': 1})
         #set_trace()
         sents = utils.decode_sequence(loader.get_vocab(), seq)
         #  seq2, _ = model.sample(fc_feats, att_feats, {'beam_size': beam_size, "vocab_size": vocab_size})
@@ -540,9 +540,8 @@ def eval_external(cnn_model, model, crit, loader, eval_kwargs={}):
         #  sents2 = utils.decode_sequence(loader.get_vocab(), seq2)
 
         for k, sent in enumerate(sents):
-            print _OKGREEN, data['infos'][k]['id'],">>", sent, _ENDC
-            print data['infos'][k]
-            entry = {'image_id': data['infos'][k]['id'], 'caption': sent}
+            print _OKGREEN, data['infos'][k]['file_path'],">>", sent, _ENDC
+            entry = {'image_path': data['infos'][k]['file_path'], 'caption': sent}
             predictions.append(entry)
             #  logger.debug('image %s: %s' %(entry['image_id'], entry['caption']))
         ix0 = data['bounds']['it_pos_now']
