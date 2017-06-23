@@ -34,7 +34,7 @@ import misc.utils as utils
 import tensorflow as tf
 from tensorflow.python.framework import dtypes
 from tensorflow.contrib.tensorboard.plugins import projector
-from misc.lm import VAE_LM_encoder, LM_encoder, LM_decoder
+from misc.lm import MultiVAE_LM_encoder, VAE_LM_encoder, LM_encoder, LM_decoder
 
 def get_optimizer(ref):
     #  rmsprop | sgd | sgdmom | adagrad | adam
@@ -95,7 +95,7 @@ def train(opt):
         with open(osp.join(opt.start_from, 'infos.pkl')) as f:
             infos = pickle.load(f)
             saved_model_opt = infos['opt']
-            need_be_same=["lm_model", "rnn_type", "rnn_size", "num_layers"]
+            need_be_same=["rnn_type", "rnn_size", "num_layers"]
             for checkme in need_be_same:
                 assert vars(saved_model_opt)[checkme] == vars(opt)[checkme], "Command line argument and saved model disagree on '%s' " % checkme
         opt.logger.warn('Starting from %s' % opt.start_from)
@@ -121,6 +121,9 @@ def train(opt):
     elif opt.lm_model == "rnn_vae":
         opt.logger.warn('Injecting VAE block in the encoder-decoder model')
         encoder = VAE_LM_encoder(opt)
+    elif opt.lm_model == "rnn_multi_vae":
+        opt.logger.warn('Injecting multiVAE block in the encoder-decoder model')
+        encoder = MultiVAE_LM_encoder(opt)
     else:
         raise ValueError('Unknown LM model %s' % opt.lm_model)
     decoder = LM_decoder(opt)
@@ -136,8 +139,10 @@ def train(opt):
     update_lr_flag = True
     # Assure in training mode
     model.train()
-
-    crit = utils.LanguageModelCriterion()
+    if opt.match_pairs:
+        crit = utils.PairsLanguageModelCriterion(opt)
+    else:
+        crit = utils.LanguageModelCriterion()
     optim_func = get_optimizer(opt.optim)
     optimizer = optim_func(model.parameters(), lr=opt.learning_rate, weight_decay=opt.weight_decay)
     print "Model params shapes:"
@@ -186,12 +191,12 @@ def train(opt):
         optimizer.zero_grad()
         if opt.lm_model == "rnn":
             codes = encoder(labels)
-        elif opt.lm_model == "rnn_vae":
+        else:
             z_mu, z_var, codes = encoder(labels)
             kld_loss = torch.mean(0.5 * torch.sum(torch.exp(z_var) + z_mu**2 - 1. - z_var, 1))
             train_kld_loss = kld_loss.data[0]
-        loss = crit(decoder(codes, labels), labels[:,1:], masks[:,1:])
-        if opt.lm_model == "rnn_vae" and opt.kld_weight:
+        loss = crit(decoder(codes, labels), labels[:,1:], masks[:,1:])[0]
+        if "vae" in opt.lm_model and opt.kld_weight:
             loss += opt.kld_weight *  kld_loss
         loss.backward()
         grad_norm = utils.clip_gradient(optimizer, opt.grad_clip)
@@ -235,10 +240,12 @@ def train(opt):
             eval_kwargs = {'split': 'val',
                            'dataset': opt.input_json}
             eval_kwargs.update(vars(opt))
-            val_loss = eval_utils.eval_lm_split(encoder, decoder, crit, loader, eval_kwargs)
+            val_loss, lang_stats = eval_utils.eval_lm_split(encoder, decoder, crit, loader, eval_kwargs)
 
             #  Write validation result into summary
             add_summary_value(tf_summary_writer, 'validation loss', val_loss, iteration)
+            for k, v in lang_stats.iteritems():
+                add_summary_value(tf_summary_writer, k, v, iteration)
             tf_summary_writer.flush()
             val_result_history[iteration] = {'loss': val_loss}
             current_score = - val_loss

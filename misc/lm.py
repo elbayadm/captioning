@@ -8,6 +8,111 @@ from torch.autograd import *
 import misc.utils as utils
 from misc.cvae import VAE
 
+class MultiVAE_LM_encoder(nn.Module):
+    def __init__(self, opt):
+        super(MultiVAE_LM_encoder, self).__init__()
+        self.vocab_size = opt.vocab_size
+        self.input_encoding_size = opt.input_encoding_size
+        self.rnn_type = opt.rnn_type
+        self.rnn_size = opt.rnn_size - opt.z_size
+        self.z_size = opt.z_size
+        self.z_interm_size = opt.z_interm_size
+        self.num_layers = opt.num_layers
+        self.drop_prob_lm = opt.drop_prob_lm
+        self.seq_length = opt.seq_length
+        self.num_related = opt.seq_per_img # or a separate param
+        self.core = getattr(nn, self.rnn_type.upper())(self.input_encoding_size, self.rnn_size, self.num_layers, bias=False, dropout=self.drop_prob_lm)
+        self.embed = nn.Embedding(self.vocab_size + 1, self.input_encoding_size)  # max_norm=1.0)
+        self.drop_x_lm = nn.Dropout(p=opt.drop_x_lm)
+        #VAE block:
+        self.vae = VAE(input_dim=self.rnn_size,
+                       latent_dim=self.z_size,
+                       h_dim=self.z_interm_size)
+        self.init_weights()
+        opt.logger.warn('Language Model (vae encoder) : %s' % str(self._modules))
+
+    def init_weights(self):
+        initrange = 0.1
+        self.embed.weight.data.uniform_(-initrange, initrange)
+        self.vae.init_weights()
+
+    def init_hidden(self, bsz):
+        weight = next(self.parameters()).data
+        if self.rnn_type == 'lstm':
+            return (Variable(weight.new(self.num_layers, bsz, self.rnn_size).zero_()),
+                    Variable(weight.new(self.num_layers, bsz, self.rnn_size).zero_()))
+        else:
+            return Variable(weight.new(self.num_layers, bsz, self.rnn_size).zero_())
+
+    def forward(self, seq):
+        # seq (batchsize, sequence length, token index)
+        # remove bos and eos:
+
+        batch_size = seq.size(0)
+        state = self.init_hidden(batch_size)
+        for i in range(1, seq.size(1)):
+            it = seq[:, i].clone()
+            if it.data.sum():
+                xt = self.embed(it)
+                xt = self.drop_x_lm(xt)
+                output, state = self.core(xt.unsqueeze(0), state)
+            else:
+                break
+        rnn_state = output.squeeze(0)
+        num_groups = rnn_state.size(0) // self.num_related
+        rnn_per_group = rnn_state.chunk(num_groups)
+        rnn_mean = torch.cat([torch.mean(t, dim=0).repeat(self.num_related, 1) for t in rnn_per_group], dim=0)
+        #  print rnn_mean, rnn_state
+        # Encode via VAE:
+        z_mu, z_var , z = self.vae(rnn_state)
+        return z_mu, z_var, torch.cat([rnn_mean, z], 1)
+
+    def sample_group(self, seq):
+        # seq (batchsize, sequence length, token index)
+        # remove bos and eos:
+
+        batch_size = seq.size(0)
+        state = self.init_hidden(batch_size)
+        for i in range(1, seq.size(1)):
+            it = seq[:, i].clone()
+            if it.data.sum():
+                xt = self.embed(it)
+                xt = self.drop_x_lm(xt)
+                output, state = self.core(xt.unsqueeze(0), state)
+            else:
+                break
+        rnn_state = output.squeeze(0)
+        num_groups = rnn_state.size(0) // self.num_related
+        rnn_per_group = rnn_state.chunk(num_groups)
+        rnn_mean = torch.cat([torch.mean(t, dim=0).repeat(self.num_related, 1) for t in rnn_per_group], dim=0)
+        #  print rnn_mean, rnn_state
+        # Encode via VAE:
+        #  z_mu, z_var , z = self.vae(rnn_state)
+        #  z = Variable(torch.randn(batch_size, self.z_size)).cuda()
+        z = Variable(torch.mul(torch.randn(batch_size, self.z_size), 10)).cuda()
+        #  print z
+
+        return torch.cat([rnn_mean, z], 1)
+
+    def sample(self, seq):
+        # seq (batchsize, sequence length, token index)
+        # remove bos and eos:
+
+        batch_size = seq.size(0)
+        state = self.init_hidden(batch_size)
+        for i in range(1, seq.size(1)):
+            it = seq[:, i].clone()
+            if it.data.sum():
+                xt = self.embed(it)
+                xt = self.drop_x_lm(xt)
+                output, state = self.core(xt.unsqueeze(0), state)
+            else:
+                break
+        rnn_state = output.squeeze(0)
+        # Encode via VAE:
+        z = Variable(torch.mul(torch.randn(batch_size, self.z_size), 10)).cuda()
+        return torch.cat([rnn_state, z], 1)
+
 
 class VAE_LM_encoder(nn.Module):
     def __init__(self, opt):
@@ -288,6 +393,66 @@ class LM_decoder(nn.Module):
             seqLogprobs[:, k] = self.done_beams[k][0]['logps']
         # return the samples and their log likelihoods
         return seq.transpose(0, 1), seqLogprobs.transpose(0, 1)
+
+    def sample_ltd(self, text_code, indices, opt={}):
+        """
+        Sample limited to a vocab
+        """
+        sample_max = opt.get('sample_max', 1)
+        beam_size = opt.get('beam_size', 1)
+        temperature = opt.get('temperature', 1.0)
+        forbid_unk = opt.get('forbid_unk', 1)
+        unk_index = opt.get('vocab_size')
+
+        batch_size = text_code.size(0)
+        state = self.init_hidden(batch_size)
+        seq = []
+        seqLogprobs = []
+        for t in range(self.seq_length + 2):
+            if t == 0:
+                xt = self.text_code_embed(text_code)
+            else:
+                if t == 1: # input <bos>
+                    it = text_code.data.new(batch_size).long().zero_()
+                elif sample_max:
+                    sampleLogprobs, it = torch.max(logprobs.data, 1)
+                    it = it.view(-1).long()
+                else:
+                    if temperature == 1.0:
+                        prob_prev = torch.exp(logprobs.data).cpu() # fetch prev distribution: shape Nx(M+1)
+                    else:
+                        # scale logprobs by temperature
+                        prob_prev = torch.exp(torch.div(logprobs.data, temperature)).cpu()
+                    it = torch.multinomial(prob_prev, 1).cuda()
+                    sampleLogprobs = logprobs.gather(1, Variable(it, requires_grad=False)) # gather the logprobs at sampled positions
+                    it = it.view(-1).long() # and flatten indices for downstream processing
+
+                xt = self.embed(Variable(it, requires_grad=False))
+
+            if t >= 2:
+                # stop when all finished
+                if t == 2:
+                    unfinished = it > 0
+                else:
+                    unfinished = unfinished * (it > 0)
+                if unfinished.sum() == 0:
+                    break
+                it = it * unfinished.type_as(it)
+                seq.append(it) #seq[t] the input of t+2 time step
+                seqLogprobs.append(sampleLogprobs.view(-1))
+
+            output, state = self.core(xt.unsqueeze(0), state)
+            logprobs = F.log_softmax(self.logit(output.squeeze(0)))
+            #  print "logprobs:", logprobs.data[:, :20]
+            for token in indices:
+                logprobs[:, token] += 5
+            if forbid_unk:
+                logpros = logprobs[:, :-1]
+                #  print "logprobs post:", logprobs.data[:, :20]
+        return torch.cat([_.unsqueeze(1) for _ in seq], 1), torch.cat([_.unsqueeze(1) for _ in seqLogprobs], 1)
+
+
+
 
     def sample(self, text_code, opt={}):
         sample_max = opt.get('sample_max', 1)

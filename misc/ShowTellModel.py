@@ -8,6 +8,7 @@ import torch.nn.functional as F
 from torch.autograd import *
 import misc.utils as utils
 import cPickle as pickle
+import numpy as np
 
 
 class ShowTellModel(nn.Module):
@@ -26,6 +27,7 @@ class ShowTellModel(nn.Module):
         else:
             self.input_encoding_size = opt.input_encoding_size
         self.ss_prob = 0.0 # Schedule sampling probability
+        self.ss_vocab = opt.scheduled_sampling_vocab
         self.img_embed = nn.Linear(self.fc_feat_size, self.input_encoding_size)
         #TODO add dropout on rnn input.
         self.core = getattr(nn, self.rnn_type.upper())(self.input_encoding_size, self.rnn_size, self.num_layers,
@@ -59,6 +61,7 @@ class ShowTellModel(nn.Module):
         batch_size = fc_feats.size(0)
         state = self.init_hidden(batch_size)
         outputs = []
+        sample_vocab = np.unique(seq.cpu().data.numpy())
 
         for i in range(seq.size(1)):
             if i == 0:
@@ -75,6 +78,9 @@ class ShowTellModel(nn.Module):
                         #prob_prev = torch.exp(outputs[-1].data.index_select(0, sample_ind)) # fetch prev distribution: shape Nx(M+1)
                         #it.index_copy_(0, sample_ind, torch.multinomial(prob_prev, 1).view(-1))
                         prob_prev = torch.exp(outputs[-1].data) # fetch prev distribution: shape Nx(M+1)
+                        if self.ss_vocab:
+                            for token in sample_vocab:
+                                prob_prev[:, token] += 0.5
                         it.index_copy_(0, sample_ind, torch.multinomial(prob_prev, 1).view(-1).index_select(0, sample_ind))
                         it = Variable(it, requires_grad=False)
                 else:

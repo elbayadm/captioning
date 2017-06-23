@@ -22,7 +22,7 @@ if [ $BQ ] && [ $TX ]; then
     oarsub -l "walltime=40:0:0" -n $JOB \
            -t besteffort -t idempotent \
            -p "gpumodel='titan_x' or gpumodel='titan_x_pascal'"\
-           -O  save/$JOB/stdout -E save/$JOB/stderr\
+           -O  save/textLM/$JOB/stdout -E save/textLM/$JOB/stderr\
            'python train_text.py -c config/'$JOB'.yaml'
 else
     if [ $BQ ]; then
@@ -30,19 +30,19 @@ else
         oarsub -l "walltime=40:0:0" -n $JOB \
             -t besteffort -t idempotent \
             -p "gpumem>"$MEM \
-            -O  save/$JOB/stdout -E save/$JOB/stderr\
+            -O  save/textLM/$JOB/stdout -E save/textLM/$JOB/stderr\
             'python train_text.py -c config/'$JOB'.yaml'
     else
         if [ $TX ]; then
             echo "Requesting a titan_x (high priority)"
             oarsub -l "walltime=40:0:0" -n $JOB \
-                -O  save/$JOB/stdout -E save/$JOB/stderr\
+                -O  save/textLM/$JOB/stdout -E save/textLM/$JOB/stderr\
                 -p "gpumodel='titan_x' or gpumodel='titan_x_pascal'"\
                 'python train_text.py -c config/'$JOB'.yaml'
         else
             echo "Standard (high priority)"
             oarsub -l "walltime=40:0:0" -n $JOB \
-                -O  save/$JOB/stdout -E save/$JOB/stderr\
+                -O  save/textLM/$JOB/stdout -E save/textLM/$JOB/stderr\
                 -p "gpumem>"$MEM\
                 'python train_text.py -c config/'$JOB'.yaml'
         fi

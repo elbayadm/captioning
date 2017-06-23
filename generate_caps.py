@@ -65,7 +65,10 @@ parser.add_argument('--dump_path', type=int, default=0,
 # Sampling options
 parser.add_argument('--sample_max', type=int, default=1,
                     help='1 = sample argmax words. 0 = sample from distributions.')
-parser.add_argument('--beam_size', type=int, default=2,
+parser.add_argument('--sample_limited_vocab', type=int, default=0,
+                    help='1 = sample for the 5gts vocab.')
+
+parser.add_argument('--beam_size', type=int, default=3,
                     help='used when sample_max = 1, indicates number of beams in beam search. Usually 2 or 3 works well. More is not better. Set this to 1 for faster runtime but a bit worse performance.')
 parser.add_argument('--temperature', type=float, default=1.0,
                     help='temperature when sampling from distributions (i.e. when sample_max = 0). Lower = "safer" predictions.')
@@ -116,14 +119,13 @@ vocab = infos['vocab'] # ix -> word mapping
 
 # Build the captioning model
 # Build the captioning model
-try:
-    if saved_model_opt.lm_model == "rnn_vae":
-        opt.logger.warn('Injecting VAE block in the encoder-decoder model')
-        encoder = VAE_LM_encoder(opt)
-    elif saved_model_opt.lm_model == "rnn_multi_vae":
-        opt.logger.warn('Injecting VAE block in the encoder-decoder model')
-        encoder = MultiVAE_LM_encoder(opt)
-except:
+if saved_model_opt.lm_model == "rnn_vae":
+    opt.logger.warn('Injecting VAE block in the encoder-decoder model')
+    encoder = VAE_LM_encoder(opt)
+elif saved_model_opt.lm_model == "rnn_multi_vae":
+    opt.logger.warn('Injecting VAE block in the encoder-decoder model')
+    encoder = MultiVAE_LM_encoder(opt)
+else:
     saved_model_opt.lm_model = "rnn"
     opt.logger.warn('Using Basic RNN encoder-decoder')
     encoder = LM_encoder(opt)
@@ -151,11 +153,11 @@ else:
     loader.ix_to_word = infos['vocab']
 #  opt.val_images_use = 5
 opt.lm_model = saved_model_opt.lm_model
-opt.output_file = 'data/coco/generated_captions_%s_%d.json' % (opt.model, int(10 * opt.temperature))
+opt.output_file = 'data/coco/generated_captions_%s_%d_limited.json' % (opt.model, int(10 * opt.temperature))
 #  opt.tries = 1
 crit = utils.LanguageModelCriterion()
 #  loss = eval_utils.eval_lm_split(encoder, decoder, crit, loader, vars(opt))
 #  print "Loss:", loss
 print opt
-eval_utils.eval_lm_split(encoder, decoder, crit, loader, vars(opt))
+eval_utils.generate_caps(encoder, decoder, crit, loader, vars(opt))
 

@@ -183,6 +183,67 @@ def encode_captions(imgs, params, wtoi):
     return L, label_start_ix, label_end_ix, label_length
 
 
+def encode_extra_captions(imgs, params, wtoi):
+    """
+    encode all captions into one large array, which will be 1-indexed.
+    also produces label_start_ix and label_end_ix which store 1-indexed
+    and inclusive (Lua-style) pointers to the first and last caption for
+    each image in the dataset.
+    """
+    max_length = params['max_length']
+    N = len(imgs)
+    # Load additional captions
+    extra_ = json.load(open(params['gen_source'], 'r'))
+    extra = {}
+    for im in extra_:
+        extra[im['id']] = [[w if w in wtoi else 'UNK' for w in sent.split(' ')] for sent in im['sampled']]
+        #  print im['id']
+
+    print "Captions =", sum(len(img['final_captions']) for img in imgs) # total number of captions
+
+    for img in imgs:
+        print img['cocoid'], img['split']
+        try:
+            if img['split'] == 'train':
+                print "Gt:",  img["final_captions"]
+                print "Added:", extra[img['cocoid']]
+                img["final_captions"] += extra[img['cocoid']]
+            else:
+                print "skipping val/restval/test"
+        except:
+            print "########## No addtional captions provided"
+
+
+    M = sum(len(img['final_captions']) for img in imgs) # total number of captions
+    print "Encoding %d captions" % M
+    label_arrays = []
+    label_start_ix = np.zeros(N, dtype='uint32') # note: these will be one-indexed
+    label_end_ix = np.zeros(N, dtype='uint32')
+    label_length = np.zeros(M, dtype='uint32')
+    caption_counter = 0
+    counter = 1
+    for i, img in enumerate(imgs):
+        n = len(img['final_captions'])
+        assert n > 0, 'error: some image has no captions'
+        Li = np.zeros((n, max_length), dtype='uint32')
+        for j, s in enumerate(img['final_captions']):
+            label_length[caption_counter] = min(max_length, len(s)) # record the length of this sequence
+            caption_counter += 1
+            for k, w in enumerate(s):
+                if k < max_length:
+                    Li[j, k] = wtoi[w]
+        # note: word indices are 1-indexed, and captions are padded with zeros
+        label_arrays.append(Li)
+        label_start_ix[i] = counter
+        label_end_ix[i] = counter + n - 1
+        counter += n
+    L = np.concatenate(label_arrays, axis=0) # put all the labels together
+    assert L.shape[0] == M, 'lengths don\'t match? that\'s weird'
+    assert np.all(label_length > 0), 'error: some caption had no words?'
+    print 'encoded captions to array of size ', `L.shape`
+    return L, label_start_ix, label_end_ix, label_length
+
+
 def main(params):
     """
     Main preprocessing
@@ -206,13 +267,15 @@ def main(params):
             txt = sent['tokens']
             caption = [w if w in wtoi else 'UNK' for w in txt]
             img['final_captions'].append(caption)
-            if len(img['final_captions']) >= 3:
-                break
+            #  if len(img['final_captions']) >= 5:
+            #      break
 
     ################################################################################################################
-    L, label_start_ix, label_end_ix, label_length = encode_captions(imgs, params, wtoi)
-    #  L, Lsyn, label_start_ix, label_end_ix, label_length = encode_captions_syn(imgs, params, wtoi)
-
+    if params['gen'] == '':
+        L, label_start_ix, label_end_ix, label_length = encode_captions(imgs, params, wtoi)
+    else:
+        L, label_start_ix, label_end_ix, label_length = encode_extra_captions(imgs, params, wtoi)
+    #
     # create output h5 file
     N = len(imgs)
     f = h5py.File(params['output_h5'], "w")
@@ -265,8 +328,10 @@ if __name__ == "__main__":
     # input json
     DATA_DIR = 'data/coco/'
     parser.add_argument('--input_json', default='%sdataset_coco.json' % DATA_DIR,  help='input json file to process into hdf5')
-    parser.add_argument('--output_json', default='%scaps3_cocotalk.json' % DATA_DIR, help='output json file')
-    parser.add_argument('--output_h5', default='%scaps3_cocotalk.h5' % DATA_DIR, help='output h5 file')
+    parser.add_argument('--gen', default='', help='Source of additional captions')
+    #  parser.add_argument('--output_json', default='%sgen_cocotalk.json' % DATA_DIR, help='output json file')
+    parser.add_argument('--output', default='', help='output name')
+    #  parser.add_argument('--output_h5', default='%sgen_cocotalk.h5' % DATA_DIR, help='output h5 file')
     # options
     parser.add_argument('--max_length', default=16, type=int, help='max length of a caption, in number of words. captions longer than this get clipped.')
     parser.add_argument('--imsize', default=256, type=int, help='image size.')
@@ -274,6 +339,9 @@ if __name__ == "__main__":
     parser.add_argument('--word_count_threshold', default=5, type=int, help='only words that occur more than this number of times will be put in vocab')
     args = parser.parse_args()
     params = vars(args) # convert to ordinary dict
+    params['output_json'] = '%s%s.json' % (DATA_DIR, params['output'])
+    params['output_h5'] = '%s%s.h5' % (DATA_DIR, params['output'])
+    params['gen_source'] = "%s/generated_captions_%s.json" % (DATA_DIR, params['gen'])
     print 'parsed input parameters:'
     print json.dumps(params, indent=2)
     main(params)

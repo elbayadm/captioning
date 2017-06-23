@@ -14,6 +14,8 @@ from torchvision.models.vgg import make_layers
 import torch.utils.model_zoo as model_zoo
 import torch.nn.init as init
 import math
+import numpy as np
+
 
 model_urls = {
     'resnet50': 'https://download.pytorch.org/models/resnet50-19c8e357.pth',
@@ -199,7 +201,7 @@ class VggNetModel(models.VGG):
 
 
 class SmoothLanguageModelCriterion(nn.Module):
-    def __init__(self, Dist, m, tau, version="clip", isolate_gt=1, alpha=0.3, normalize=0):
+    def __init__(self, Dist, opt):
         """
         Inputs:
             - Dist : similarity matrix d(y, y') for y,y' in vocab
@@ -215,20 +217,30 @@ class SmoothLanguageModelCriterion(nn.Module):
         """
         super(SmoothLanguageModelCriterion, self).__init__()
         self.Dist = Dist
-        self.margin = m
-        self.tau = tau
-        self.version = version.lower()
-        if self.version not in ['clip', 'exp']:
+        self.margin = opt.raml_margin
+        self.tau = opt.raml_tau
+        self.version = opt.raml_version.lower()
+        self.seq_per_img = opt.seq_per_img
+        if self.version not in ['clip', 'exp', 'vocab']:
             raise ValueError("Unknown smoothing version %s" % self.version)
-        self.alpha = alpha
-        self.isolate_gt = isolate_gt
-        self.normalize = normalize
+        self.alpha = opt.raml_alpha
+        self.isolate_gt = opt.raml_isolate
+        self.normalize = opt.raml_normalize
+        self.less_confident = opt.less_confident
 
     def forward(self, input, target, mask):
         # truncate to the same size
         input_ = input
+        seq_length = input.size(1)
         target = target[:, :input.size(1)]
-        mask =  mask[:, :input.size(1)]
+        target_ = target
+        mask = mask[:, :input.size(1)]
+        print "mask:", mask
+        if self.less_confident:
+            gen_rows = np.arange(mask.size(0),)
+            gen_rows = (gen_rows % self.seq_per_img) > 4
+            gen_rows = torch.from_numpy(np.where(gen_rows)[0]).cuda()
+            mask.data[gen_rows] = torch.mul(mask.data[gen_rows], self.less_confident)
         input = to_contiguous(input).view(-1, input.size(2))
         target = to_contiguous(target).view(-1, 1)
         mask = to_contiguous(mask).view(-1, 1)
@@ -243,6 +255,27 @@ class SmoothLanguageModelCriterion(nn.Module):
         elif self.version == "clip":
             indices_up = dist.ge(self.margin)
             smooth_target = dist * indices_up.float()
+        elif self.version == "vocab":
+            num_img = target_.size(0) // self.seq_per_img
+            vocab_per_image = target_.chunk(num_img)
+            vocab_per_image = [np.unique(to_contiguous(t).data.cpu().numpy()) for t in vocab_per_image]
+            max_vocab = max([len(t) for t in vocab_per_image])
+            vocab_per_image = [np.pad(t, (0, max_vocab - len(t)), 'constant') for t in vocab_per_image]
+            indices_vocab = Variable(torch.cat([torch.from_numpy(t).repeat(self.seq_per_img * seq_length, 1) for t in vocab_per_image], dim=0)).cuda()
+            mask_ = mask.repeat(1, indices_vocab.size(1))
+            dist_vocab = dist.gather(1, indices_vocab)
+            smooth_target = torch.exp(torch.mul(torch.add(dist_vocab, -1.), 1/self.tau))
+            output = - input.gather(1, indices_vocab) * mask_ * smooth_target
+            if self.isolate_gt:
+                indices_down = dist_vocab.lt(1.0)
+                smooth_target = smooth_target * indices_down.float()
+            if torch.sum(smooth_target * mask_).data[0] > 0:
+                output = torch.sum(output) / torch.sum(smooth_target * mask_)
+            else:
+                print "Smooth targets weights sum to 0"
+                output = torch.sum(output)
+            return real_output, self.alpha * output + (1 - self.alpha) * real_output
+        # case exp & clip
         if self.isolate_gt:
             indices_down = dist.lt(1.0)
             smooth_target = smooth_target * indices_down.float()
@@ -262,7 +295,6 @@ class SmoothLanguageModelCriterion(nn.Module):
             return real_output, self.alpha * output + (1 - self.alpha) * real_output
         else:
             return real_output, output
-
 
 
 #  class LanguageModelCriterion(nn.Module):
@@ -333,9 +365,43 @@ class LanguageModelCriterion(nn.Module):
         return output, output
 
 
+class PairsLanguageModelCriterion(nn.Module):
+    def __init__(self, opt):
+        super(PairsLanguageModelCriterion, self).__init__()
+        self.seq_per_img = opt.seq_per_img
+
+    def forward(self, input, target, mask):
+        # truncate to the same size
+        target = target[:, :input.size(1)]
+        #  print "target:", target
+        #  print "mask:", mask
+        # duplicate
+        num_img = input.size(0) // self.seq_per_img
+        input_per_image = input.chunk(num_img)
+        input = torch.cat([t.repeat(self.seq_per_img, 1, 1) for t in input_per_image], dim=0)
+        target = torch.unsqueeze(target, 0)
+        target = target.permute(1, 0, 2)
+        target = target.repeat(1, self.seq_per_img, 1)
+        target = target.resize(target.size(0) * target.size(1), target.size(2))
+        mask = mask[:, :input.size(1)]
+        mask = torch.unsqueeze(mask, 0)
+        mask = mask.permute(1, 0, 2)
+        mask = mask.repeat(1, self.seq_per_img, 1)
+        mask = mask.resize(mask.size(0) * mask.size(1), mask.size(2))
+        #  print "target:", target
+        #  print "mask:", mask
+        input = to_contiguous(input).view(-1, input.size(2))
+        target = to_contiguous(target).view(-1, 1)
+        mask = to_contiguous(mask).view(-1, 1)
+        output = - input.gather(1, target) * mask
+        output = torch.sum(output) / torch.sum(mask)
+        return output, output
+
+
 def set_lr(optimizer, lr):
     for group in optimizer.param_groups:
         group['lr'] = lr
+
 
 def scale_lr(optimizer, scale):
     for group in optimizer.param_groups:

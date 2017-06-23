@@ -100,6 +100,9 @@ def parse_opt():
                default=512, help='the encoding size of each token in the vocabulary, and the image.')
     parser.add('--use_glove', type=int,
                default=0, help='whether or not to use glove embeddings.')
+    parser.add('--less_confident', type=float,
+               default=0, help='if neq 0, be less confident in the added captions (used to scale down the loss)')
+
     # RAML Loss params:
     parser.add('--raml_loss', type=int,
                default=0, help='use smooth loss via similar words.')
@@ -191,9 +194,19 @@ def parse_opt():
                default=0.1, help='learning rate for the CNN = factor * learning_rate')
     parser.add('--cnn_weight_decay', type=float,
                default=0, help='L2 weight decay just for the CNN')
+    parser.add('--scheduled_sampling_strategy', type=str,
+               default="step", help='the decay schedule')
+    parser.add('--match_pairs', type=int,
+               default=0, help='match senetences pairs')
 
     parser.add('--scheduled_sampling_start', type=int,
                default=-1, help='at what iteration to start decay gt probability')
+    parser.add('--scheduled_sampling_vocab', type=int,
+               default=0, help='if 1 limits sampling to the gt vocab')
+
+    parser.add('--scheduled_sampling_speed', type=int,
+               default=100, help='ss speed')
+
     parser.add('--scheduled_sampling_increase_every', type=int,
                default=5, help='every how many iterations thereafter to gt probability')
     parser.add('--scheduled_sampling_increase_prob', type=float,

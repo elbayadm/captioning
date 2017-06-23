@@ -122,6 +122,15 @@ def vocab_use(caps):
         TOK.update(cap.split())
     return len(TOK)
 
+def language_lm_eval(refs, cands):
+    """
+    Measure BLEU4 score
+    """
+    from nltk.translate.bleu_score import corpus_bleu
+    refs = [[ref.split()] for ref in refs]
+    cands = [cand.split() for cand in cands]
+    B4 = corpus_bleu(refs, cands)
+    return {'Bleu4': B4}
 
 def language_eval(dataset, preds):
     """
@@ -176,7 +185,6 @@ def language_eval(dataset, preds):
 
 def generate_caps(encoder, decoder, crit, loader, eval_kwargs={}):
     verbose = eval_kwargs.get('verbose', True)
-    val_images_use = eval_kwargs.get('val_images_use', -1)
     split = eval_kwargs.get('split', 'train')
     lang_eval = eval_kwargs.get('language_eval', 1)
     dataset = eval_kwargs.get('dataset', 'coco')
@@ -188,6 +196,8 @@ def generate_caps(encoder, decoder, crit, loader, eval_kwargs={}):
     sample_max = eval_kwargs.get('sample_max')
     temperature = eval_kwargs.get('temperature')
     tries = eval_kwargs.get('tries', 5)
+    sample_limited_vocab = eval_kwargs.get('sample_limited_vocab', 0)
+    output_file = eval_kwargs.get('output_file')
 
     print 'Using sample_max = %d  ||  temperature %.2f' % (sample_max, temperature)
 
@@ -198,10 +208,14 @@ def generate_caps(encoder, decoder, crit, loader, eval_kwargs={}):
     loader.reset_iterator(split)
     n = 0
     blobs = []
+    SENTS = []
+    gen_SENTS = []
     while True:
         data = loader.get_batch(split)
         n = n + loader.batch_size
         # forward the model to get loss
+        #  if n > 100:
+        #      break
         infos = data['infos']
         ids = [inf['id'] for inf in infos]
         assert len(ids) == 1, "Batch size larger than 1"
@@ -210,21 +224,46 @@ def generate_caps(encoder, decoder, crit, loader, eval_kwargs={}):
         labels, masks = tmp
         tr = 0
         gt = utils.decode_sequence(loader.get_vocab(), labels[:,1:].data)
+        SENTS += gt
         blob_batch = { "id": ids[0], "gt": gt, "sampled": []}
         for igt in gt:
             print _OKGREEN + igt + _ENDC
 
         while tr < tries:
             #  z_mu, z_var, codes = encoder(labels)
-            codes = encoder.sample(labels)
-            seq, _ = decoder.sample(codes, {'beam_size': beam_size,
-                                            "vocab_size": vocab_size,
-                                            "sample_max": sample_max,
-                                            "temperature": temperature})
+            if lm_model == "rnn_vae":
+                codes = encoder.sample(labels)
+            elif lm_model == "rnn_multi_vae":
+                codes = encoder.sample_group(labels)
+                #  scodes = encoder.sample(labels)
+            else:
+                codes = encoder(labels)
+            if sample_limited_vocab:
+                sample_vocab = np.unique(labels[:, 1:].cpu().data.numpy())
+                print "sample_vocab:", sample_vocab.tolist()
+                seq, _ = decoder.sample_ltd(codes, sample_vocab, {'beam_size': beam_size,
+                                                                  "vocab_size": vocab_size,
+                                                                  "sample_max": sample_max,
+                                                                  "temperature": temperature})
+            else:
+                seq, _ = decoder.sample(codes, {'beam_size': beam_size,
+                                                 "vocab_size": vocab_size,
+                                                 "sample_max": sample_max,
+                                                 "temperature": temperature})
+
             sents = utils.decode_sequence(loader.get_vocab(), seq)
+            #  ssents = utils.decode_sequence(loader.get_vocab(), sseq)
+            gen_SENTS += sents
+            #  gen_SENTS += ssents
             for isent in sents:
                 print _WARNING + isent + _ENDC
+            #  print '--------------------(SINGLE)------------------------'
+            #  for isent in ssents:
+            #      print _WARNING + isent + _ENDC
+            print '----------------------------------------------------'
+
             blob_batch['sampled'] += sents
+            #  blob_batch['sampled'] += ssents
             tr += 1
         ix0 = data['bounds']['it_pos_now']
         ix1 = data['bounds']['it_max']
@@ -234,8 +273,11 @@ def generate_caps(encoder, decoder, crit, loader, eval_kwargs={}):
             logger.warn('Evaluated the required samples (%s)' % n)
             break
         blobs.append(blob_batch)
-        print "Blob batch:", blob_batch
-    json.dump(blobs, open('data/coco/generated_captions.json', 'w'))
+        #  print "Blob batch:", blob_batch
+    json.dump(blobs, open(output_file, 'w'))
+    if lang_eval:
+        lang_stats = language_lm_eval(SENTS, gen_SENTS)
+        print lang_stats
     encoder.train()
     decoder.train()
     return 1
@@ -251,8 +293,8 @@ def eval_lm_split(encoder, decoder, crit, loader, eval_kwargs={}):
     logger = eval_kwargs.get('logger')
     lm_model = eval_kwargs.get('lm_model')
     vocab_size = eval_kwargs.get('vocab_size')
-    sample_max = eval_kwargs.get('sample_max')
-    temperature = eval_kwargs.get('temperature')
+    sample_max = eval_kwargs.get('sample_max', 1)
+    temperature = eval_kwargs.get('temperature', 1.0)
     print 'Using sample_max = %d  ||  temperature %.2f' % (sample_max, temperature)
 
     # Make sure in the evaluation mode
@@ -269,6 +311,7 @@ def eval_lm_split(encoder, decoder, crit, loader, eval_kwargs={}):
     MU = []
     VAR = []
     SENTS = []
+    gen_SENTS = []
     while True:
         data = loader.get_batch(split)
         n = n + loader.batch_size
@@ -279,41 +322,42 @@ def eval_lm_split(encoder, decoder, crit, loader, eval_kwargs={}):
         labels, masks = tmp
         if lm_model == "rnn":
             codes = encoder(labels)
-        elif lm_model == "rnn_vae":
+        elif lm_model == "rnn_multi_vae":
             z_mu, z_var, codes = encoder(labels)
             r_codes = encoder.sample(labels)
-            #  r_codes2 = encoder.sample(labels)
-            #  kld_loss = torch.mean(0.5 * torch.sum(torch.exp(z_var) + z_mu**2 - 1. - z_var, 1))
-            #  train_kld_loss = kld_loss.data[0]
-        #  if len(CODES):
-        #      CODES = np.vstack((CODES, codes.cpu().data.numpy()))
-        #      R_CODES = np.vstack((R_CODES, r_codes.cpu().data.numpy()))
-        #      MU = np.vstack((MU, z_mu.cpu().data.numpy()))
-        #      VAR = np.vstack((VAR, z_var.cpu().data.numpy()))
-        #  else:
-        #      CODES = codes.cpu().data.numpy()
-        #      R_CODES = r_codes.cpu().data.numpy()
-        #      MU = z_mu.cpu().data.numpy()
-        #      VAR = z_var.cpu().data.numpy()
+            r_codes1 = encoder.sample_group(labels)
+            r_codes2 = encoder.sample_group(labels)
+        elif lm_model == 'rnn_vae':
+            z_mu, z_var, codes = encoder(labels)
+            r_codes = encoder.sample(labels)
+            r_codes2 = encoder.sample(labels)
         gt = utils.decode_sequence(loader.get_vocab(), labels[:,1:].data)
         SENTS += gt
         seq, _ = decoder.sample(codes, {'beam_size': beam_size, "vocab_size": vocab_size, "sample_max": sample_max, "temperature": temperature})
+        loss = crit(decoder(codes, labels), labels[:,1:], masks[:,1:])[0].data[0]
         sents = utils.decode_sequence(loader.get_vocab(), seq)
+        gen_SENTS += sents
         try:
             r_seq, _ = decoder.sample(r_codes, {'beam_size': beam_size, "vocab_size": vocab_size})
+            r_loss = crit(decoder(r_codes, labels), labels[:,1:], masks[:,1:])[0].data[0]
             r_sents = utils.decode_sequence(loader.get_vocab(), r_seq)
-        except:
-            pass
-        ###############################################################################################
-        #  r_seq2, _ = decoder.sample(r_codes2, {'beam_size': beam_size, "vocab_size": vocab_size})
-        #  r_sents2 = utils.decode_sequence(loader.get_vocab(), r_seq2)
-        ##############################################################################################
-        try:
-            for co, de, r_de in zip(gt, sents, r_sents):
-                print co, _OKGREEN, "\n>>", de, _ENDC, _WARNING, "\n>>", r_de, _ENDC
+
+            r_seq1, _ = decoder.sample(r_codes1, {'beam_size': beam_size, "vocab_size": vocab_size})
+            r_loss1 = crit(decoder(r_codes1, labels), labels[:,1:], masks[:,1:])[0].data[0]
+            r_sents1 = utils.decode_sequence(loader.get_vocab(), r_seq1)
+
+            r_seq2, _ = decoder.sample(r_codes2, {'beam_size': beam_size, "vocab_size": vocab_size})
+            r_loss2 = crit(decoder(r_codes2, labels), labels[:,1:], masks[:,1:])[0].data[0]
+            r_sents2 = utils.decode_sequence(loader.get_vocab(), r_seq2)
+
+            k = 0
+            for co, de, r_de, r_de1, r_de2 in zip(gt, sents, r_sents, r_sents1,  r_sents2):
+                print " %d) source:" % data['infos'][k]['id'], co, _OKGREEN, "\n>> (group, z)", de, _ENDC, _WARNING, "\n>> (single, rand z)", r_de, "\n>> (group, rand z)", r_de1, "\n>> (group, rand z)", r_de2, _ENDC
+            print "Loss (group, z): %.2f, single, rand z: %.2f, group, rand z: %.2f, group, rand z: %.2f" % (loss, r_loss, r_loss1, r_loss2)
+
         except:
             for co, de in zip(gt, sents):
-                print co, _OKGREEN, "\n>>", de, _ENDC
+                print "source:", co, _OKGREEN, "\n>> (determ.)", de, _ENDC
 
         loss = crit(decoder(codes, labels), labels[:,1:], masks[:,1:])[0].data[0]
         loss_sum = loss_sum + loss
@@ -330,13 +374,13 @@ def eval_lm_split(encoder, decoder, crit, loader, eval_kwargs={}):
             break
     lang_stats = None
     unseen_grams = None
+    if lang_eval == 1:
+        lang_stats = language_lm_eval(SENTS, gen_SENTS)
+    print lang_stats
     # Switch back to training mode
     encoder.train()
     decoder.train()
-    #  print "Saving the codes: sents: %d and codes: %d (%s)" % (len(SENTS), len(CODES), str(CODES[0].shape))
-    #  pickle.dump({'sentences': SENTS, 'codes': CODES, 'r_codes': R_CODES, 'mu': MU, 'var': VAR}, open('save/textLM_vae/codes.pkl', 'w'))
-    #  print "Done"
-    return loss_sum/loss_evals
+    return loss_sum/loss_evals, lang_stats
 
 
 def eval_split(cnn_model, model, crit, loader, eval_kwargs={}):
@@ -367,8 +411,9 @@ def eval_split(cnn_model, model, crit, loader, eval_kwargs={}):
     loss_evals = 0
     predictions = []
     Feats = []
+    seq_per_img = 5
     while True:
-        data = loader.get_batch(split)
+        data = loader.get_batch(split, seq_per_img=seq_per_img)
         n = n + loader.batch_size
 
         # forward the model to get loss
@@ -379,8 +424,12 @@ def eval_split(cnn_model, model, crit, loader, eval_kwargs={}):
         #  Feats.append(fc_feats.cpu().data.numpy())
         _att_feats = att_feats
         _fc_feats = fc_feats
-        att_feats = att_feats.unsqueeze(1).expand(*((att_feats.size(0), loader.seq_per_img,) + att_feats.size()[1:])).contiguous().view(*((att_feats.size(0) * loader.seq_per_img,) + att_feats.size()[1:]))
-        fc_feats = fc_feats.unsqueeze(1).expand(*((fc_feats.size(0), loader.seq_per_img,) + fc_feats.size()[1:])).contiguous().view(*((fc_feats.size(0) * loader.seq_per_img,) + fc_feats.size()[1:]))
+        att_feats = att_feats.unsqueeze(1).expand(*((att_feats.size(0), seq_per_img,) +
+                                                    att_feats.size()[1:])).contiguous().view(*((att_feats.size(0) * seq_per_img,) +
+                                                                                               att_feats.size()[1:]))
+        fc_feats = fc_feats.unsqueeze(1).expand(*((fc_feats.size(0), seq_per_img,) +
+                                                  fc_feats.size()[1:])).contiguous().view(*((fc_feats.size(0) * seq_per_img,) +
+                                                                                            fc_feats.size()[1:]))
         if caption_model == "show_tell_vae":
             preds, recon_loss, kld_loss = model(fc_feats, att_feats, labels)
             real_loss, loss = crit(preds, labels[:, 1:], masks[:, 1:])

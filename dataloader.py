@@ -169,14 +169,16 @@ class DataLoader(object):
     def get_seq_length(self):
         return self.seq_length
 
-    def get_batch(self, split, batch_size=None):
+    def get_batch(self, split, batch_size=None, seq_per_img=None):
         split_ix = self.split_ix[split]
         batch_size = batch_size or self.batch_size
+        seq_per_img = seq_per_img or self.seq_per_img
+        #  print "get_batch seq_per_img:", seq_per_img
 
         img_batch = np.ndarray([batch_size, 3, 224,224], dtype ='float32')
-        label_batch = np.zeros([batch_size * self.seq_per_img, self.seq_length + 2], dtype ='int')
+        label_batch = np.zeros([batch_size * seq_per_img, self.seq_length + 2], dtype ='int')
         #  label_syn_batch = np.zeros([batch_size * self.seq_per_img, self.seq_length + 2], dtype ='int')
-        mask_batch = np.zeros([batch_size * self.seq_per_img, self.seq_length + 2], dtype ='float32')
+        mask_batch = np.zeros([batch_size * seq_per_img, self.seq_length + 2], dtype ='float32')
 
         max_index = len(split_ix)
         wrapped = False
@@ -202,26 +204,28 @@ class DataLoader(object):
             ix2 = self.label_end_ix[ix] - 1
             ncap = ix2 - ix1 + 1 # number of captions available for this image
             assert ncap > 0, 'an image does not have any label. this can be handled but right now isn\'t'
-
-            if ncap < self.seq_per_img:
+            #  print "Reading %d captions" % ncap
+            if ncap < seq_per_img:
                 # we need to subsample (with replacement)
-                seq = np.zeros([self.seq_per_img, self.seq_length], dtype = 'int')
+                seq = np.zeros([seq_per_img, self.seq_length], dtype = 'int')
                 #  if self.load_syn:
                 #      seq_syn = np.zeros([self.seq_per_img, self.seq_length], dtype = 'int')
 
-                for q in range(self.seq_per_img):
+                for q in range(seq_per_img):
                     ixl = random.randint(ix1,ix2)
                     seq[q, :] = self.h5_file['labels'][ixl, :self.seq_length]
                     #  if self.load_syn:
                     #      seq_syn[q, :] = self.h5_file['labels_syn'][ixl, :self.seq_length]
 
             else:
-                ixl = random.randint(ix1, ix2 - self.seq_per_img + 1)
-                seq = self.h5_file['labels'][ixl: ixl + self.seq_per_img, :self.seq_length]
+                #  ixl = random.randint(ix1, ix2 - self.seq_per_img + 1)
+                ixl = ix1
+                seq = self.h5_file['labels'][ixl: ixl + seq_per_img, :self.seq_length]
+                #  print "Seq:", seq
                 #  if self.load_syn:
                 #      seq_syn = self.h5_file['labels_syn'][ixl: ixl + self.seq_per_img, :self.seq_length]
 
-            label_batch[i * self.seq_per_img : (i + 1) * self.seq_per_img, 1 : self.seq_length + 1] = seq
+            label_batch[i * seq_per_img : (i + 1) * seq_per_img, 1 : self.seq_length + 1] = seq
             #  if self.load_syn:
             #      label_syn_batch[i * self.seq_per_img : (i + 1) * self.seq_per_img, 1 : self.seq_length + 1] = seq_syn
 

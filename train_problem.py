@@ -2,7 +2,7 @@
 
 from __future__ import absolute_import
 from __future__ import division
-from math import exp
+
 
 # setup gpu
 try:
@@ -35,7 +35,7 @@ from misc.ssd import build_ssd
 import tensorflow as tf
 from tensorflow.python.framework import dtypes
 from tensorflow.contrib.tensorboard.plugins import projector
-
+from math import exp
 
 def log_optimizer(opt, optimizer):
     opt.logger.debug('####################################')
@@ -190,8 +190,7 @@ def train(opt):
         D = pickle.load(open('data/Glove/cocotalk_similarities_v2.pkl', 'r'))
         D = D.astype(np.float32)
         D = Variable(torch.from_numpy(D)).cuda()
-        crit = utils.SmoothLanguageModelCriterion(Dist=D,
-                                                  opt=opt)
+        crit = utils.SmoothLanguageModelCriterion(D, opt)
     elif opt.combine_caps_losses:
         crit = utils.MultiLanguageModelCriterion(opt.seq_per_img)
     else:
@@ -240,29 +239,48 @@ def train(opt):
             log_optimizer(opt, optimizer)
 
             # Assign the scheduled sampling prob
-            if opt.scheduled_sampling_strategy == "step":
-                if epoch >= opt.scheduled_sampling_start and opt.scheduled_sampling_start >= 0:
-                    frac = (epoch - opt.scheduled_sampling_start) // opt.scheduled_sampling_increase_every
-                    opt.ss_prob = min(opt.scheduled_sampling_increase_prob  * frac, opt.scheduled_sampling_max_prob)
-                    model.ss_prob = opt.ss_prob
-                    opt.logger.warn('ss_prob= %.2e' % model.ss_prob )
-            # CNN finetuning
-            # -------------------------------------------------------FIXME
-            #  cnn_model.train()
-            #  opt.current_cnn_lr = opt.cnn_learning_rate * opt.current_lr
-            #-------------------------------------------------------------
-            update_lr_flag = False
-        if opt.scheduled_sampling_strategy == "sigmoid":
-            if epoch >= opt.scheduled_sampling_start and opt.scheduled_sampling_start >= 0:
-                opt.logger.warn("setting up the ss_prob")
-                opt.ss_prob = 1 - opt.scheduled_sampling_speed / (opt.scheduled_sampling_speed + exp(iteration / opt.scheduled_sampling_speed))
+            #  if opt.scheduled_sampling_strategy == "step":
+            if epoch > opt.scheduled_sampling_start and opt.scheduled_sampling_start >= 0:
+                frac = (epoch - opt.scheduled_sampling_start) // opt.scheduled_sampling_increase_every
+                opt.ss_prob = min(opt.scheduled_sampling_increase_prob  * frac, opt.scheduled_sampling_max_prob)
+                opt.logger.warn('ss_prob = %.3e' % opt.ss_prob )
                 model.ss_prob = opt.ss_prob
-                opt.logger.warn("ss_prob =  %.3e" % model.ss_prob)
+            # Update the training stage of cnn
+            #  if opt.finetune_cnn_after == -1 or epoch < opt.finetune_cnn_after:
+            #      for p in cnn_model.parameters():
+            #          p.requires_grad = False
+            #      cnn_model.eval()
+            #  else:
+            #      for p in cnn_model.parameters():
+            #          p.requires_grad = True
+            #      # Fix the first few layers:
+            #      for module in cnn_model.keep_asis:
+            #          for p in module.parameters():
+            #              p.requires_grad = False
+            cnn_model.train()
+            opt.current_cnn_lr = opt.cnn_learning_rate * opt.current_lr
+            update_lr_flag = False
+        # Update scheduled sampling proba (iter instead of epoch based)
+        #  if opt.scheduled_sampling_strategy == "sigmoid":
+        #      if epoch >= opt.scheduled_sampling_start and opt.scheduled_sampling_start >= 0:
+        #          opt.logger.warn("setting up the ss_prob")
+        #          opt.ss_prob = 1 - opt.scheduled_sampling_speed / (opt.scheduled_sampling_speed + exp(iteration / opt.scheduled_sampling_speed))
+        #          #  frac = (epoch - opt.scheduled_sampling_start) // opt.scheduled_sampling_increase_every
+        #          #  opt.ss_prob = min(opt.scheduled_sampling_increase_prob  * frac, opt.scheduled_sampling_max_prob)
+        #          model.ss_prob = opt.ss_prob
+        #          opt.logger.warn("ss_prob =  %.3e" % model.ss_prob)
+
+        torch.cuda.synchronize()
+        start = time.time()
         # Load data from train split (0)
         data = loader.get_batch('train')
         torch.cuda.synchronize()
+        #  opt.logger.info('Read data: %.3e' % (time.time() - start))
+        torch.cuda.synchronize()
         start = time.time()
+
         tmp = [data['images'], data['labels'], data['masks']]
+
         tmp = [Variable(torch.from_numpy(_), requires_grad=False).cuda() for _ in tmp]
         images, labels, masks = tmp
 
