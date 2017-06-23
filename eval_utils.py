@@ -484,7 +484,7 @@ def eval_split(cnn_model, model, crit, loader, eval_kwargs={}):
 
 
 def short_path(path):
-    basename, filename = os.path.split()
+    basename, filename = os.path.split(path)
     print 'base:', basename, 'filename:', filename
     return os.path.join(os.path.basename(basename), filename)
 
