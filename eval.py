@@ -88,6 +88,13 @@ if len(opt.input_json) == 0:
     opt.input_json = infos['opt'].input_json
 if opt.batch_size == 0:
     opt.batch_size = infos['opt'].batch_size
+#Check if new features in opt:
+if "scheduled_sampling_strategy" not in opt:
+    opt.scheduled_sampling_strategy = "step"
+if "scheduled_sampling_vocab" not in opt:
+    opt.scheduled_sampling_vocab = 0
+
+
 ignore = ["id", "batch_size", "beam_size", "start_from", "language_eval"]
 for k in vars(infos['opt']).keys():
     if k not in ignore:
@@ -133,7 +140,7 @@ model = models.setup(opt)
 model.load_state_dict(torch.load(opt.model_path))
 model.cuda()
 model.eval()
-crit = utils.LanguageModelCriterion(opt.use_synonyms)
+crit = utils.LanguageModelCriterion()
 
 # Create the Data Loader instance
 if len(opt.image_folder) == 0:
@@ -152,7 +159,7 @@ eval_kwargs = {'split': 'val',
 eval_kwargs.update(vars(infos['opt']))
 eval_kwargs.update(vars(opt))
 eval_kwargs['val_images_use'] = 100
-val_loss, predictions, lang_stats, unseen_grams = eval_utils.eval_split(cnn_model, model, crit, loader, eval_kwargs)
+val_loss, predictions, lang_stats, unseen_grams = eval_utils.eval_external(cnn_model, model, crit, loader, eval_kwargs)
 print 'loss: ', val_loss
 if lang_stats:
   print(lang_stats)

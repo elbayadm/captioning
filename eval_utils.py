@@ -483,6 +483,91 @@ def eval_split(cnn_model, model, crit, loader, eval_kwargs={}):
     return real_loss_sum/loss_evals, loss_sum/loss_evals, predictions, lang_stats, unseen_grams
 
 
+
+def eval_external(cnn_model, model, crit, loader, eval_kwargs={}):
+    verbose = eval_kwargs.get('verbose', True)
+    val_images_use = eval_kwargs.get('val_images_use', -1)
+    split = eval_kwargs.get('split', 'val')
+    lang_eval = eval_kwargs.get('language_eval', 1)
+    dataset = eval_kwargs.get('dataset', 'coco')
+    beam_size = eval_kwargs.get('beam_size', 1)
+    logger = eval_kwargs.get('logger')
+    caption_model = eval_kwargs.get('caption_model')
+    vae_weight = eval_kwargs.get('vae_weight')
+    vocab_size = eval_kwargs.get('vocb_size')
+
+    print "Eval %s" % caption_model
+
+    # Make sure in the evaluation mode
+    cnn_model.eval()
+    model.eval()
+    logger.warn('Evaluating %d val images' % val_images_use)
+
+    loader.reset_iterator(split)
+
+    n = 0
+    loss_sum = 0
+    real_loss_sum = 0
+    loss_evals = 0
+    predictions = []
+    Feats = []
+    seq_per_img = 5
+    while True:
+        data = loader.get_batch(split, seq_per_img=seq_per_img)
+        print data.keys()
+        n = n + loader.batch_size
+
+        # forward the model to get loss
+        images = data['images']
+        images = Variable(torch.from_numpy(images), volatile=True).cuda()
+        att_feats, fc_feats = cnn_model.forward(images)
+        #  Feats.append(fc_feats.cpu().data.numpy())
+        _att_feats = att_feats
+        _fc_feats = fc_feats
+        att_feats = att_feats.unsqueeze(1).expand(*((att_feats.size(0), seq_per_img,) +
+                                                    att_feats.size()[1:])).contiguous().view(*((att_feats.size(0) * seq_per_img,) +
+                                                                                               att_feats.size()[1:]))
+        fc_feats = fc_feats.unsqueeze(1).expand(*((fc_feats.size(0), seq_per_img,) +
+                                                  fc_feats.size()[1:])).contiguous().view(*((fc_feats.size(0) * seq_per_img,) +
+                                                                                            fc_feats.size()[1:]))
+
+        # forward the model to also get generated samples for each image
+        # Only leave one feature for each image, in case duplicate sample
+        fc_feats, att_feats = _fc_feats, _att_feats
+        seq, _ = model.sample(fc_feats, att_feats, {'beam_size': beam_size, "vocab_size": vocab_size})
+        #set_trace()
+        sents = utils.decode_sequence(loader.get_vocab(), seq)
+        #  seq2, _ = model.sample(fc_feats, att_feats, {'beam_size': beam_size, "vocab_size": vocab_size})
+        #set_trace()
+        #  sents2 = utils.decode_sequence(loader.get_vocab(), seq2)
+
+        for k, sent in enumerate(sents):
+            print _OKGREEN, data['infos'][k]['id'],">>", sent, _ENDC
+            entry = {'image_id': data['infos'][k]['id'], 'caption': sent}
+            predictions.append(entry)
+            #  logger.debug('image %s: %s' %(entry['image_id'], entry['caption']))
+        ix0 = data['bounds']['it_pos_now']
+        ix1 = data['bounds']['it_max']
+        #  logger.warn('ix1 = %d - ix0 = %d' % (ix1, ix0))
+        if val_images_use != -1:
+            ix1 = min(ix1, val_images_use)
+        for i in range(n - ix1):
+            predictions.pop()
+        #  logger.debug('validation loss ... %d/%d (%f)' %(ix0 - 1, ix1, loss))
+        if data['bounds']['wrapped']:
+            break
+        if n >= ix1:
+            logger.warn('Evaluated the required samples (%s)' % n)
+            break
+    # Switch back to training mode
+    model.train()
+    #  pickle.dump(Feats, open('cnn_features.pkl', 'w'))
+    return  predictions
+
+
+
+
+
 # Evaluation fun(ction)
 def eval_eval(cnn_model, model, crit, loader, eval_kwargs={}):
     verbose = eval_kwargs.get('verbose', True)

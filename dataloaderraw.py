@@ -16,7 +16,6 @@ preprocess = trn.Compose([
 ])
 
 class DataLoaderRaw():
-    
     def __init__(self, opt):
         self.opt = opt
         self.coco_json = opt.get('coco_json', '')
@@ -65,7 +64,7 @@ class DataLoaderRaw():
 
         self.iterator = 0
 
-    def get_batch(self, split, batch_size=None):
+    def get_batch(self, split, batch_size=None, seq_per_img=None):
         batch_size = batch_size or self.batch_size
 
         # pick an index of the datapoint to load next
@@ -112,4 +111,4 @@ class DataLoaderRaw():
 
     def get_vocab(self):
         return self.ix_to_word
-        
+
