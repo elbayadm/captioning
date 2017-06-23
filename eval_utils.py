@@ -493,16 +493,14 @@ def eval_external(cnn_model, model, crit, loader, eval_kwargs={}):
     beam_size = eval_kwargs.get('beam_size', 1)
     logger = eval_kwargs.get('logger')
     caption_model = eval_kwargs.get('caption_model')
-    vae_weight = eval_kwargs.get('vae_weight')
     vocab_size = eval_kwargs.get('vocb_size')
+    dump_path = eval_kwargs.get('dump_path')
 
     print "Eval %s" % caption_model
 
     # Make sure in the evaluation mode
     cnn_model.eval()
     model.eval()
-    logger.warn('Evaluating %d val images' % val_images_use)
-
     loader.reset_iterator(split)
 
     n = 0
@@ -543,6 +541,7 @@ def eval_external(cnn_model, model, crit, loader, eval_kwargs={}):
 
         for k, sent in enumerate(sents):
             print _OKGREEN, data['infos'][k]['id'],">>", sent, _ENDC
+            print data['infos'][k]
             entry = {'image_id': data['infos'][k]['id'], 'caption': sent}
             predictions.append(entry)
             #  logger.debug('image %s: %s' %(entry['image_id'], entry['caption']))

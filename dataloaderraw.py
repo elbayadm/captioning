@@ -52,7 +52,6 @@ class DataLoaderRaw():
 
             n = 1
             for root, dirs, files in os.walk(self.folder_path, topdown=False):
-                print dirs, files
                 for file in files:
                     fullpath = os.path.join(root, file)
                     if isImage(fullpath):
