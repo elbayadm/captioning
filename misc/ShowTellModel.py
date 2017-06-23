@@ -194,7 +194,7 @@ class ShowTellModel(nn.Module):
         beam_size = opt.get('beam_size', 1)
         temperature = opt.get('temperature', 1.0)
         forbid_unk = opt.get('forbid_unk', 1)
-
+        print "Using beam search with size ", beam_size
         if beam_size > 1:
             return self.sample_beam(fc_feats, att_feats, opt)
 
