@@ -152,7 +152,8 @@ if len(opt.image_folder) == 0:
 else:
   loader = DataLoaderRaw({'folder_path': opt.image_folder,
                             'coco_json': opt.coco_json,
-                            'batch_size': opt.batch_size})
+                            'batch_size': opt.batch_size,
+                          'max_images': opt.max_images})
   loader.ix_to_word = infos['vocab']
 
 
