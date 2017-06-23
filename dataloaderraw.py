@@ -52,6 +52,7 @@ class DataLoaderRaw():
 
             n = 1
             for root, dirs, files in os.walk(self.folder_path, topdown=False):
+                print dirs, files
                 for file in files:
                     print "found:", file
                     fullpath = os.path.join(self.folder_path, file)
