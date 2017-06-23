@@ -31,7 +31,6 @@ class DataLoaderRaw():
         self.files = []
         self.ids = []
 
-        print(len(self.coco_json))
         if len(self.coco_json) > 0:
             print('reading from ' + opt.coco_json)
             # read in filenames from the coco-style json file
@@ -42,7 +41,8 @@ class DataLoaderRaw():
                 self.ids.append(v['id'])
         else:
             # read in all the filenames from the folder
-            print('listing all images in directory ' + self.folder_path)
+            print 'listing all images in directory ' + self.folder_path
+            print 'limited to %d images' % self.max_images
             def isImage(f):
                 supportedExt = ['.jpg','.JPG','.jpeg','.JPEG','.png','.PNG','.ppm','.PPM']
                 for ext in supportedExt:
@@ -63,6 +63,11 @@ class DataLoaderRaw():
                         if n > self.max_images:
                             print "Loaded %d images" % n
                             break
+                if self.max_images != -1:
+                    if n > self.max_images:
+                        print "Loaded %d images (outer)" % n
+                        break
+
 
         self.N = len(self.files)
         print('DataLoaderRaw found ', self.N, ' images')
