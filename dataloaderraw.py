@@ -15,12 +15,22 @@ preprocess = trn.Compose([
         trn.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 ])
 
+
+def isImage(f):
+    supportedExt = ['.jpg','.JPG','.jpeg','.JPEG','.png','.PNG','.ppm','.PPM']
+    for ext in supportedExt:
+        start_idx = f.rfind(ext)
+        if start_idx >= 0 and start_idx + len(ext) == len(f):
+            return True
+    return False
+
+
 class DataLoaderRaw():
     def __init__(self, opt):
         self.opt = opt
         self.coco_json = opt.get('coco_json', '')
         self.folder_path = opt.get('folder_path', '')
-
+        self.files_list = opt.get('files_list', '')
         self.batch_size = opt.get('batch_size', 1)
         self.max_images = opt.get('max_images', -1)
         self.seq_per_img = 1
@@ -39,18 +49,25 @@ class DataLoaderRaw():
                 fullpath = os.path.join(self.folder_path, v['file_name'])
                 self.files.append(fullpath)
                 self.ids.append(v['id'])
+        elif len(self.files_list) > 0:
+            print 'listing all images in directory ' + self.folder_path
+            print 'limited to %d images' % self.max_images
+            n = 1
+            with open(self.files_list, 'r') as flist:
+                for line in flist:
+                    fullpath = os.path.join(self.folder_path, line.strip())
+                    if isImage(fullpath):
+                        self.files.append(fullpath)
+                        self.ids.append(str(n)) # just order them sequentially
+                        n = n + 1
+                    if self.max_images != -1:
+                        if n > self.max_images:
+                            print "Loaded %d images" % n
+                            break
         else:
             # read in all the filenames from the folder
             print 'listing all images in directory ' + self.folder_path
             print 'limited to %d images' % self.max_images
-            def isImage(f):
-                supportedExt = ['.jpg','.JPG','.jpeg','.JPEG','.png','.PNG','.ppm','.PPM']
-                for ext in supportedExt:
-                    start_idx = f.rfind(ext)
-                    if start_idx >= 0 and start_idx + len(ext) == len(f):
-                        return True
-                return False
-
             n = 1
             for root, dirs, files in os.walk(self.folder_path, topdown=False):
                 for file in files:

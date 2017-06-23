@@ -55,6 +55,8 @@ parser.add_argument('--temperature', type=float, default=0.5,
 # For evaluation on a folder of images:
 parser.add_argument('--image_folder', type=str, default='',
                     help='If this is nonempty then will predict on the images in this folder path')
+parser.add_argument('--image_list', type=str,
+                    help='List of image from folder')
 parser.add_argument('--max_images', type=int, default=-1,
                     help='If not -1 limit the number of evaluated images')
 
@@ -151,8 +153,9 @@ if len(opt.image_folder) == 0:
   loader = DataLoader(opt)
 else:
   loader = DataLoaderRaw({'folder_path': opt.image_folder,
-                            'coco_json': opt.coco_json,
-                            'batch_size': opt.batch_size,
+                          'files_list': opt.image_list,
+                          'coco_json': opt.coco_json,
+                           'batch_size': opt.batch_size,
                           'max_images': opt.max_images})
   loader.ix_to_word = infos['vocab']
 
