@@ -41,9 +41,10 @@ parser.add_argument('--dump_images', type=int, default=0,
                     help='Dump images into vis/imgs folder for vis? (1=yes,0=no)')
 parser.add_argument('--dump_json', type=int, default=1,
                     help='Dump json with predictions into vis folder? (1=yes,0=no)')
+parser.add_argument('--output_json', type=str,
+                    help='json path')
 parser.add_argument('--dump_path', type=int, default=0,
                     help='Write image paths along with predictions into vis json? (1=yes,0=no)')
-
 # Sampling options
 parser.add_argument('--sample_max', type=int, default=1,
                     help='1 = sample argmax words. 0 = sample from distributions.')
@@ -159,11 +160,8 @@ eval_kwargs = {'split': 'val',
 eval_kwargs.update(vars(infos['opt']))
 eval_kwargs.update(vars(opt))
 eval_kwargs['val_images_use'] = 100
-val_loss, predictions, lang_stats, unseen_grams = eval_utils.eval_external(cnn_model, model, crit, loader, eval_kwargs)
-print 'loss: ', val_loss
-if lang_stats:
-  print(lang_stats)
+predictions = eval_utils.eval_external(cnn_model, model, crit, loader, eval_kwargs)
 
 if opt.dump_json == 1:
     # dump the json
-    json.dump(predictions, open('vis/preds_%s.json' % opt.model, 'w'))
+    json.dump(predictions, open(opt.output, 'w'))
