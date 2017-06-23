@@ -485,7 +485,6 @@ def eval_split(cnn_model, model, crit, loader, eval_kwargs={}):
 
 def short_path(path):
     basename, filename = os.path.split(path)
-    print 'base:', basename, 'filename:', filename
     return os.path.join(os.path.basename(basename), filename)
 
 def eval_external(cnn_model, model, crit, loader, eval_kwargs={}):
@@ -544,9 +543,9 @@ def eval_external(cnn_model, model, crit, loader, eval_kwargs={}):
         #  sents2 = utils.decode_sequence(loader.get_vocab(), seq2)
 
         for k, sent in enumerate(sents):
-            print short_path(data['infos'][k]['file_path'])
-            print _OKGREEN, data['infos'][k]['file_path'],">>", sent, _ENDC
-            entry = {'image_path': data['infos'][k]['file_path'], 'caption': sent}
+            spath = short_path(data['infos'][k]['file_path'])
+            print _OKGREEN, spath, ">>", sent, _ENDC
+            entry = {'image_path': spath, 'caption': sent}
             predictions.append(entry)
             #  logger.debug('image %s: %s' %(entry['image_id'], entry['caption']))
         ix0 = data['bounds']['it_pos_now']
