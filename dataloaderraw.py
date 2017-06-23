@@ -53,7 +53,9 @@ class DataLoaderRaw():
             n = 1
             for root, dirs, files in os.walk(self.folder_path, topdown=False):
                 for file in files:
+                    print "found:", file
                     fullpath = os.path.join(self.folder_path, file)
+                    print "fullpath:", fullpath
                     if isImage(fullpath):
                         self.files.append(fullpath)
                         self.ids.append(str(n)) # just order them sequentially
