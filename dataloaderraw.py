@@ -55,7 +55,7 @@ class DataLoaderRaw():
                 print dirs, files
                 for file in files:
                     print "found:", file
-                    fullpath = os.path.join(self.folder_path, file)
+                    fullpath = os.path.join(root, file)
                     print "fullpath:", fullpath
                     if isImage(fullpath):
                         self.files.append(fullpath)
