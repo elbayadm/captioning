@@ -4,6 +4,7 @@ save
 obsolete
 textLM
 tmpcaps
+tmpimages
 vis
 *.txt
 *.pyc
