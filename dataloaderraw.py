@@ -50,7 +50,7 @@ class DataLoaderRaw():
                 self.files.append(fullpath)
                 self.ids.append(v['id'])
         elif len(self.files_list) > 0:
-            print 'listing all images in directory ' + self.folder_path
+            print 'listing all images in directory %s from %s' % (self.folder_path, self.files_list)
             print 'limited to %d images' % self.max_images
             n = 1
             with open(self.files_list, 'r') as flist:
