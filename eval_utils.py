@@ -483,6 +483,10 @@ def eval_split(cnn_model, model, crit, loader, eval_kwargs={}):
     return real_loss_sum/loss_evals, loss_sum/loss_evals, predictions, lang_stats, unseen_grams
 
 
+def short_path(path):
+    basename, filename = os.path.split()
+    print 'base:', basename, 'filename:', filename
+    return os.path.join(os.path.basename(basename), filename)
 
 def eval_external(cnn_model, model, crit, loader, eval_kwargs={}):
     verbose = eval_kwargs.get('verbose', True)
@@ -540,6 +544,7 @@ def eval_external(cnn_model, model, crit, loader, eval_kwargs={}):
         #  sents2 = utils.decode_sequence(loader.get_vocab(), seq2)
 
         for k, sent in enumerate(sents):
+            print short_path(data['infos'][k]['file_path'])
             print _OKGREEN, data['infos'][k]['file_path'],">>", sent, _ENDC
             entry = {'image_path': data['infos'][k]['file_path'], 'caption': sent}
             predictions.append(entry)

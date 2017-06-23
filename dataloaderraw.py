@@ -54,7 +54,6 @@ class DataLoaderRaw():
             n = 1
             for root, dirs, files in os.walk(self.folder_path, topdown=False):
                 for file in files:
-                    print root, os.path.basename(root)
                     fullpath = os.path.join(root, file)
                     if isImage(fullpath):
                         self.files.append(fullpath)
