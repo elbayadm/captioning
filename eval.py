@@ -164,4 +164,4 @@ predictions = eval_utils.eval_external(cnn_model, model, crit, loader, eval_kwar
 
 if opt.dump_json == 1:
     # dump the json
-    json.dump(predictions, open(opt.output, 'w'))
+    json.dump(predictions, open(opt.output_json, 'w'))
