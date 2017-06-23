@@ -164,6 +164,8 @@ eval_kwargs = {'split': 'val',
 eval_kwargs.update(vars(infos['opt']))
 eval_kwargs.update(vars(opt))
 eval_kwargs['num_images'] = opt.max_images
+eval_kwargs['beam_size'] = opt.beam_size
+print "Evaluation params:", eval_kwargs
 start = time.time()
 predictions = eval_utils.eval_external(cnn_model, model, crit, loader, eval_kwargs)
 print "Finished evaluation in ", (time.time() - start)
