@@ -22,6 +22,7 @@ class DataLoaderRaw():
         self.folder_path = opt.get('folder_path', '')
 
         self.batch_size = opt.get('batch_size', 1)
+        self.max_images = opt.get('max_images', -1)
         self.seq_per_img = 1
 
         # load the json file which contains additional information about the dataset
@@ -58,8 +59,9 @@ class DataLoaderRaw():
                         self.files.append(fullpath)
                         self.ids.append(str(n)) # just order them sequentially
                         n = n + 1
-                        if n > opt.max_images:
-                            break
+                        if self.max_images != -1:
+                            if n > self.max_images:
+                                break
 
         self.N = len(self.files)
         print('DataLoaderRaw found ', self.N, ' images')
