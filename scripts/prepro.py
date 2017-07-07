@@ -29,11 +29,17 @@ import argparse
 import random
 from random import shuffle, seed
 import string
+import nltk
 # non-standard dependencies:
 import h5py
 import numpy as np
 from scipy.misc import imread, imresize
 import cPickle as pickle
+
+
+def tokenize(sentence):
+    return nltk.word_tokenize(str(sentence).lower().translate(None, string.punctuation))
+
 
 def build_vocab(imgs, params):
     """
@@ -183,6 +189,98 @@ def encode_captions(imgs, params, wtoi):
     return L, label_start_ix, label_end_ix, label_length
 
 
+def encode_extra_scored_captions(imgs, params, wtoi):
+    """
+    encode all captions into one large array, which will be 1-indexed.
+    also produces label_start_ix and label_end_ix which store 1-indexed
+    and inclusive (Lua-style) pointers to the first and last caption for
+    each image in the dataset.
+    """
+    max_length = params['max_length']
+    N = len(imgs)
+    # Load additional captions
+    extra_ = json.load(open(params['gen_source'], 'r'))
+    extra = {}
+    scored = True
+    no_scores = []
+    with_scores = []
+    for im in extra_:
+        try:
+            extra[im['id']] = [[[w if w in wtoi else 'UNK' for w in sent.split()], sc] for sent, sc in zip(im['captions'], im['scores'])]
+            extra[im['id']] = [s for s in extra[im['id']] if len(s[0])]
+            with_scores.append(im['id'])
+            #  print extra[im['id']]
+        except:
+            print 'No scores found in the generated json'
+            no_scores.append(im['id'])
+            extra[im['id']] = [[[w if w in wtoi else 'UNK' for w in sent.split()], 1] for sent in im['captions']]
+        #  print im['id']
+
+    print "Len extra:", len(extra), "vs extra_", len(extra_)
+    print "with scores:", len(with_scores), "unique:", len(np.unique(np.array(with_scores)))
+    print "Captions =", sum(len(img['final_captions']) for img in imgs) # total number of captions
+    missing_indices = []
+    found_indices = []
+    for img in imgs:
+        #  print img['cocoid'], img['split']
+        if img['split'] == 'train':
+            #  print "Pre:", img['final_captions']
+            #  img["final_captions"] = [[c, 3.] for c in img['final_captions']]
+            try:
+                img["final_captions"] = extra[img['cocoid']]
+                found_indices.append(img['cocoid'])
+            except:
+                #  assert img['cocoid'] in extra
+                img["final_captions"] = [[c, 1.] for c in img['final_captions']]
+                missing_indices.append(img['cocoid'])
+            #  print "Post:",  img['final_captions']
+        else:
+            #  print "skipping val/restval/test"
+            img["final_captions"] = [[c, 1.] for c in img['final_captions']]
+
+
+    M = sum(len(img['final_captions']) for img in imgs) # total number of captions
+    print "Missing %d extra scores vs %d found" % (len(missing_indices), len(found_indices))
+    print "Missing from extra: %d" % len(no_scores)
+    print "Encoding %d captions" % M
+    label_arrays = []
+    score_arrays = []
+    label_start_ix = np.zeros(N, dtype='uint32') # note: these will be one-indexed
+    label_end_ix = np.zeros(N, dtype='uint32')
+    label_length = np.zeros(M, dtype='uint32')
+    caption_counter = 0
+    counter = 1
+    for i, img in enumerate(imgs):
+        n = len(img['final_captions'])
+        assert n > 0, 'error: some image has no captions'
+        Li = np.zeros((n, max_length), dtype='uint32')
+        for j, s in enumerate(img['final_captions']):
+            score_arrays.append(s[1])
+            s_ = s
+            s = s[0]
+            label_length[caption_counter] = min(max_length, len(s)) # record the length of this sequence
+            assert len(s) > 0, "Sentence of length 0 %s %s %s" % (s, str(s_), str(img['final_captions']))
+            caption_counter += 1
+            for k, w in enumerate(s):
+                if k < max_length:
+                    Li[j, k] = wtoi[w]
+        # note: word indices are 1-indexed, and captions are padded with zeros
+        label_arrays.append(Li)
+        label_start_ix[i] = counter
+        label_end_ix[i] = counter + n - 1
+        counter += n
+    L = np.concatenate(label_arrays, axis=0) # put all the labels together
+    assert L.shape[0] == M, 'lengths don\'t match? that\'s weird'
+    if scored:
+        assert len(score_arrays) == M, "Missing scores"
+    score_arrays = np.array(score_arrays)
+    assert np.all(label_length > 0), 'error: some caption had no words?'
+    print 'encoded captions to array of size ', `L.shape`
+    return L, score_arrays, label_start_ix, label_end_ix, label_length
+
+
+
+
 def encode_extra_captions(imgs, params, wtoi):
     """
     encode all captions into one large array, which will be 1-indexed.
@@ -195,8 +293,14 @@ def encode_extra_captions(imgs, params, wtoi):
     # Load additional captions
     extra_ = json.load(open(params['gen_source'], 'r'))
     extra = {}
+    scored = True
     for im in extra_:
-        extra[im['id']] = [[w if w in wtoi else 'UNK' for w in sent.split(' ')] for sent in im['sampled']]
+        try:
+            extra[im['id']] = [[[w if w in wtoi else 'UNK' for w in sent.split(' ')], sc] for sent, sc in zip(im['sampled'], im['scores'])]
+            #  print extra[im['id']]
+        except:
+            print 'No scores found in the generated json'
+            extra[im['id']] = [[[w if w in wtoi else 'UNK' for w in sent.split(' ')], 1] for sent in im['sampled']]
         #  print im['id']
 
     print "Captions =", sum(len(img['final_captions']) for img in imgs) # total number of captions
@@ -205,11 +309,15 @@ def encode_extra_captions(imgs, params, wtoi):
         print img['cocoid'], img['split']
         try:
             if img['split'] == 'train':
-                print "Gt:",  img["final_captions"]
-                print "Added:", extra[img['cocoid']]
+                #  print "Gt:",  img["final_captions"]
+                #  print "Added:", extra[img['cocoid']]
+                print "Pre:", img['final_captions']
+                img["final_captions"] = [[c, 3.] for c in img['final_captions']]
                 img["final_captions"] += extra[img['cocoid']]
+                print img['final_captions']
             else:
                 print "skipping val/restval/test"
+                img["final_captions"] = [[c, 1.] for c in img['final_captions']]
         except:
             print "########## No addtional captions provided"
 
@@ -217,6 +325,7 @@ def encode_extra_captions(imgs, params, wtoi):
     M = sum(len(img['final_captions']) for img in imgs) # total number of captions
     print "Encoding %d captions" % M
     label_arrays = []
+    score_arrays = []
     label_start_ix = np.zeros(N, dtype='uint32') # note: these will be one-indexed
     label_end_ix = np.zeros(N, dtype='uint32')
     label_length = np.zeros(M, dtype='uint32')
@@ -227,6 +336,10 @@ def encode_extra_captions(imgs, params, wtoi):
         assert n > 0, 'error: some image has no captions'
         Li = np.zeros((n, max_length), dtype='uint32')
         for j, s in enumerate(img['final_captions']):
+            print "s(pre)", s
+            score_arrays.append(s[1])
+            s = s[0]
+            print "s:", s
             label_length[caption_counter] = min(max_length, len(s)) # record the length of this sequence
             caption_counter += 1
             for k, w in enumerate(s):
@@ -239,9 +352,12 @@ def encode_extra_captions(imgs, params, wtoi):
         counter += n
     L = np.concatenate(label_arrays, axis=0) # put all the labels together
     assert L.shape[0] == M, 'lengths don\'t match? that\'s weird'
+    if scored:
+        assert len(score_arrays) == M, "Missing scores"
+    score_arrays = np.array(score_arrays)
     assert np.all(label_length > 0), 'error: some caption had no words?'
     print 'encoded captions to array of size ', `L.shape`
-    return L, label_start_ix, label_end_ix, label_length
+    return L, score_arrays, label_start_ix, label_end_ix, label_length
 
 
 def main(params):
@@ -274,14 +390,15 @@ def main(params):
     if params['gen'] == '':
         L, label_start_ix, label_end_ix, label_length = encode_captions(imgs, params, wtoi)
     else:
-        L, label_start_ix, label_end_ix, label_length = encode_extra_captions(imgs, params, wtoi)
+        #  L, Scores, label_start_ix, label_end_ix, label_length = encode_extra_captions(imgs, params, wtoi)
+        L, Scores, label_start_ix, label_end_ix, label_length = encode_extra_scored_captions(imgs, params, wtoi)
     #
     # create output h5 file
     N = len(imgs)
     f = h5py.File(params['output_h5'], "w")
     f.create_dataset("labels", dtype='uint32', data=L)
+    f.create_dataset("scores", dtype='float32', data=Scores)
     #  f.create_dataset("labels_syn", dtype='uint32', data=Lsyn)
-
     f.create_dataset("label_start_ix", dtype='uint32', data=label_start_ix)
     f.create_dataset("label_end_ix", dtype='uint32', data=label_end_ix)
     f.create_dataset("label_length", dtype='uint32', data=label_length)
@@ -341,7 +458,7 @@ if __name__ == "__main__":
     params = vars(args) # convert to ordinary dict
     params['output_json'] = '%s%s.json' % (DATA_DIR, params['output'])
     params['output_h5'] = '%s%s.h5' % (DATA_DIR, params['output'])
-    params['gen_source'] = "%s/generated_captions_%s.json" % (DATA_DIR, params['gen'])
+    params['gen_source'] = "%sgenerated_captions_%s.json" % (DATA_DIR, params['gen'])
     print 'parsed input parameters:'
     print json.dumps(params, indent=2)
     main(params)

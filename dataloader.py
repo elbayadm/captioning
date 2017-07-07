@@ -68,6 +68,7 @@ class textDataLoader(object):
         split_ix = self.split_ix[split]
         batch_size = batch_size or self.batch_size
         label_batch = np.zeros([batch_size, self.seq_length + 2], dtype ='int')
+        score_batch = np.ones([batch_size, ], dtype ='float32')
         mask_batch = np.zeros([batch_size, self.seq_length + 2], dtype ='float32')
         max_index = len(split_ix)
         wrapped = False
@@ -81,6 +82,10 @@ class textDataLoader(object):
             self.iterators[split] = ri_next
             ix = split_ix[ri]
             label_batch[i, 1 : self.seq_length + 1] = self.h5_file['labels'][ix, :self.seq_length]
+            try:
+                score_batch[i,] = self.h5_file['scores'][ix]
+            except:
+                print 'No scores found'
             # record associated info as well
             infos.append(ix)
         # generate mask
@@ -90,6 +95,7 @@ class textDataLoader(object):
         data = {}
         data['labels'] = label_batch
         data['masks'] = mask_batch
+        data['scores'] = score_batch
         data['bounds'] = {'it_pos_now': self.iterators[split], 'it_max': len(split_ix), 'wrapped': wrapped}
         data['infos'] = infos
         #  print infos[0], ">>" ,infos[-1]
@@ -177,9 +183,10 @@ class DataLoader(object):
 
         img_batch = np.ndarray([batch_size, 3, 224,224], dtype ='float32')
         label_batch = np.zeros([batch_size * seq_per_img, self.seq_length + 2], dtype ='int')
+        score_batch = np.ones([batch_size * seq_per_img, ], dtype ='float32')
+
         #  label_syn_batch = np.zeros([batch_size * self.seq_per_img, self.seq_length + 2], dtype ='int')
         mask_batch = np.zeros([batch_size * seq_per_img, self.seq_length + 2], dtype ='float32')
-
         max_index = len(split_ix)
         wrapped = False
 
@@ -204,28 +211,40 @@ class DataLoader(object):
             ix2 = self.label_end_ix[ix] - 1
             ncap = ix2 - ix1 + 1 # number of captions available for this image
             assert ncap > 0, 'an image does not have any label. this can be handled but right now isn\'t'
-            #  print "Reading %d captions" % ncap
+            #  print "Reading %d captions (%d required)" % (ncap, seq_per_img)
+            #  scores = np.ones([seq_per_img,], dtype='float32')
             if ncap < seq_per_img:
                 # we need to subsample (with replacement)
                 seq = np.zeros([seq_per_img, self.seq_length], dtype = 'int')
+                scores = np.ones([seq_per_img,], dtype = 'float32')
                 #  if self.load_syn:
                 #      seq_syn = np.zeros([self.seq_per_img, self.seq_length], dtype = 'int')
 
                 for q in range(seq_per_img):
                     ixl = random.randint(ix1,ix2)
                     seq[q, :] = self.h5_file['labels'][ixl, :self.seq_length]
-                    #  if self.load_syn:
-                    #      seq_syn[q, :] = self.h5_file['labels_syn'][ixl, :self.seq_length]
-
+                    try:
+                        scores[q] = self.h5_file['scores'][ixl]
+                    except:
+                        if self.opt.less_confident < 1 and self.opt.less_confident:
+                            if ixl - ix1 > 4:
+                                scores[q] = self.opt.less_confident
             else:
                 #  ixl = random.randint(ix1, ix2 - self.seq_per_img + 1)
                 ixl = ix1
                 seq = self.h5_file['labels'][ixl: ixl + seq_per_img, :self.seq_length]
+                try:
+                    scores = self.h5_file['scores'][ixl: ixl + seq_per_img]
+                except:
+                    scores = np.ones([seq_per_img,], dtype='float32')
+                    if self.opt.less_confident < 1 and self.opt.less_confident:
+                        scores[5:] *= self.opt.less_confident
                 #  print "Seq:", seq
                 #  if self.load_syn:
                 #      seq_syn = self.h5_file['labels_syn'][ixl: ixl + self.seq_per_img, :self.seq_length]
 
             label_batch[i * seq_per_img : (i + 1) * seq_per_img, 1 : self.seq_length + 1] = seq
+            score_batch[i * seq_per_img : (i + 1) * seq_per_img] = scores
             #  if self.load_syn:
             #      label_syn_batch[i * self.seq_per_img : (i + 1) * self.seq_per_img, 1 : self.seq_length + 1] = seq_syn
 
@@ -244,6 +263,7 @@ class DataLoader(object):
         data = {}
         data['images'] = img_batch
         data['labels'] = label_batch
+        data['scores'] = score_batch
         #  data['labels_syn'] = label_syn_batch
         data['masks'] = mask_batch
         data['bounds'] = {'it_pos_now': self.iterators[split], 'it_max': len(split_ix), 'wrapped': wrapped}

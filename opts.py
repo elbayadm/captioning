@@ -116,6 +116,14 @@ def parse_opt():
                 default=0, help='Whether to treat the gt separately or not')
     parser.add('--raml_alpha', type=float,
                default=0.9, help='Weight accorded to the gt is isolated')
+    parser.add('--raml_alpha_increase_every', type=int,
+               default=2, help='step width')
+    parser.add('--raml_alpha_increase_factor', type=float,
+               default=0.1, help='increase factor when step')
+    parser.add('--raml_alpha_speed', type=float,
+               default=20000, help='alpha decreasing speed')
+    parser.add('--raml_alpha_strategy', type=str,
+               default="constant", help='Increase strategy')
     parser.add('--raml_normalize', type=float,
                default=0, help='Apply tempered softmax (exp version)')
     #--------------------//RAML

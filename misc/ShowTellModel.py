@@ -176,6 +176,7 @@ class ShowTellModel(nn.Module):
 
                 if t >= 2:
                     state = new_state
+                #  print "State:", state
 
                 output, state = self.core(xt.unsqueeze(0), state)
                 logprobs = F.log_softmax(self.logit(output.squeeze(0)))
