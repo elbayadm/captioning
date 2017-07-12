@@ -24,7 +24,7 @@ def create_logger(log_file=None, debug=True):
     if log_file is not None:
         log_dir = osp.dirname(log_file)
         if log_dir:
-            print 'Parsed log dir', log_dir
+            print('Parsed log dir', log_dir)
             if not osp.exists(log_dir):
                 os.makedirs(log_dir)
         # cerate file handler

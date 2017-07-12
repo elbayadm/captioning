@@ -1,7 +1,7 @@
 # Use tensorboard
 
-from __future__ import absolute_import
-from __future__ import division
+
+
 
 
 # setup gpu
@@ -9,9 +9,9 @@ try:
     import os
     import subprocess
     gpu_id = subprocess.check_output('gpu_getIDs.sh', shell=True)
-    print "Gpu%s" % gpu_id
+    print("Gpu%s" % gpu_id)
 except:
-    print "Failed to get gpu_id (setting gpu_id to 0)"
+    print("Failed to get gpu_id (setting gpu_id to 0)")
     gpu_id = "0"
 os.environ['CUDA_VISIBLE_DEVICES'] = gpu_id
 
@@ -145,13 +145,13 @@ def train(opt):
         crit = utils.LanguageModelCriterion()
     optim_func = get_optimizer(opt.optim)
     optimizer = optim_func(model.parameters(), lr=opt.learning_rate, weight_decay=opt.weight_decay)
-    print "Model params shapes:"
+    print("Model params shapes:")
     for p in optimizer.param_groups:
         if isinstance(p, dict):
-            print 'Dict:', p.keys()
-            print 'LR:', p['lr']
+            print('Dict:', list(p.keys()))
+            print('LR:', p['lr'])
             for pp in p['params']:
-                print pp.size()
+                print(pp.size())
 
     # Load the optimizer
     if vars(opt).get('start_from', None) is not None:
@@ -244,7 +244,7 @@ def train(opt):
 
             #  Write validation result into summary
             add_summary_value(tf_summary_writer, 'validation loss', val_loss, iteration)
-            for k, v in lang_stats.iteritems():
+            for k, v in lang_stats.items():
                 add_summary_value(tf_summary_writer, k, v, iteration)
             tf_summary_writer.flush()
             val_result_history[iteration] = {'loss': val_loss}

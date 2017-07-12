@@ -1,5 +1,5 @@
-from __future__ import absolute_import
-from __future__ import division
+
+
 #  from __future__ import print_function
 
 import json
@@ -36,13 +36,13 @@ class DataLoaderRaw():
         self.seq_per_img = 1
 
         # load the json file which contains additional information about the dataset
-        print 'DataLoaderRaw loading images from folder: ', self.folder_path
+        print('DataLoaderRaw loading images from folder: ', self.folder_path)
 
         self.files = []
         self.ids = []
 
         if len(self.coco_json) > 0:
-            print('reading from ' + opt.coco_json)
+            print(('reading from ' + opt.coco_json))
             # read in filenames from the coco-style json file
             self.coco_annotation = json.load(open(self.coco_json))
             for k,v in enumerate(self.coco_annotation['images']):
@@ -50,8 +50,8 @@ class DataLoaderRaw():
                 self.files.append(fullpath)
                 self.ids.append(v['id'])
         elif len(self.files_list) > 0:
-            print 'listing all images in directory %s from %s' % (self.folder_path, self.files_list)
-            print 'limited to %d images' % self.max_images
+            print('listing all images in directory %s from %s' % (self.folder_path, self.files_list))
+            print('limited to %d images' % self.max_images)
             n = 1
             with open(self.files_list, 'r') as flist:
                 for line in flist:
@@ -62,12 +62,12 @@ class DataLoaderRaw():
                         n = n + 1
                     if self.max_images != -1:
                         if n > self.max_images:
-                            print "Loaded %d images" % n
+                            print("Loaded %d images" % n)
                             break
         else:
             # read in all the filenames from the folder
-            print 'listing all images in directory ' + self.folder_path
-            print 'limited to %d images' % self.max_images
+            print('listing all images in directory ' + self.folder_path)
+            print('limited to %d images' % self.max_images)
             n = 1
             for root, dirs, files in os.walk(self.folder_path, topdown=False):
                 for file in files:
@@ -78,16 +78,16 @@ class DataLoaderRaw():
                         n = n + 1
                     if self.max_images != -1:
                         if n > self.max_images:
-                            print "Loaded %d images" % n
+                            print("Loaded %d images" % n)
                             break
                 if self.max_images != -1:
                     if n > self.max_images:
-                        print "Loaded %d images (outer)" % n
+                        print("Loaded %d images (outer)" % n)
                         break
 
 
         self.N = len(self.files)
-        print('DataLoaderRaw found ', self.N, ' images')
+        print(('DataLoaderRaw found ', self.N, ' images'))
 
         self.iterator = 0
 

@@ -3,9 +3,9 @@ try:
     import os
     import subprocess
     gpu_id = subprocess.check_output('gpu_getIDs.sh', shell=True)
-    print "Gpu%s" % gpu_id
+    print("Gpu%s" % gpu_id)
 except:
-    print "Failed to get gpu_id (setting gpu_id to 0)"
+    print("Failed to get gpu_id (setting gpu_id to 0)")
     gpu_id = "0"
 os.environ['CUDA_VISIBLE_DEVICES'] = gpu_id
 
@@ -107,7 +107,7 @@ if len(opt.input_json) == 0:
 if opt.batch_size == 0:
     opt.batch_size = infos['opt'].batch_size
 ignore = ["id", "batch_size", "beam_size", "start_from", "language_eval"]
-for k in vars(infos['opt']).keys():
+for k in list(vars(infos['opt']).keys()):
     if k not in ignore:
         if k in vars(opt):
             assert vars(opt)[k] == vars(infos['opt'])[k], k + ' option not consistenti (' + str(vars(opt)[k]) + ' vs. ' + str(vars(infos['opt'])[k])+ ')'
@@ -158,6 +158,6 @@ opt.output_file = 'data/coco/generated_captions_%s_%d_limited.json' % (opt.model
 crit = utils.LanguageModelCriterion()
 #  loss = eval_utils.eval_lm_split(encoder, decoder, crit, loader, vars(opt))
 #  print "Loss:", loss
-print opt
+print(opt)
 eval_utils.generate_caps(encoder, decoder, crit, loader, vars(opt))
 

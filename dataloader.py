@@ -1,5 +1,5 @@
-from __future__ import absolute_import
-from __future__ import division
+
+
 #  from __future__ import print_function
 
 import json
@@ -85,11 +85,11 @@ class textDataLoader(object):
             try:
                 score_batch[i,] = self.h5_file['scores'][ix]
             except:
-                print 'No scores found'
+                print('No scores found')
             # record associated info as well
             infos.append(ix)
         # generate mask
-        nonzeros = np.array(map(lambda x: (x != 0).sum()+2, label_batch))
+        nonzeros = np.array([(x != 0).sum()+2 for x in label_batch])
         for ix, row in enumerate(mask_batch):
             row[:nonzeros[ix]] = 1
         data = {}
@@ -255,7 +255,7 @@ class DataLoader(object):
             infos.append(info_dict)
 
         # generate mask
-        nonzeros = np.array(map(lambda x: (x != 0).sum()+2, label_batch))
+        nonzeros = np.array([(x != 0).sum()+2 for x in label_batch])
 
         for ix, row in enumerate(mask_batch):
             row[1:nonzeros[ix]] = 1

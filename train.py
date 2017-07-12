@@ -1,19 +1,18 @@
-# Use tensorboard
-
 from __future__ import absolute_import
 from __future__ import division
+from __future__ import print_function
 from math import exp
 
 # setup gpu
 try:
     import os
     import subprocess
-    gpu_id = subprocess.check_output('gpu_getIDs.sh', shell=True)
-    print "Gpu%s" % gpu_id
+    gpu_id = int(subprocess.check_output('gpu_getIDs.sh', shell=True))
+    print("GPU:", gpu_id)
 except:
-    print "Failed to get gpu_id (setting gpu_id to 0)"
+    print("Failed to get gpu_id (setting gpu_id to 0)")
     gpu_id = "0"
-os.environ['CUDA_VISIBLE_DEVICES'] = gpu_id
+os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_id)
 
 import torch
 import torch.nn as nn
@@ -39,14 +38,14 @@ from tensorflow.contrib.tensorboard.plugins import projector
 
 def log_optimizer(opt, optimizer):
     opt.logger.debug('####################################')
-    print "Optimized params shapes:"
+    print("Optimized params shapes:")
     for p in optimizer.param_groups:
         if isinstance(p, dict):
-            opt.logger.error('Dict: %s' % p.keys())
-            print 'LR:', p['lr']
+            opt.logger.error('Dict: %s' % list(p.keys()))
+            print('LR:', p['lr'])
             for pp in p['params']:
-                print pp.size(),
-            print '\n'
+                print(pp.size(), end=' ')
+            print('\n')
     opt.logger.debug('####################################')
 
 
@@ -60,7 +59,7 @@ def manage_lr(epoch, opt, val_losses):
             opt.scale_lr = decay_factor
         elif opt.lr_strategy == "adaptive":
             opt.logger.error('Adaptive mode')
-            print "val_losses:", val_losses
+            print("val_losses:", val_losses)
             if len(val_losses) > 2:
                 if val_losses[0] > val_losses[1]:
                     opt.lr_wait += 1
@@ -216,12 +215,12 @@ def train(opt):
                 try:
                     optimizer.load_state_dict(torch.load(osp.join(opt.start_from, 'optimizer-best.pth')))
                 except:
-                    print "Starting with blank optimizer"
+                    print("Starting with blank optimizer")
             else:
                 try:
                     optimizer.load_state_dict(torch.load(osp.join(opt.start_from, 'optimizer.pth')))
                 except:
-                    print "The laoded optimizer doesn't have the same parms :> starting a clean optimizer"
+                    print("The laoded optimizer doesn't have the same parms :> starting a clean optimizer")
     # Require grads
     for p in optimizer.param_groups:
         if isinstance(p, dict):
@@ -298,9 +297,9 @@ def train(opt):
             ###########################################################################
         else:
             conf, loc, priorbox = cnn_model.forward(images)
-            print "conf:", conf.size()
-            print "loc:", loc.size()
-            print "priorbox", priorbox.size()
+            print("conf:", conf.size())
+            print("loc:", loc.size())
+            print("priorbox", priorbox.size())
 
         optimizer.zero_grad()
         if opt.caption_model == "show_tell_vae":
@@ -380,7 +379,7 @@ def train(opt):
             add_summary_value(tf_summary_writer, 'validation loss', val_loss, iteration)
             add_summary_value(tf_summary_writer, 'real validation loss', real_val_loss, iteration)
 
-            for k, v in lang_stats.iteritems():
+            for k, v in lang_stats.items():
                 add_summary_value(tf_summary_writer, k, v, iteration)
             #  for k, v in unseen_grams.iteritems():
             #      add_summary_text(tf_summary_writer, k, v, iteration)

@@ -1,16 +1,17 @@
-from __future__ import absolute_import
-from __future__ import division
+
+
 #  from __future__ import print_function
+# setup gpu
 # setup gpu
 try:
     import os
     import subprocess
-    gpu_id = subprocess.check_output('gpu_getIDs.sh', shell=True)
-    print "Gpu%s" % gpu_id
+    gpu_id = int(subprocess.check_output('gpu_getIDs.sh', shell=True))
+    print("GPU:", gpu_id)
 except:
-    print "Failed to get gpu_id (setting gpu_id to 0)"
+    print("Failed to get gpu_id (setting gpu_id to 0)")
     gpu_id = "0"
-os.environ['CUDA_VISIBLE_DEVICES'] = gpu_id
+os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_id)
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
@@ -25,7 +26,7 @@ import sys
 import glob
 import misc.utils as utils
 from collections import Counter
-import cPickle as pickle
+import pickle as pickle
 
 _OKGREEN = '\033[92m'
 _WARNING = '\033[93m'
@@ -37,14 +38,14 @@ def captions_creativity(caps, minfreq):
     """
     Stats on generated n-grams unseen in the training corpus
     """
-    print 'Minfreq == %d' % minfreq
+    print('Minfreq == %d' % minfreq)
     creativity = {}
     tmp = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(6))
     with open('%s_tmp.txt' % tmp, 'w') as f:
         for cp in caps:
             f.write('%s\n' % cp)
     # count grams in tmp.txt:
-    print 'Running ngram-count'
+    print('Running ngram-count')
     os.system("ngram-count -text %s_tmp.txt -write3 %s_tmpcount3.txt -write4 %s_tmpcount4.txt -write5 %s_tmpcount5.txt -order 5 -no-eos -no-sos" %
               (tmp, tmp, tmp, tmp))
     os.system('ngram-count -text data/coco/train_captions_reduced_freq%d.txt -intersect %s_tmpcount4.txt -write4 %s_intersect_count4_tmp.txt -order 4 -no-sos -no-eos' %
@@ -62,11 +63,11 @@ def captions_creativity(caps, minfreq):
             line = line.strip().split('\t')
             counts[line[0]] = int(line[-1])
     creative_5g = 0
-    for k, v in counts.items():
+    for k, v in list(counts.items()):
         if not v:
             creative_5g += 1
             unseen_5g.append(k)
-            print 'Unseen 5g:', k
+            print('Unseen 5g:', k)
     total_5g = 1 + sum([1 for line in open('%s_tmpcount5.txt' % tmp, 'r')])
     #------------------------------------------------------------------------------------------
     counts = {}
@@ -75,11 +76,11 @@ def captions_creativity(caps, minfreq):
             line = line.strip().split('\t')
             counts[line[0]] = int(line[-1])
     creative_4g = 0
-    for k, v in counts.items():
+    for k, v in list(counts.items()):
         if not v:
             creative_4g += 1
             unseen_4g.append(k)
-            print 'Unseen 4g:', k
+            print('Unseen 4g:', k)
     total_4g = 1 + sum([1 for line in open('%s_tmpcount4.txt' % tmp, 'r')])
     #------------------------------------------------------------------------------------------
     counts = {}
@@ -88,11 +89,11 @@ def captions_creativity(caps, minfreq):
             line = line.strip().split('\t')
             counts[line[0]] = int(line[-1])
     creative_3g = 0
-    for k, v in counts.items():
+    for k, v in list(counts.items()):
         if not v:
             creative_3g += 1
             unseen_3g.append(k)
-            print 'Unseen 3g:', k
+            print('Unseen 3g:', k)
     total_3g = 1 + sum([1 for line in open('%s_tmpcount3.txt' % tmp, 'r')])
     #------------------------------------------------------------------------------------------
     tmpfiles = glob.glob('%s_*' % tmp)
@@ -155,7 +156,7 @@ def language_eval(dataset, preds):
 
     # filter results to only those in MSCOCO validation set (will be about a third)
     preds_filt = [p for p in preds if p['image_id'] in valids]
-    print('using %d/%d predictions' % (len(preds_filt), len(preds)))
+    print(('using %d/%d predictions' % (len(preds_filt), len(preds))))
     json.dump(preds_filt, open(tmp_name + '.json', 'w')) # serialize to temporary json file. Sigh, COCO API...
     resFile = tmp_name+'.json'
     cocoRes = coco.loadRes(resFile)
@@ -168,7 +169,7 @@ def language_eval(dataset, preds):
 
     # create output dictionary
     out = {}
-    for metric, score in cocoEval.eval.items():
+    for metric, score in list(cocoEval.eval.items()):
         out[metric] = score
 
     caps = [p['caption'] for p in preds_filt]
@@ -199,7 +200,7 @@ def generate_caps(encoder, decoder, crit, loader, eval_kwargs={}):
     sample_limited_vocab = eval_kwargs.get('sample_limited_vocab', 0)
     output_file = eval_kwargs.get('output_file')
 
-    print 'Using sample_max = %d  ||  temperature %.2f' % (sample_max, temperature)
+    print('Using sample_max = %d  ||  temperature %.2f' % (sample_max, temperature))
 
     # Make sure in the evaluation mode
     encoder.eval()
@@ -227,7 +228,7 @@ def generate_caps(encoder, decoder, crit, loader, eval_kwargs={}):
         SENTS += gt
         blob_batch = { "id": ids[0], "gt": gt, "sampled": []}
         for igt in gt:
-            print _OKGREEN + igt + _ENDC
+            print(_OKGREEN + igt + _ENDC)
 
         while tr < tries:
             #  z_mu, z_var, codes = encoder(labels)
@@ -240,7 +241,7 @@ def generate_caps(encoder, decoder, crit, loader, eval_kwargs={}):
                 codes = encoder(labels)
             if sample_limited_vocab:
                 sample_vocab = np.unique(labels[:, 1:].cpu().data.numpy())
-                print "sample_vocab:", sample_vocab.tolist()
+                print("sample_vocab:", sample_vocab.tolist())
                 seq, _ = decoder.sample_ltd(codes, sample_vocab, {'beam_size': beam_size,
                                                                   "vocab_size": vocab_size,
                                                                   "sample_max": sample_max,
@@ -256,11 +257,11 @@ def generate_caps(encoder, decoder, crit, loader, eval_kwargs={}):
             gen_SENTS += sents
             #  gen_SENTS += ssents
             for isent in sents:
-                print _WARNING + isent + _ENDC
+                print(_WARNING + isent + _ENDC)
             #  print '--------------------(SINGLE)------------------------'
             #  for isent in ssents:
             #      print _WARNING + isent + _ENDC
-            print '----------------------------------------------------'
+            print('----------------------------------------------------')
 
             blob_batch['sampled'] += sents
             #  blob_batch['sampled'] += ssents
@@ -277,7 +278,7 @@ def generate_caps(encoder, decoder, crit, loader, eval_kwargs={}):
     json.dump(blobs, open(output_file, 'w'))
     if lang_eval:
         lang_stats = language_lm_eval(SENTS, gen_SENTS)
-        print lang_stats
+        print(lang_stats)
     encoder.train()
     decoder.train()
     return 1
@@ -295,7 +296,7 @@ def eval_lm_split(encoder, decoder, crit, loader, eval_kwargs={}):
     vocab_size = eval_kwargs.get('vocab_size')
     sample_max = eval_kwargs.get('sample_max', 1)
     temperature = eval_kwargs.get('temperature', 1.0)
-    print 'Using sample_max = %d  ||  temperature %.2f' % (sample_max, temperature)
+    print('Using sample_max = %d  ||  temperature %.2f' % (sample_max, temperature))
 
     # Make sure in the evaluation mode
     encoder.eval()
@@ -352,12 +353,12 @@ def eval_lm_split(encoder, decoder, crit, loader, eval_kwargs={}):
 
             k = 0
             for co, de, r_de, r_de1, r_de2 in zip(gt, sents, r_sents, r_sents1,  r_sents2):
-                print " %d) source:" % data['infos'][k]['id'], co, _OKGREEN, "\n>> (group, z)", de, _ENDC, _WARNING, "\n>> (single, rand z)", r_de, "\n>> (group, rand z)", r_de1, "\n>> (group, rand z)", r_de2, _ENDC
-            print "Loss (group, z): %.2f, single, rand z: %.2f, group, rand z: %.2f, group, rand z: %.2f" % (loss, r_loss, r_loss1, r_loss2)
+                print(" %d) source:" % data['infos'][k]['id'], co, _OKGREEN, "\n>> (group, z)", de, _ENDC, _WARNING, "\n>> (single, rand z)", r_de, "\n>> (group, rand z)", r_de1, "\n>> (group, rand z)", r_de2, _ENDC)
+            print("Loss (group, z): %.2f, single, rand z: %.2f, group, rand z: %.2f, group, rand z: %.2f" % (loss, r_loss, r_loss1, r_loss2))
 
         except:
             for co, de in zip(gt, sents):
-                print "source:", co, _OKGREEN, "\n>> (determ.)", de, _ENDC
+                print("source:", co, _OKGREEN, "\n>> (determ.)", de, _ENDC)
 
         loss = crit(decoder(codes, labels), labels[:,1:], masks[:,1:])[0].data[0]
         loss_sum = loss_sum + loss
@@ -376,7 +377,7 @@ def eval_lm_split(encoder, decoder, crit, loader, eval_kwargs={}):
     unseen_grams = None
     if lang_eval == 1:
         lang_stats = language_lm_eval(SENTS, gen_SENTS)
-    print lang_stats
+    print(lang_stats)
     # Switch back to training mode
     encoder.train()
     decoder.train()
@@ -406,7 +407,7 @@ def eval_mil(cnn_model, crit, loader, eval_kwargs={}):
         data = loader.get_batch(split, seq_per_img=seq_per_img)
         n = n + loader.batch_size
         # forward the model to get loss
-        tmp = [data['images'], data['labels']] 
+        tmp = [data['images'], data['labels']]
         tmp = [Variable(torch.from_numpy(_), volatile=True).cuda() for _ in tmp]
         images, labels = tmp
         probs = cnn_model(images)
@@ -454,7 +455,7 @@ def eval_split(cnn_model, model, crit, loader, eval_kwargs={}):
     vae_weight = eval_kwargs.get('vae_weight')
     vocab_size = eval_kwargs.get('vocb_size')
 
-    print "Eval %s" % caption_model
+    print("Eval %s" % caption_model)
 
 
     # Make sure in the evaluation mode
@@ -558,7 +559,7 @@ def eval_external(cnn_model, model, crit, loader, eval_kwargs={}):
     vocab_size = eval_kwargs.get('vocb_size')
     dump_path = eval_kwargs.get('dump_path')
 
-    print "Eval %s" % caption_model
+    print("Eval %s" % caption_model)
 
     # Make sure in the evaluation mode
     cnn_model.eval()
@@ -602,7 +603,7 @@ def eval_external(cnn_model, model, crit, loader, eval_kwargs={}):
 
         for k, sent in enumerate(sents):
             spath = short_path(data['infos'][k]['file_path'])
-            print spath, _OKGREEN, ">>", sent, _ENDC
+            print(spath, _OKGREEN, ">>", sent, _ENDC)
             entry = {'image_path': spath, 'caption': sent}
             predictions.append(entry)
             #  logger.debug('image %s: %s' %(entry['image_id'], entry['caption']))
@@ -687,7 +688,7 @@ def eval_eval(cnn_model, model, crit, loader, eval_kwargs={}):
             entry = {'image_id': data['infos'][k]['id'], 'caption': sent}
             predictions.append(entry)
             if verbose:
-                print('image %s: %s' %(entry['image_id'], entry['caption']))
+                print(('image %s: %s' %(entry['image_id'], entry['caption'])))
 
         for k, sent in enumerate(sents):
             entry = {'image_id': data['infos'][k]['id'], 'caption': sent}
@@ -701,7 +702,7 @@ def eval_eval(cnn_model, model, crit, loader, eval_kwargs={}):
                 os.system(cmd)
 
             if verbose:
-                print('image %s: %s' %(entry['image_id'], entry['caption']))
+                print(('image %s: %s' %(entry['image_id'], entry['caption'])))
 
         # if we wrapped around the split or used up val imgs budget then bail
         ix0 = data['bounds']['it_pos_now']
@@ -712,7 +713,7 @@ def eval_eval(cnn_model, model, crit, loader, eval_kwargs={}):
             predictions.pop()
 
         if verbose:
-            print('evaluating validation preformance... %d/%d (%f)' %(ix0 - 1, ix1, loss))
+            print(('evaluating validation preformance... %d/%d (%f)' %(ix0 - 1, ix1, loss)))
 
         if data['bounds']['wrapped']:
             break

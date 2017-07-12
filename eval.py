@@ -1,5 +1,5 @@
-from __future__ import absolute_import
-from __future__ import division
+
+
 #  from __future__ import print_function
 
 import json
@@ -102,7 +102,7 @@ if "scheduled_sampling_vocab" not in opt:
 
 
 ignore = ["id", "batch_size", "beam_size", "start_from", "language_eval"]
-for k in vars(infos['opt']).keys():
+for k in list(vars(infos['opt']).keys()):
     if k not in ignore:
         if k in vars(opt):
             assert vars(opt)[k] == vars(infos['opt'])[k], k + ' option not consistent'
@@ -126,18 +126,18 @@ except:
 # Setup the model
 if opt.use_feature_maps:
     ###############################################################################################################
-    print 'using single CNN branch with feature maps as regions embeddings'
+    print('using single CNN branch with feature maps as regions embeddings')
     # Build CNN model for single branch use
     if opt.cnn_model.startswith('resnet'):
         cnn_model = utils.ResNetModel(opt)
     elif opt.cnn_model.startswith('vgg'):
         cnn_model = utils.VggNetModel(opt)
     else:
-        print 'Unknown model %s' % opt.cnn_model
+        print('Unknown model %s' % opt.cnn_model)
         sys.exit(1)
     ################################################################################################################
 else:
-    print 'using SSD'
+    print('using SSD')
     cnn_model = build_ssd('train', 300, 21)
 
 cnn_model.cuda()
@@ -169,9 +169,9 @@ eval_kwargs.update(vars(infos['opt']))
 eval_kwargs.update(vars(opt))
 eval_kwargs['num_images'] = opt.max_images
 eval_kwargs['beam_size'] = opt.beam_size
-print "Evaluation beam size:", eval_kwargs['beam_size']
+print("Evaluation beam size:", eval_kwargs['beam_size'])
 predictions = eval_utils.eval_external(cnn_model, model, crit, loader, eval_kwargs)
-print "Finished evaluation in ", (time.time() - start)
+print("Finished evaluation in ", (time.time() - start))
 if opt.dump_json == 1:
     # dump the json
     json.dump(predictions, open(opt.output_json, 'w'))

@@ -31,11 +31,11 @@ def setup(opt):
         if opt.start_from_best:
             assert osp.isfile(osp.join(opt.start_from, "infos-best.pkl")), "infos-best.pkl file does not exist in path %s" % opt.start_from
             saved = torch.load(osp.join(opt.start_from, 'model-best.pth'))
-            opt.logger.warn('Loading the model dict (best checkpoint) %s' % str(saved.keys()))
+            opt.logger.warn('Loading the model dict (best checkpoint) %s' % str(list(saved.keys())))
             model.load_state_dict(saved)
         else:
             assert osp.isfile(osp.join(opt.start_from, "infos.pkl")), "infos.pkl file does not exist in path %s" % opt.start_from
             saved = torch.load(osp.join(opt.start_from, 'model.pth'))
-            opt.logger.warn('Loading the model dict (last checkpoint) %s' % str(saved.keys()))
+            opt.logger.warn('Loading the model dict (last checkpoint) %s' % str(list(saved.keys())))
             model.load_state_dict(saved)
     return model
