@@ -170,22 +170,27 @@ class MIL_crit(nn.Module):
         """
         input: prob(w\in Image): shape: #images, #vocab
         target: labels         : shape: #images * #seq_per_img, #seq_length
-        mask:     ,,
+        Beware batch_size = 1
         """
+        input = torch.log(input + 1e-30)
+        # print("Probs:", input)
         # parse words in image from labels:
         num_img = input.size(0)
-        labels_per_image = target.chunk(num_img)
-        words_per_image = [np.unique(to_contiguous(t).data.cpu().numpy())
-                           for t in labels_per_image]
-        max_len_words = max([len(t) for t in words_per_image])
-        words_per_image = [np.pad(t, (0, max_len_words - len(t)), 'constant')
-                           for t in words_per_image]
-        indices_words = Variable(torch.cat([torch.from_numpy(t).view(1, -1)
-                                            for t in words_per_image], dim=0),
-                                 requires_grad=False).cuda()
-        #  print "probs:", input
-        out = - torch.sum(input.gather(1, indices_words)) / num_img /max_len_words
+        # assert num_img == 1, "Batch size larger than 1"
+        words_per_image = np.unique(to_contiguous(target).data.cpu().numpy())
+        #  print('Word in image:', words_per_image)
+        indices_pos = Variable(torch.from_numpy(words_per_image).view(1, -1), requires_grad=False).cuda()
+        indices_neg = Variable(torch.from_numpy(np.array([a for a in np.arange(self.opt.vocab_size) if a not in words_per_image])).view(1, -1), requires_grad=False).cuda()
+        mask_pos = torch.gt(indices_pos, 0).float()
+        mask_neg = torch.gt(indices_neg, 0).float()
+        # print('Positives:', torch.sum(mask_pos), "Negatives:", torch.sum(mask_neg))
+        log_pos = - torch.sum(input.gather(1, indices_pos) * mask_pos)
+        log_neg = - torch.sum((1 - input).gather(1, indices_neg) * mask_neg)
+        # print('Log_pos:', log_pos, 'log_neg:', log_neg)
+        out = log_pos / torch.sum(mask_pos)  # + log_neg / torch.sum(mask_neg)
+        # print("Final output:", out)
         return out
+
 
 class ResNet_MIL_corr(nn.Module):
     """
@@ -214,7 +219,7 @@ class ResNet_MIL_corr(nn.Module):
         x = self.softmax(self.sigmoid(x))
         x = x.view(x0.size(0), x0.size(1) * x0.size(2), -1)
         probs =  torch.log(1 - torch.prod(1 - x, dim=1))
-        #  self.opt.logger.error('Final probs: %s' % str(probs))
+        self.opt.logger.error('Final probs: %s' % str(probs))
         probs = probs.squeeze(1)
         return probs
 
@@ -233,7 +238,7 @@ class ResNet_MIL(nn.Module):
         #  print "Modules:", self._modules
 
     def init_added_weights(self):
-        initrange = 0.1
+        initrange = 1.0
         self.classifier.bias.data.fill_(0)
         self.classifier.weight.data.uniform_(-initrange, initrange)
 
@@ -278,12 +283,15 @@ class VggNetModel(models.VGG):
             self.keepdim_fc = 6
         elif opt.cnn_fc_feat == 'fc6':
             self.keepdim_fc = 3
+        elif opt.cnn_fc_feat == 'fc8':
+            self.keepdim_fc = 7
+
         self.keepdim_att = 30
         #  print 'PRE:', self._modules
         # Reassemble:
-        self.features1 = nn.Sequential(*self.features._modules.values()[:self.keepdim_att])
-        self.features2 = nn.Sequential(*self.features._modules.values()[self.keepdim_att:])
-        self.fc = nn.Sequential(*self.classifier._modules.values()[:self.keepdim_fc])
+        self.features1 = nn.Sequential(*list(self.features._modules.values())[:self.keepdim_att])
+        self.features2 = nn.Sequential(*list(self.features._modules.values())[self.keepdim_att:])
+        self.fc = nn.Sequential(*list(self.classifier._modules.values())[:self.keepdim_fc])
         self.features = nn.Module()
         self.classifier = nn.Module()
         self.norm2 = L2Norm(n_channels=512, scale=True)
@@ -626,9 +634,9 @@ class LanguageModelCriterion(nn.Module):
             mask_ = torch.mul(mask, row_scores)
         else:
             mask_ = mask
+        # print('Updated mask:', mask_)
         input = to_contiguous(input).view(-1, input.size(2))
         target = to_contiguous(target).view(-1, 1)
-        mask = to_contiguous(mask).view(-1, 1)
         mask_ = to_contiguous(mask_).view(-1, 1)
         output = - input.gather(1, target) * mask_
         output = torch.sum(output) / torch.sum(mask_)
@@ -688,7 +696,10 @@ def clip_gradient(optimizer, max_norm, norm_type=2):
             for p in group['params']:
                 #  print p.size()
                 param_norm = p.grad.data.norm(norm_type)
-                total_norm += param_norm ** norm_type
+                nn = param_norm ** norm_type
+                # print('norm:', nn, p.grad.size())
+                total_norm += nn
+                param_norm ** norm_type
         total_norm = total_norm ** (1. / norm_type)
     clip_coef = max_norm / (total_norm + 1e-6)
     if clip_coef < 1:

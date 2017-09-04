@@ -1,7 +1,7 @@
 """
 Get best performances of given model
 """
-import cPickle as pickle
+import pickle
 import json
 import argparse
 import numpy as np
@@ -12,10 +12,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
     args = vars(args) # convert to ordinary dict
     # Load results history:
-    print "Parsing the results of:", args['model']
-    infos = pickle.load(open('%s/infos-best.pkl' % args["model"], 'r'))
+    print("Parsing the results of:", args['model'])
+    infos = pickle.load(open('%s/infos-best.pkl' % args["model"], 'rb'), encoding='\"ISO-8859-1')
     val = infos["val_result_history"]
-    iters = val.keys()
+    iters = list(val.keys())
     ciders = [val[it]['lang_stats']["CIDEr"] for it in iters]
     b = np.argmax(np.array(ciders))
     b = iters[b]
@@ -35,4 +35,4 @@ if __name__ == "__main__":
     c = good_score % C if C > 86 else score % C
     s = good_score % S if S > 16.5 else score % S
     out = table + b4 + c + s + '\n' + score % C3 + score % C4 + score % C5 + '\n' + "<td>%d</td>" % V + ftable
-    print out
+    print(out)

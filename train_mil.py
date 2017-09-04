@@ -1,20 +1,15 @@
-# Use tensorboard
-
-
-
-from math import exp
-
 # setup gpu
 try:
     import os
     import subprocess
-    gpu_id = subprocess.check_output('gpu_getIDs.sh', shell=True)
-    print("Gpu%s" % gpu_id)
+    gpu_id = int(subprocess.check_output('gpu_getIDs.sh', shell=True))
+    print("GPU:", gpu_id)
 except:
     print("Failed to get gpu_id (setting gpu_id to 0)")
     gpu_id = "0"
-os.environ['CUDA_VISIBLE_DEVICES'] = gpu_id
+os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_id)
 
+from math import exp
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
@@ -32,6 +27,7 @@ from dataloader import *
 import eval_utils
 import misc.utils as utils
 from misc.ssd import build_ssd
+from misc.mil import VGG_MIL, upsample_images
 import tensorflow as tf
 from tensorflow.python.framework import dtypes
 from tensorflow.contrib.tensorboard.plugins import projector
@@ -120,7 +116,7 @@ def train(opt):
     infos = {}
     #  opt.logger.warn('\n' + '\n'.join(['%24s : %s' % (str(k),str(v)) for k, v in vars(opt).iteritems()]))
     # Restart training (useful with oar idempotant)
-    if opt.restart and osp.exists(osp.join(opt.modelname, 'model.pth')):
+    if opt.restart and osp.exists(osp.join(opt.modelname, 'model-cnn.pth')):
         opt.start_from_best = 0
         opt.logger.warning('Picking up where we left')
         opt.start_from = opt.modelname
@@ -130,11 +126,11 @@ def train(opt):
         opt.logger.warn('Starting from %s' % opt.start_from)
         if opt.start_from_best:
             opt.logger.warn('Starting from the best saved checkpoint (infos)')
-            f = open(osp.join(opt.start_from, 'infos-best.pkl'))
+            f = open(osp.join(opt.start_from, 'infos-best.pkl'), 'rb')
         else:
             opt.logger.warn('Starting from the last saved checkpoint (infos)')
-            f = open(osp.join(opt.start_from, 'infos.pkl'))
-        infos = pickle.load(f)
+            f = open(osp.join(opt.start_from, 'infos.pkl'), 'rb')
+        infos = pickle.load(f, encoding='iso-8859-1')
         saved_model_opt = infos['opt']
         need_be_same=["caption_model", "rnn_type", "rnn_size", "num_layers"]
         for checkme in need_be_same:
@@ -156,15 +152,16 @@ def train(opt):
         best_val_score = infos.get('best_val_score', None)
 
     #  cnn_model = utils.ResNet_MIL(opt)
-    cnn_model = utils.ResNet_MIL_corr(opt)
-    cnn_model.init_added_weights()
+    # cnn_model = utils.ResNet_MIL_corr(opt)
+    # cnn_model.init_added_weights()
+    cnn_model = VGG_MIL(opt)
     cnn_model.cuda()
     crit = utils.MIL_crit(opt)
     update_lr_flag = True
     # Assure in training mode
     cnn_model.train()
     optim_func = get_optimizer(opt.optim)
-    optimizer = optim_func(cnn_model.classifier.parameters(), lr=opt.learning_rate, weight_decay=opt.weight_decay)
+    optimizer = optim_func(cnn_model.parameters(), lr=opt.learning_rate, weight_decay=opt.weight_decay)
     # Load the optimizer
     if vars(opt).get('start_from', None) is not None:
         if osp.isfile(osp.join(opt.start_from, 'optimizer.pth')) and not opt.finetune_cnn_only:
@@ -189,7 +186,7 @@ def train(opt):
     log_optimizer(opt, optimizer)
     # Main loop
     # To save before training:
-    iteration -= 1
+    # iteration -= 1
     while True:
         if update_lr_flag:
             # Assign the learning rate
@@ -203,6 +200,8 @@ def train(opt):
         torch.cuda.synchronize()
         start = time.time()
         tmp = [data['images'], data['labels']]
+        # upsample images:
+        tmp[0] = upsample_images(tmp[0], 300)
         tmp = [Variable(torch.from_numpy(_), requires_grad=True).cuda() for _ in tmp]
         images, labels = tmp
         optimizer.zero_grad()
@@ -212,6 +211,9 @@ def train(opt):
         grad_norm.append(utils.clip_gradient(optimizer, opt.grad_clip))
         optimizer.step()
         train_loss = loss.data[0]
+        if np.isnan(train_loss):
+            # Infinite loss break;
+            sys.exit("Loss is nan")
         #  grad_norm = [utils.get_grad_norm(optimizer)]
         torch.cuda.synchronize()
         end = time.time()

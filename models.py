@@ -6,6 +6,7 @@ import misc.utils as utils
 import torch
 
 from misc.ShowTellModel import ShowTellModel
+from misc.ShowTellModel_RAML import ShowTellModel_RAML
 from misc.ShowTellVAEModel import ShowTellVAEModel
 
 # from misc.AttentionModel import AttentionModel
@@ -19,6 +20,9 @@ def setup(opt):
         model = ShowTellModel(opt)
     elif opt.caption_model == 'show_tell_vae':
         model = ShowTellVAEModel(opt)
+    elif opt.caption_model == 'show_tell_raml':
+        model = ShowTellModel_RAML(opt)
+
     elif opt.caption_model == 'show_attend_tell':
         model = ShowAttendTellModel(opt)
     else:

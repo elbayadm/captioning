@@ -120,7 +120,7 @@ def train(opt):
     #  opt.logger.warn('\n' + '\n'.join(['%24s : %s' % (str(k),str(v)) for k, v in vars(opt).iteritems()]))
     # Restart training (useful with oar idempotant)
     if opt.restart and osp.exists(osp.join(opt.modelname, 'model.pth')):
-        opt.start_from_best = 0
+        opt.tart_from_best = 0
         opt.logger.warning('Picking up where we left')
         opt.start_from = opt.modelname
 
@@ -132,8 +132,8 @@ def train(opt):
             f = open(osp.join(opt.start_from, 'infos-best.pkl'))
         else:
             opt.logger.warn('Starting from the last saved checkpoint (infos)')
-            f = open(osp.join(opt.start_from, 'infos.pkl'))
-        infos = pickle.load(f)
+            f = open(osp.join(opt.start_from, 'infos.pkl'), 'rb')
+        infos = pickle.load(f, encoding='iso-8859-1')
         saved_model_opt = infos['opt']
         need_be_same=["caption_model", "rnn_type", "rnn_size", "num_layers"]
         for checkme in need_be_same:
@@ -197,6 +197,7 @@ def train(opt):
     else:
         crit = utils.LanguageModelCriterion(opt)
     optim_func = get_optimizer(opt.optim)
+    # TODO; add sclaed lr for every chunk of cnn layers
     if opt.finetune_cnn_after != -1 and epoch >= opt.finetune_cnn_after:
         cnn_params = [{'params': module.parameters(), 'lr': opt.cnn_learning_rate * opt.learning_rate} for module in cnn_model.to_finetune]
         main_params = [{'params': model.parameters(), 'lr': opt.learning_rate}]
@@ -230,7 +231,7 @@ def train(opt):
     log_optimizer(opt, optimizer)
     # Main loop
     # To save before training:
-    iteration -= 1
+    # iteration -= 1
     while True:
         if update_lr_flag:
             # Assign the learning rate
@@ -306,6 +307,12 @@ def train(opt):
             preds, recon_loss, kld_loss = model(fc_feats, att_feats, labels)
             real_loss, loss = crit(preds, labels[:, 1:], masks[:, 1:])
             loss += opt.vae_weight * (recon_loss + opt.kld_weight * kld_loss)  #FIXME add the scaling as parameter
+        elif opt.caption_model == 'show_tell_raml':
+            probs, reward = model(fc_feats, att_feats, labels)
+            # raml_scores = reward * Variable(torch.ones(scores.size()))
+            raml_scores = Variable(torch.ones(scores.size()))
+            print('Raml reward:', reward)
+            real_loss, loss = crit(probs, labels[:, 1:], masks[:, 1:], raml_scores)
         else:
             real_loss, loss = crit(model(fc_feats, att_feats, labels), labels[:, 1:], masks[:, 1:], scores)
         loss.backward()

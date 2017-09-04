@@ -1,7 +1,3 @@
-
-
-#  from __future__ import print_function
-# setup gpu
 # setup gpu
 try:
     import os
@@ -27,7 +23,7 @@ import glob
 import misc.utils as utils
 from collections import Counter
 import pickle as pickle
-
+from misc.mil import upsample_images
 _OKGREEN = '\033[92m'
 _WARNING = '\033[93m'
 _FAIL = '\033[91m'
@@ -404,12 +400,14 @@ def eval_mil(cnn_model, crit, loader, eval_kwargs={}):
     predictions = []
     seq_per_img = 5
     while True:
-        data = loader.get_batch(split, seq_per_img=seq_per_img)
+        data = loader.get_batch(split, seq_per_img=seq_per_img, batch_size=1)
         n = n + loader.batch_size
         # forward the model to get loss
         tmp = [data['images'], data['labels']]
+        tmp[0] = upsample_images(tmp[0], 300)
         tmp = [Variable(torch.from_numpy(_), volatile=True).cuda() for _ in tmp]
         images, labels = tmp
+        #  print("Images:", images.size())
         probs = cnn_model(images)
         loss = crit(probs, labels[:, 1:])
         loss = loss.data[0]
@@ -418,6 +416,7 @@ def eval_mil(cnn_model, crit, loader, eval_kwargs={}):
         # Pick the 16th most probable tokens as predictions:
         _, indices = torch.sort(probs, dim=1, descending=True)
         sents = utils.decode_sequence(loader.get_vocab(), indices[:, :max_tokens].cpu().data)
+        #  print("Output:", sents)
         for k in range(loader.batch_size):
             entry = {'image_id': data['infos'][k]['id'], 'words': sents[k]}
             predictions.append(entry)
@@ -497,6 +496,12 @@ def eval_split(cnn_model, model, crit, loader, eval_kwargs={}):
             loss = loss.data[0]
             loss += vae_weight * (recon_loss.data[0] + kld_loss.data[0])
             #  print "Incrementing loss" , loss
+        elif caption_model == "show_tell_raml":
+            probs, scroe = model(fc_feats, att_feats, labels)
+            real_loss, loss = crit(probs, labels[:, 1:], masks[:, 1:], scores)
+            real_loss = real_loss.data[0]
+            loss = loss.data[0]
+
         else:
             real_loss, loss = crit(model(fc_feats, att_feats, labels), labels[:, 1:], masks[:, 1:], scores)
             real_loss = real_loss.data[0]
