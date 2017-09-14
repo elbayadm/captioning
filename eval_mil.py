@@ -7,8 +7,7 @@ import numpy as np
 
 import time
 import os
-from six.moves import cPickle
-
+from six.moves import cPickle as pickle
 import opts
 import models
 from dataloader import *
@@ -18,6 +17,7 @@ import argparse
 import misc.utils as utils
 import torch
 from misc.ssd import build_ssd
+from misc.mil import VGG_MIL
 
 NUM_THREADS = 2 #int(os.environ['OMP_NUM_THREADS'])
 
@@ -84,9 +84,8 @@ if len(opt.model_path) == 0:
     opt.infos_path = "save/%s/infos.pkl" % opt.model
 
 # Load infos
-with open(opt.infos_path) as f:
-    infos = cPickle.load(f)
-
+print('Loading infos file %s' % opt.infos_path)
+infos = pickle.load(open(opt.infos_path, 'rb'), encoding='iso-8859-1')
 # override and collect parameters
 if len(opt.input_h5) == 0:
     opt.input_h5 = infos['opt'].input_h5
@@ -124,30 +123,10 @@ try:
 except:
     opt.use_synonyms = 0
 # Setup the model
-if opt.use_feature_maps:
-    ###############################################################################################################
-    print('using single CNN branch with feature maps as regions embeddings')
-    # Build CNN model for single branch use
-    if opt.cnn_model.startswith('resnet'):
-        cnn_model = utils.ResNetModel(opt)
-    elif opt.cnn_model.startswith('vgg'):
-        cnn_model = utils.VggNetModel(opt)
-    else:
-        print('Unknown model %s' % opt.cnn_model)
-        sys.exit(1)
-    ################################################################################################################
-else:
-    print('using SSD')
-    cnn_model = build_ssd('train', 300, 21)
-
+cnn_model = VGG_MIL(opt)
 cnn_model.cuda()
 cnn_model.eval()
-model = models.setup(opt)
-model.load_state_dict(torch.load(opt.model_path))
-model.cuda()
-model.eval()
-crit = utils.LanguageModelCriterion()
-
+crit = utils.MIL_crit(opt)
 # Create the Data Loader instance
 start = time.time()
 if len(opt.image_folder) == 0:
@@ -170,7 +149,7 @@ eval_kwargs.update(vars(opt))
 eval_kwargs['num_images'] = opt.max_images
 eval_kwargs['beam_size'] = opt.beam_size
 print("Evaluation beam size:", eval_kwargs['beam_size'])
-predictions = eval_utils.eval_external(cnn_model, model, crit, loader, eval_kwargs)
+val_loss, predictions = eval_utils.eval_mil(cnn_model, crit, loader, eval_kwargs)
 print("Finished evaluation in ", (time.time() - start))
 if opt.dump_json == 1:
     # dump the json

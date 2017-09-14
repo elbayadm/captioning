@@ -414,7 +414,10 @@ def eval_mil(cnn_model, crit, loader, eval_kwargs={}):
         loss_sum = loss_sum + loss
         loss_evals = loss_evals + 1
         # Pick the 16th most probable tokens as predictions:
-        _, indices = torch.sort(probs, dim=1, descending=True)
+        print("Probabilities:", probs)
+        sel, indices = torch.sort(probs, dim=1, descending=True)
+        print('Tokens', indices)
+        print('highest probas', sel)
         sents = utils.decode_sequence(loader.get_vocab(), indices[:, :max_tokens].cpu().data)
         #  print("Output:", sents)
         for k in range(loader.batch_size):
