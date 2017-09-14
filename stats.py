@@ -29,6 +29,8 @@ if __name__ == "__main__":
             V.append(v)
     print(V)
     plt.figure()
+    K = K[1:]
+    V = V[1:]
     plt.bar(np.arange(len(K)),
             V,
             0.99)  # bar width
