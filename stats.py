@@ -1,6 +1,9 @@
 from dataloader import *
 import opts
 from collections import Counter
+import matplotlib.pyplot as plt
+import numpy as np
+
 
 if __name__ == "__main__":
     # Load the tokenized captions:
@@ -14,11 +17,20 @@ if __name__ == "__main__":
         cnt.update(l)
     cnt = cnt.most_common()
     words = loader.ix_to_word
-    words['0'] = "UNK"
+    words['0'] = 'EOS'
+    K = []
+    V = []
     with open('words_count.txt', 'w') as f:
         for k, v in cnt:
             # print(k, words[str(k)], cnt[k])
             print(k, words[str(k)], v)
             f.write("%s: %d\n" % (words[str(k)], v))
+            K.append(words[str(k)])
+            V.append(v)
+    plt.figure()
+    plt.bar(np.arange(len(K)),
+            V,
+            0.1)  # bar width
+    plt.savefig('words_count.png')
 
 
