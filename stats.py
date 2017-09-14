@@ -36,6 +36,6 @@ if __name__ == "__main__":
             0.99,  # bar width
             color='r')
     plt.yscale("log")
-    plt.savefig('words_count.png')
+    plt.savefig('words_count.png', bbox_inches="tight")
 
 
