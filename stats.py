@@ -27,10 +27,11 @@ if __name__ == "__main__":
             f.write("%s: %d\n" % (words[str(k)], v))
             K.append(words[str(k)])
             V.append(v)
+    print(V)
     plt.figure()
     plt.bar(np.arange(len(K)),
             V,
-            0.1)  # bar width
+            0.99)  # bar width
     plt.savefig('words_count.png')
 
 
