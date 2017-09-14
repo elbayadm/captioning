@@ -34,7 +34,7 @@ if __name__ == "__main__":
     plt.bar(np.arange(len(K)),
             V,
             0.99,  # bar width
-            c='r')
+            color='r')
     plt.yscale("log")
     plt.savefig('words_count.png')
 
