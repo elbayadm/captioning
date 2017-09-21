@@ -149,8 +149,8 @@ eval_kwargs.update(vars(opt))
 eval_kwargs['num_images'] = opt.max_images
 eval_kwargs['beam_size'] = opt.beam_size
 print("Evaluation beam size:", eval_kwargs['beam_size'])
-val_loss, predictions = eval_utils.eval_mil(cnn_model, crit, loader, eval_kwargs)
+val_loss, predictions = eval_utils.eval_mil_extended(cnn_model, crit, loader, eval_kwargs)
 print("Finished evaluation in ", (time.time() - start))
 if opt.dump_json == 1:
     # dump the json
-    json.dump(predictions, open(opt.output_json, 'w'))
+    pickle.dump(predictions, open(opt.output_json, 'wb'), protocol=pickle.HIGHEST_PROTOCOL)

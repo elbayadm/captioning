@@ -86,16 +86,16 @@ class VGG_MIL(nn.Module):
 
         self.fc_conv = torch.nn.Sequential()
 
-        self.fc_conv.add_module("fc6_conv", nn.Conv2d(512, 4096, kernel_size=7, stride=1, padding=0))
-        self.fc_conv.add_module("relu_6_1", torch.nn.ReLU())
+        self.fc_conv.add_module("fc_words", nn.Linear(512, self.num_words))
+        self.sigmoid = nn.Sigmoid()
+        # self.fc_conv.add_module("fc6_conv", nn.Conv2d(512, 4096, kernel_size=7, stride=1, padding=0))
+        # self.fc_conv.add_module("relu_6_1", torch.nn.ReLU())
 
-        self.fc_conv.add_module("fc7_conv", nn.Conv2d(4096, 4096, kernel_size=1, stride=1, padding=0))
-        self.fc_conv.add_module("relu_7_1", torch.nn.ReLU())
+        # self.fc_conv.add_module("fc7_conv", nn.Conv2d(4096, 4096, kernel_size=1, stride=1, padding=0))
+        # self.fc_conv.add_module("relu_7_1", torch.nn.ReLU())
 
-        self.fc_conv.add_module("fc8_conv", nn.Conv2d(4096, self.num_words, kernel_size=1, stride=1, padding=0))
-        self.fc_conv.add_module("sigmoid_8", torch.nn.Sigmoid())
-        self.pool_mil = nn.MaxPool2d(kernel_size=3, stride=0)
-        self.norm2 = L2Norm(n_channels=9486, scale=True)
+        # self.fc_conv.add_module("fc8_conv", nn.Conv2d(4096, self.num_words, kernel_size=1, stride=1, padding=0))
+        # self.pool_mil = nn.MaxPool2d(kernel_size=3, stride=0)
 
         if self.start_from is not None and len(self.cnn_weight) != 0:
             self.load_state_dict(torch.load(self.cnn_weight))
@@ -181,31 +181,78 @@ class VGG_MIL(nn.Module):
             self.conv.load_state_dict(params)
 
 
+    def forward_extended(self, x):
+        xconv = self.conv.forward(x.float())
+        # print('conv output:', xconv.size())
+        xconv = xconv.permute(0, 2, 3, 1).contiguous()
+        xregions = xconv.view(xconv.size(0), xconv.size(1) * xconv.size(2), xconv.size(3))
+        # print('Permuted:', xregions.size())
+        # Normalize the embeddings
+        # rn = torch.norm(xregions, p=2, dim=1).detach()
+        # xnorm = xregions.div(rn.expand_as(xregions))
+        xnorm = xregions
 
-    def forward(self, x):
-        x0 = self.conv.forward(x.float())
-        x0 = self.fc_conv(x0)
-        # print('Post norm2', x0.size())
-        x0 = self.norm2(x0)
-        #  print('x0:', x0.size())
-        # print('vgg:', x0.size())
+        # print('Normalized region features:', xnorm)
+
         # Max pooling over all regions:
-        x = self.pool_mil(x0)
-        x = x.squeeze(2).squeeze(2)
+        # xmil, _ = torch.max(xnorm, dim=1)
+        # xmil = xmil.squeeze(1)
+        # print('pool mil:', xmil)
+
+        # Classifiers:
+        xf = self.fc_conv(xnorm.view(-1, 512)).view(xconv.size(0), -1, self.num_words)
+        # print('fc_conv', xf)
+        xf = torch.exp(xf)
+        xf = xf.div(xf.sum(dim=2).expand_as(xf))
+        # print('Sigmoid:', xf.sum(dim=2))
         # Eval 1 - p(w in region)
         # x1 = x0.view(x.size(0), self.num_words, -1)
-        x1 = torch.add(torch.mul(x0.view(x.size(0), self.num_words, -1), -1), 1)
-        # print('x1:', x1)
-        prods = torch.prod(x1, 2).squeeze(2)
-        # print("prods", prods)
+        x1 = torch.add(torch.mul(xf, -1), 1)
+        prods = torch.prod(x1, 1).squeeze(1)
         # Eval 1 - p(word not in image) ( = prod over regions (p(word not in region)))
         probs = torch.add(torch.mul(prods, -1), 1)
         #  print('x;', x.size())
-        #  print('probs:', probs.size())
-        out = torch.max(x, probs)
+        # out = torch.max(x, probs)
         # out = torch.log(out)
-        #  print('Out:', out)
-        return out
+        # print('Out:', probs)
+        return xnorm, xf, probs
+
+
+    def forward(self, x):
+        xconv = self.conv.forward(x.float())
+        # print('conv output:', xconv.size())
+        xconv = xconv.permute(0, 2, 3, 1).contiguous()
+        xregions = xconv.view(xconv.size(0), xconv.size(1) * xconv.size(2), xconv.size(3))
+        # print('Permuted:', xregions.size())
+        # Normalize the embeddings
+        # rn = torch.norm(xregions, p=2, dim=1).detach()
+        # xnorm = xregions.div(rn.expand_as(xregions))
+        xnorm = xregions
+
+        # print('Normalized region features:', xnorm)
+
+        # Max pooling over all regions:
+        # xmil, _ = torch.max(xnorm, dim=1)
+        # xmil = xmil.squeeze(1)
+        # print('pool mil:', xmil)
+
+        # Classifiers:
+        xf = self.fc_conv(xnorm.view(-1, 512)).view(xconv.size(0), -1, self.num_words)
+        # print('fc_conv', xf)
+        xf = torch.exp(xf)
+        xf = xf.div(xf.sum(dim=2).expand_as(xf))
+        # print('Sigmoid:', xf.sum(dim=2))
+        # Eval 1 - p(w in region)
+        # x1 = x0.view(x.size(0), self.num_words, -1)
+        x1 = torch.add(torch.mul(xf, -1), 1)
+        prods = torch.prod(x1, 1).squeeze(1)
+        # Eval 1 - p(word not in image) ( = prod over regions (p(word not in region)))
+        probs = torch.add(torch.mul(prods, -1), 1)
+        #  print('x;', x.size())
+        # out = torch.max(x, probs)
+        # out = torch.log(out)
+        # print('Out:', probs)
+        return probs
 
 class MIL_Precision_Score_Mapping(nn.Module):
     def __init__(self):

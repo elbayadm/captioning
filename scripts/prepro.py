@@ -30,12 +30,12 @@ import random
 from random import shuffle, seed
 import string
 import nltk
+from nltk.corpus import stopwords
 # non-standard dependencies:
 import h5py
 import numpy as np
 from scipy.misc import imread, imresize
-import cPickle as pickle
-
+from six.moves import cPickle as pickle
 
 def tokenize(sentence):
     return nltk.word_tokenize(str(sentence).lower().translate(None, string.punctuation))
@@ -53,19 +53,22 @@ def build_vocab(imgs, params):
         for sent in img['sentences']:
             for w in sent['tokens']:
                 counts[w] = counts.get(w, 0) + 1
-    cw = sorted([(count, w) for w, count in counts.iteritems()], reverse=True)
-    print 'top words and their counts:'
-    print '\n'.join(map(str, cw[:20]))
+    cw = sorted([(count, w) for w, count in counts.items()], reverse=True)
+    print('top words and their counts:')
+    print('\n'.join(map(str, cw[:20])))
 
     # print some stats
-    total_words = sum(counts.itervalues())
-    print 'total words:', total_words
-    bad_words = [w for w, n in counts.iteritems() if n <= count_thr]
-    vocab = [w for w, n in counts.iteritems() if n > count_thr]
+    total_words = sum(list(counts.values()))
+    print('total words:', total_words)
+    stops = stopwords.words('english')
+    print('Eliminating stop words:', stops)
+    bad_words = [w for w, n in counts.items() if (n <= count_thr or w in stops)]
+    vocab = [w for w, n in counts.items() if (n > count_thr and w not in stops)]
     bad_count = sum(counts[w] for w in bad_words)
-    print 'number of bad words: %d/%d = %.2f%%' % (len(bad_words), len(counts), len(bad_words)*100.0/len(counts))
-    print 'number of words in vocab would be %d' % (len(vocab), )
-    print 'number of UNKs: %d/%d = %.2f%%' % (bad_count, total_words, bad_count*100.0/total_words)
+    print('number of bad words: %d/%d = %.2f%%' % (len(bad_words), len(counts), len(bad_words)*100.0/len(counts)))
+    print('number of words in vocab would be %d' % (len(vocab), ))
+    print('Vocab:', vocab)
+    print('number of UNKs: %d/%d = %.2f%%' % (bad_count, total_words, bad_count*100.0/total_words))
 
     # lets look at the distribution of lengths as well
     sent_lengths = {}
@@ -75,16 +78,16 @@ def build_vocab(imgs, params):
             nw = len(txt)
             sent_lengths[nw] = sent_lengths.get(nw, 0) + 1
     max_len = max(sent_lengths.keys())
-    print 'max length sentence in raw data: ', max_len
-    print 'sentence length distribution (count, number of words):'
+    print('max length sentence in raw data: ', max_len)
+    print('sentence length distribution (count, number of words):')
     sum_len = sum(sent_lengths.values())
-    for i in xrange(max_len+1):
-        print '%2d: %10d   %f%%' % (i, sent_lengths.get(i, 0), sent_lengths.get(i, 0)*100.0/sum_len)
+    for i in range(max_len+1):
+        print('%2d: %10d   %f%%' % (i, sent_lengths.get(i, 0), sent_lengths.get(i, 0)*100.0/sum_len))
 
     # lets now produce the final annotations
     if bad_count > 0:
         # additional special UNK token we will use below to map infrequent words to
-        print 'inserting the special UNK token'
+        print('inserting the special UNK token')
         vocab.append('UNK')
     for img in imgs:
         img['final_captions'] = []
@@ -112,7 +115,7 @@ def encode_captions_syn(imgs, params, wtoi):
     label_end_ix = np.zeros(N, dtype='uint32')
     label_length = np.zeros(M, dtype='uint32')
     caption_counter = 0
-    S  = pickle.load(open('data/Glove/nearest_neighbors.pkl', 'r'))
+    S  = pickle.load(open('data/Glove/nearest_neighbors.pkl', 'r'), encoding="iso-8859-1")
     counter = 1
     for i, img in enumerate(imgs):
         n = len(img['final_captions'])
@@ -126,11 +129,11 @@ def encode_captions_syn(imgs, params, wtoi):
             for k, w in enumerate(s):
                 if k < max_length:
                     index = int(wtoi[w])
-                    print "%s(%d)" % (w, index)
+                    print("%s(%d)" % (w, index))
                     Li[j, k] = index
                     if len(S[index]['neighbors']):
                         synindex = S[index]['neighbors'].keys()[0]
-                        print "synonym %s(%d)" % (S[index]['neighbors'][synindex]['word'], synindex)
+                        print("synonym %s(%d)" % (S[index]['neighbors'][synindex]['word'], synindex))
                         Li_syn[j, k] = synindex
                     else:
                         Li_syn[j, k] = index
@@ -147,7 +150,7 @@ def encode_captions_syn(imgs, params, wtoi):
     assert L_syn.shape[0] == M, 'lengths don\'t match? that\'s weird (syn)'
 
     assert np.all(label_length > 0), 'error: some caption had no words?'
-    print 'encoded captions to array of size ', `L.shape`
+    print('encoded captions to array of size ', L.shape)
     return L, L_syn, label_start_ix, label_end_ix, label_length
 
 
@@ -185,7 +188,7 @@ def encode_captions(imgs, params, wtoi):
     L = np.concatenate(label_arrays, axis=0) # put all the labels together
     assert L.shape[0] == M, 'lengths don\'t match? that\'s weird'
     assert np.all(label_length > 0), 'error: some caption had no words?'
-    print 'encoded captions to array of size ', `L.shape`
+    print('encoded captions to array of size ', L.shape)
     return L, label_start_ix, label_end_ix, label_length
 
 
@@ -211,14 +214,14 @@ def encode_extra_scored_captions(imgs, params, wtoi):
             with_scores.append(im['id'])
             #  print extra[im['id']]
         except:
-            print 'No scores found in the generated json'
+            print('No scores found in the generated json')
             no_scores.append(im['id'])
             extra[im['id']] = [[[w if w in wtoi else 'UNK' for w in sent.split()], 1] for sent in im['captions']]
         #  print im['id']
 
-    print "Len extra:", len(extra), "vs extra_", len(extra_)
-    print "with scores:", len(with_scores), "unique:", len(np.unique(np.array(with_scores)))
-    print "Captions =", sum(len(img['final_captions']) for img in imgs) # total number of captions
+    print("Len extra:", len(extra), "vs extra_", len(extra_))
+    print("with scores:", len(with_scores), "unique:", len(np.unique(np.array(with_scores))))
+    print("Captions =", sum(len(img['final_captions']) for img in imgs)) # total number of captions
     missing_indices = []
     found_indices = []
     for img in imgs:
@@ -240,9 +243,9 @@ def encode_extra_scored_captions(imgs, params, wtoi):
 
 
     M = sum(len(img['final_captions']) for img in imgs) # total number of captions
-    print "Missing %d extra scores vs %d found" % (len(missing_indices), len(found_indices))
-    print "Missing from extra: %d" % len(no_scores)
-    print "Encoding %d captions" % M
+    print("Missing %d extra scores vs %d found" % (len(missing_indices), len(found_indices)))
+    print("Missing from extra: %d" % len(no_scores))
+    print("Encoding %d captions" % M)
     label_arrays = []
     score_arrays = []
     label_start_ix = np.zeros(N, dtype='uint32') # note: these will be one-indexed
@@ -275,7 +278,7 @@ def encode_extra_scored_captions(imgs, params, wtoi):
         assert len(score_arrays) == M, "Missing scores"
     score_arrays = np.array(score_arrays)
     assert np.all(label_length > 0), 'error: some caption had no words?'
-    print 'encoded captions to array of size ', `L.shape`
+    print('encoded captions to array of size ', L.shape)
     return L, score_arrays, label_start_ix, label_end_ix, label_length
 
 
@@ -299,31 +302,31 @@ def encode_extra_captions(imgs, params, wtoi):
             extra[im['id']] = [[[w if w in wtoi else 'UNK' for w in sent.split(' ')], sc] for sent, sc in zip(im['sampled'], im['scores'])]
             #  print extra[im['id']]
         except:
-            print 'No scores found in the generated json'
+            print('No scores found in the generated json')
             extra[im['id']] = [[[w if w in wtoi else 'UNK' for w in sent.split(' ')], 1] for sent in im['sampled']]
         #  print im['id']
 
-    print "Captions =", sum(len(img['final_captions']) for img in imgs) # total number of captions
+    print("Captions =", sum(len(img['final_captions']) for img in imgs)) # total number of captions
 
     for img in imgs:
-        print img['cocoid'], img['split']
+        print(img['cocoid'], img['split'])
         try:
             if img['split'] == 'train':
                 #  print "Gt:",  img["final_captions"]
                 #  print "Added:", extra[img['cocoid']]
-                print "Pre:", img['final_captions']
+                print("Pre:", img['final_captions'])
                 img["final_captions"] = [[c, 3.] for c in img['final_captions']]
                 img["final_captions"] += extra[img['cocoid']]
-                print img['final_captions']
+                print(img['final_captions'])
             else:
-                print "skipping val/restval/test"
+                print("skipping val/restval/test")
                 img["final_captions"] = [[c, 1.] for c in img['final_captions']]
         except:
-            print "########## No addtional captions provided"
+            print("########## No addtional captions provided")
 
 
     M = sum(len(img['final_captions']) for img in imgs) # total number of captions
-    print "Encoding %d captions" % M
+    print("Encoding %d captions" % M)
     label_arrays = []
     score_arrays = []
     label_start_ix = np.zeros(N, dtype='uint32') # note: these will be one-indexed
@@ -336,10 +339,10 @@ def encode_extra_captions(imgs, params, wtoi):
         assert n > 0, 'error: some image has no captions'
         Li = np.zeros((n, max_length), dtype='uint32')
         for j, s in enumerate(img['final_captions']):
-            print "s(pre)", s
+            print("s(pre)", s)
             score_arrays.append(s[1])
             s = s[0]
-            print "s:", s
+            print("s:", s)
             label_length[caption_counter] = min(max_length, len(s)) # record the length of this sequence
             caption_counter += 1
             for k, w in enumerate(s):
@@ -356,7 +359,7 @@ def encode_extra_captions(imgs, params, wtoi):
         assert len(score_arrays) == M, "Missing scores"
     score_arrays = np.array(score_arrays)
     assert np.all(label_length > 0), 'error: some caption had no words?'
-    print 'encoded captions to array of size ', `L.shape`
+    print('encoded captions to array of size ', L.shape)
     return L, score_arrays, label_start_ix, label_end_ix, label_length
 
 
@@ -369,14 +372,14 @@ def main(params):
     imgs = imgs['images']
     seed(123) # make reproducible
     # create the vocab
-    #  vocab = build_vocab(imgs, params)
-    #  itow = {i+1:w for i, w in enumerate(vocab)} # a 1-indexed vocab translation table
-    #  wtoi = {w:i+1 for i, w in enumerate(vocab)} # inverse table
+    vocab = build_vocab(imgs, params)
+    itow = {i+1:w for i, w in enumerate(vocab)} # a 1-indexed vocab translation table
+    wtoi = {w:i+1 for i, w in enumerate(vocab)} # inverse table
+    #------------- Reuse stored vocab
+    # data = json.load(open('data/coco/cocotalk.json', "r"))
+    # itow = data['ix_to_word']
+    # wtoi = {itow[k]: k for k in itow}
     # encode captions in large arrays, ready to ship to hdf5 file
-    ################################################################################################################
-    data = json.load(open('data/coco/cocotalk.json', "r"))
-    itow = data['ix_to_word']
-    wtoi = {itow[k]: k for k in itow}
     for img in imgs:
         img['final_captions'] = []
         for sent in img['sentences']:
@@ -389,6 +392,7 @@ def main(params):
     ################################################################################################################
     if params['gen'] == '':
         L, label_start_ix, label_end_ix, label_length = encode_captions(imgs, params, wtoi)
+        Scores = []
     else:
         #  L, Scores, label_start_ix, label_end_ix, label_length = encode_extra_captions(imgs, params, wtoi)
         L, Scores, label_start_ix, label_end_ix, label_length = encode_extra_scored_captions(imgs, params, wtoi)
@@ -409,7 +413,7 @@ def main(params):
         try:
             Ir = imresize(I, ( params['imsize'], params['imsize']))
         except:
-            print 'failed resizing image %s - see http://git.io/vBIE0' % (img['file_path'],)
+            print('failed resizing image %s - see http://git.io/vBIE0' % (img['file_path'],))
             raise
         # handle grayscale input images
         if len(Ir.shape) == 2:
@@ -420,9 +424,9 @@ def main(params):
         # write to h5
         dset[i] = Ir
         if i % 1000 == 0:
-            print 'processing %d/%d (%.2f%% done)' % (i, N, i*100.0/N)
+            print('processing %d/%d (%.2f%% done)' % (i, N, i*100.0/N))
     f.close()
-    print 'wrote ', params['output_h5']
+    print('wrote ', params['output_h5'])
     # create output json file
     out = {}
     out['ix_to_word'] = itow # encode the (1-indexed) vocab
@@ -436,7 +440,7 @@ def main(params):
             jimg['id'] = img['cocoid'] # copy over & mantain an id, if present (e.g. coco ids, useful)
         out['images'].append(jimg)
     json.dump(out, open(params['output_json'], 'w'))
-    print 'wrote ', params['output_json']
+    print('wrote ', params['output_json'])
 
 
 if __name__ == "__main__":
@@ -459,6 +463,6 @@ if __name__ == "__main__":
     params['output_json'] = '%s%s.json' % (DATA_DIR, params['output'])
     params['output_h5'] = '%s%s.h5' % (DATA_DIR, params['output'])
     params['gen_source'] = "%sgenerated_captions_%s.json" % (DATA_DIR, params['gen'])
-    print 'parsed input parameters:'
-    print json.dumps(params, indent=2)
+    print('parsed input parameters:')
+    print(json.dumps(params, indent=2))
     main(params)

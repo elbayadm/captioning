@@ -23,8 +23,8 @@ if __name__ == "__main__":
     with open('words_count.txt', 'w') as f:
         for k, v in cnt:
             # print(k, words[str(k)], cnt[k])
-            print(k, words[str(k)], v)
-            f.write("%s: %d\n" % (words[str(k)], v))
+            # print(k, words[str(k)], v)
+            # f.write("%s: %d\n" % (words[str(k)], v))
             K.append(words[str(k)])
             V.append(v)
     print(V)
@@ -37,5 +37,6 @@ if __name__ == "__main__":
             color='r')
     plt.yscale("log")
     plt.savefig('words_count.png', bbox_inches="tight")
+    print(sum(V))
 
 

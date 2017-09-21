@@ -172,22 +172,22 @@ class MIL_crit(nn.Module):
         target: labels         : shape: #images * #seq_per_img, #seq_length
         Beware batch_size = 1
         """
-        input = torch.log(input + 1e-30)
+        # input = torch.log(input + 1e-30)
         # print("Probs:", input)
         # parse words in image from labels:
         num_img = input.size(0)
         # assert num_img == 1, "Batch size larger than 1"
         words_per_image = np.unique(to_contiguous(target).data.cpu().numpy())
-        #  print('Word in image:', words_per_image)
+        # print('Word in image:', words_per_image)
         indices_pos = Variable(torch.from_numpy(words_per_image).view(1, -1), requires_grad=False).cuda()
         indices_neg = Variable(torch.from_numpy(np.array([a for a in np.arange(self.opt.vocab_size) if a not in words_per_image])).view(1, -1), requires_grad=False).cuda()
         mask_pos = torch.gt(indices_pos, 0).float()
         mask_neg = torch.gt(indices_neg, 0).float()
         # print('Positives:', torch.sum(mask_pos), "Negatives:", torch.sum(mask_neg))
-        log_pos = - torch.sum(input.gather(1, indices_pos) * mask_pos)
-        log_neg = - torch.sum((1 - input).gather(1, indices_neg) * mask_neg)
+        log_pos = - torch.sum(torch.log(input + 1e-30).gather(1, indices_pos) * mask_pos)
+        log_neg = - torch.sum(torch.log(1 - input + 1e-15).gather(1, indices_neg) * mask_neg)
         # print('Log_pos:', log_pos, 'log_neg:', log_neg)
-        out = log_pos / torch.sum(mask_pos)  # + log_neg / torch.sum(mask_neg)
+        out = log_pos / torch.sum(mask_pos) + log_neg / torch.sum(mask_neg)
         # print("Final output:", out)
         return out
 

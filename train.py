@@ -129,7 +129,7 @@ def train(opt):
         opt.logger.warn('Starting from %s' % opt.start_from)
         if opt.start_from_best:
             opt.logger.warn('Starting from the best saved checkpoint (infos)')
-            f = open(osp.join(opt.start_from, 'infos-best.pkl'))
+            f = open(osp.join(opt.start_from, 'infos-best.pkl'), 'rb')
         else:
             opt.logger.warn('Starting from the last saved checkpoint (infos)')
             f = open(osp.join(opt.start_from, 'infos.pkl'), 'rb')
@@ -186,7 +186,7 @@ def train(opt):
     if opt.raml_loss:
         #  D = np.eye(opt.vocab_size + 1, dtype="float32")
         #  D = np.random.uniform(size=(opt.vocab_size + 1, opt.vocab_size + 1)).astype(np.float32)
-        D = pickle.load(open('data/Glove/cocotalk_similarities_v2.pkl', 'r'))
+        D = pickle.load(open('data/Glove/cocotalk_similarities_v2.pkl', 'rb'), encoding='iso-8859-1')
         D = D.astype(np.float32)
         D = Variable(torch.from_numpy(D)).cuda()
         crit = utils.SmoothLanguageModelCriterion(Dist=D,

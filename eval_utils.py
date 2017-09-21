@@ -380,6 +380,77 @@ def eval_lm_split(encoder, decoder, crit, loader, eval_kwargs={}):
     return loss_sum/loss_evals, lang_stats
 
 
+def eval_mil_extended(cnn_model, crit, loader, eval_kwargs={}):
+    verbose = eval_kwargs.get('verbose', True)
+    val_images_use = eval_kwargs.get('val_images_use', -1)
+    split = eval_kwargs.get('split', 'val')
+    dataset = eval_kwargs.get('dataset', 'coco')
+    logger = eval_kwargs.get('logger')
+    vocab_size = eval_kwargs.get('vocb_size')
+    max_tokens = eval_kwargs.get('max_tokens', 16)
+
+    # Make sure in the evaluation mode
+    cnn_model.eval()
+    logger.warn('Evaluating %d val images' % val_images_use)
+
+    loader.reset_iterator(split)
+    n = 0
+    loss_sum = 0
+    loss_evals = 0
+    predictions = []
+    seq_per_img = 5
+    while True:
+        data = loader.get_batch(split, seq_per_img=seq_per_img, batch_size=1)
+        n = n + loader.batch_size
+        # forward the model to get loss
+        tmp = [data['images'], data['labels']]
+        tmp[0] = upsample_images(tmp[0], 300)
+        tmp = [Variable(torch.from_numpy(_), volatile=True).cuda() for _ in tmp]
+        images, labels = tmp
+        #  print("Images:", images.size())
+        regions, xf, probs = cnn_model.forward_extended(images)
+        xf = xf.cpu().data.numpy()
+        regions = regions.cpu().data.numpy()
+        loss = crit(probs, labels[:, 1:])
+        loss = loss.data[0]
+        loss_sum = loss_sum + loss
+        loss_evals = loss_evals + 1
+        # Pick the 16th most probable tokens as predictions:
+        probs = probs.squeeze(0).cpu().data.numpy()
+        indices = np.argpartition(-probs, max_tokens)[:max_tokens]
+        print('Tokens', indices, indices.shape)
+        sel = probs[indices]
+        region_indices = np.argmax(xf[:, :, indices], axis=1)
+        print("Matched regions:", region_indices, region_indices.shape)
+        print('Region probas:', xf[0][region_indices, indices])
+        # sel, indices = torch.sort(probs, dim=1, descending=True)
+        indices = np.expand_dims(indices, axis=0)
+        sents = utils.decode_sequence(loader.get_vocab(), torch.from_numpy(indices[:, :max_tokens]))
+        #  print("Output:", sents)
+        for k in range(loader.batch_size):
+            entry = {'image_id': data['infos'][k]['id'], 'words': sents[k], "probs": sel,
+                     'regions': region_indices[0], 'region probs': xf[0][region_indices, indices][0]}
+            print(entry)
+            predictions.append(entry)
+        ix0 = data['bounds']['it_pos_now']
+        ix1 = data['bounds']['it_max']
+        #  logger.warn('ix1 = %d - ix0 = %d' % (ix1, ix0))
+        if val_images_use != -1:
+            ix1 = min(ix1, val_images_use)
+        for i in range(n - ix1):
+            predictions.pop()
+        #  logger.debug('validation loss ... %d/%d (%f)' %(ix0 - 1, ix1, loss))
+        if data['bounds']['wrapped']:
+            break
+        if n >= ix1:
+            logger.warn('Evaluated the required samples (%s)' % n)
+            break
+    # Switch back to training mode
+    cnn_model.train()
+    #  pickle.dump(Feats, open('cnn_features.pkl', 'w'))
+    return loss_sum/loss_evals, predictions
+
+
 def eval_mil(cnn_model, crit, loader, eval_kwargs={}):
     verbose = eval_kwargs.get('verbose', True)
     val_images_use = eval_kwargs.get('val_images_use', -1)
@@ -414,11 +485,17 @@ def eval_mil(cnn_model, crit, loader, eval_kwargs={}):
         loss_sum = loss_sum + loss
         loss_evals = loss_evals + 1
         # Pick the 16th most probable tokens as predictions:
-        print("Probabilities:", probs)
+        # print("Probabilities:", probs)
+        probs = probs.squeeze(0).cpu().data.numpy()
+        indices = np.argpartition(-probs, max_tokens)
+        # print('Tokens', indices)
+        # sel = probs[indices]
+        # indices = np.expand_dims(indices, axis=0)
         sel, indices = torch.sort(probs, dim=1, descending=True)
-        print('Tokens', indices)
-        print('highest probas', sel)
+        # print('highest probas', sel)
+        # sents = utils.decode_sequence(loader.get_vocab(), torch.from_numpy(indices[:, :max_tokens]))
         sents = utils.decode_sequence(loader.get_vocab(), indices[:, :max_tokens].cpu().data)
+
         #  print("Output:", sents)
         for k in range(loader.batch_size):
             entry = {'image_id': data['infos'][k]['id'], 'words': sents[k]}

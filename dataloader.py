@@ -235,6 +235,8 @@ class DataLoader(object):
                 seq = self.h5_file['labels'][ixl: ixl + seq_per_img, :self.seq_length]
                 try:
                     scores = self.h5_file['scores'][ixl: ixl + seq_per_img]
+                    if not scores:
+                        scores = np.ones([seq_per_img,], dtype='float32')
                 except:
                     scores = np.ones([seq_per_img,], dtype='float32')
                     if self.opt.less_confident < 1 and self.opt.less_confident:
