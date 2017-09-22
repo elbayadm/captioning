@@ -23,7 +23,7 @@ layer_names = ['conv1_1', 'conv1_2', 'pool1',
                'conv3_1', 'conv3_2', 'conv3_3', 'pool3',
                'conv4_1', 'conv4_2', 'conv4_3', 'pool4',
                'conv5_1', 'conv5_2', 'conv5_3', 'pool5']
-imsize = 300
+imsize = 500
 
 def outFromIn(conv, layerIn):
     n_in = layerIn[0]

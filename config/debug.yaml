@@ -1,19 +1,19 @@
 # Generic
 # -------------------------
 modelname : debug
-cnn_model : resnet50
+cnn_model : vgg16
+cnn_fc_feat : fc8
 caption_model : show_tell
 save_checkpoint_every : 4000
 fc_feat_size : 2048
-batch_size : 2 
-beam_size : 3
-input_json : data/coco/cocotalk.json
-input_h5 : data/coco/cocotalk.h5
+batch_size :1
+input_json : data/coco/cocotalk1000.json
+input_h5 : data/coco/cocotalk1000.h5
 seq_per_img : 5
 restart : 1
 val_images_use : -1
 finetune_cnn_after : -1
-learning_rate : 5e-4
+learning_rate : 1e-5
 learning_rate_decay_start : 5
 learning_rate_decay_rate : 0.6
 learning_rate_decay_every: 3
@@ -21,5 +21,4 @@ learning_rate_decay_every: 3
 #--------------------------RAML
 raml_loss : 0
 #--------------------------//RAML
-less_confident : 1
-raml_tau : 0.8
+

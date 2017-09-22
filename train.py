@@ -186,7 +186,9 @@ def train(opt):
     if opt.raml_loss:
         #  D = np.eye(opt.vocab_size + 1, dtype="float32")
         #  D = np.random.uniform(size=(opt.vocab_size + 1, opt.vocab_size + 1)).astype(np.float32)
-        D = pickle.load(open('data/Glove/cocotalk_similarities_v2.pkl', 'rb'), encoding='iso-8859-1')
+        # D = pickle.load(open('data/Glove/cocotalk_similarities_v2.pkl', 'rb'), encoding='iso-8859-1')
+        D = pickle.load(open(opt.similarity_matrix, 'rb'), encoding='iso-8859-1')
+
         D = D.astype(np.float32)
         D = Variable(torch.from_numpy(D)).cuda()
         crit = utils.SmoothLanguageModelCriterion(Dist=D,
@@ -231,7 +233,7 @@ def train(opt):
     log_optimizer(opt, optimizer)
     # Main loop
     # To save before training:
-    # iteration -= 1
+    iteration -= 1
     while True:
         if update_lr_flag:
             # Assign the learning rate

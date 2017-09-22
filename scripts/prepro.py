@@ -61,9 +61,12 @@ def build_vocab(imgs, params):
     total_words = sum(list(counts.values()))
     print('total words:', total_words)
     stops = stopwords.words('english')
-    print('Eliminating stop words:', stops)
-    bad_words = [w for w, n in counts.items() if (n <= count_thr or w in stops)]
-    vocab = [w for w, n in counts.items() if (n > count_thr and w not in stops)]
+    # print('Eliminating stop words:', stops)
+    # bad_words = [w for w, n in counts.items() if (n <= count_thr or w in stops)]
+    # vocab = [w for w, n in counts.items() if (n > count_thr and w not in stops)]
+    bad_words = [w for w, n in counts.items() if (n <= count_thr)]
+    vocab = [w for w, n in counts.items() if (n > count_thr)]
+
     bad_count = sum(counts[w] for w in bad_words)
     print('number of bad words: %d/%d = %.2f%%' % (len(bad_words), len(counts), len(bad_words)*100.0/len(counts)))
     print('number of words in vocab would be %d' % (len(vocab), ))
@@ -409,6 +412,8 @@ def main(params):
     dset = f.create_dataset("images", (N, 3, params['imsize'],  params['imsize']), dtype='uint8') # space for resized images
     for i, img in enumerate(imgs):
         # load the image
+        if 'filepath' not in img:
+            img['filepath'] = ''
         I = imread(os.path.join(params['images_root'], img['filepath'], img['filename']))
         try:
             Ir = imresize(I, ( params['imsize'], params['imsize']))
@@ -436,6 +441,7 @@ def main(params):
         jimg['split'] = img['split']
         if 'filename' in img:
             jimg['file_path'] = os.path.join(img['filepath'], img['filename']) # copy it over, might need
+            jimg['id'] = img['imgid']
         if 'cocoid' in img:
             jimg['id'] = img['cocoid'] # copy over & mantain an id, if present (e.g. coco ids, useful)
         out['images'].append(jimg)
@@ -447,8 +453,8 @@ if __name__ == "__main__":
     #  $ python scripts/prepro.py --input_json .../dataset_coco.json --output_json data/cocotalk.json --output_h5 data/cocotalk.h5 --images_root ...
     parser = argparse.ArgumentParser()
     # input json
-    DATA_DIR = 'data/coco/'
-    parser.add_argument('--input_json', default='%sdataset_coco.json' % DATA_DIR,  help='input json file to process into hdf5')
+    DATA_DIR = 'flickr30k'
+    parser.add_argument('--input_json', default='data/%s/dataset_%s.json' % (DATA_DIR, DATA_DIR),  help='input json file to process into hdf5')
     parser.add_argument('--gen', default='', help='Source of additional captions')
     #  parser.add_argument('--output_json', default='%sgen_cocotalk.json' % DATA_DIR, help='output json file')
     parser.add_argument('--output', default='', help='output name')
@@ -456,13 +462,13 @@ if __name__ == "__main__":
     # options
     parser.add_argument('--max_length', default=16, type=int, help='max length of a caption, in number of words. captions longer than this get clipped.')
     parser.add_argument('--imsize', default=256, type=int, help='image size.')
-    parser.add_argument('--images_root', default='%simages' % DATA_DIR, help='root location in which images are stored, to be prepended to file_path in input json')
+    parser.add_argument('--images_root', default='data/%s/images' % DATA_DIR, help='root location in which images are stored, to be prepended to file_path in input json')
     parser.add_argument('--word_count_threshold', default=5, type=int, help='only words that occur more than this number of times will be put in vocab')
     args = parser.parse_args()
     params = vars(args) # convert to ordinary dict
-    params['output_json'] = '%s%s.json' % (DATA_DIR, params['output'])
-    params['output_h5'] = '%s%s.h5' % (DATA_DIR, params['output'])
-    params['gen_source'] = "%sgenerated_captions_%s.json" % (DATA_DIR, params['gen'])
+    params['output_json'] = 'data/%s/%s.json' % (DATA_DIR, params['output'])
+    params['output_h5'] = 'data/%s/%s.h5' % (DATA_DIR, params['output'])
+    params['gen_source'] = "data/%s/generated_captions_%s.json" % (DATA_DIR, params['gen'])
     print('parsed input parameters:')
     print(json.dumps(params, indent=2))
     main(params)

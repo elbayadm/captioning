@@ -1,4 +1,4 @@
-import cPickle as pickle
+from six.moves import cPickle as pickle
 import numpy as np
 import json
 from sklearn.neighbors import KDTree
@@ -28,23 +28,23 @@ CORRECT = {"surboard": "surfboard", "surfboarder": "surfboard", "surfboarders": 
 Prepare embedding matrix of shape ( 1 + len(vocab), embedding_size = 300)
 """
 
-def get_pairwise_distances():
-    G = pickle.load(open('data/Glove/cocotalk_glove_v2.pkl', 'r'))
+def get_pairwise_distances(G):
+    # G = pickle.load(open('data/Glove/cocotalk_glove_v2.pkl', 'r'))
     eps = 1e-6
-    print "G shape:", G.shape, len(G)
+    print("G shape:", G.shape, len(G))
     #  G[-1] = np.mean(G)
     for i in range(len(G)):
         if not np.sum(G[i] ** 2):
-            print '%d) norm(g) = 0' % i
+            print('%d) norm(g) = 0' % i)
             G[i] = eps + G[i]
     Ds = scipy.spatial.distance.pdist(G, metric='cosine')
     Ds = scipy.spatial.distance.squareform(Ds)
     As = np.diag(Ds)
-    print "(scipy) sum:", np.sum(As), "min:", np.min(Ds), np.min(As), "max:", np.max(Ds), np.max(As)
+    print("(scipy) sum:", np.sum(As), "min:", np.min(Ds), np.min(As), "max:", np.max(Ds), np.max(As))
     Ds = 1 - Ds / 2# map to [0,1]
-    print Ds.shape, np.min(Ds), np.max(Ds), np.diag(Ds)
-    pickle.dump(Ds, open('data/Glove/cocotalk_similarities_v2.pkl', 'w'),
-                protocol=pickle.HIGHEST_PROTOCOL)
+    print(Ds.shape, np.min(Ds), np.max(Ds), np.diag(Ds))
+    return Ds
+
 
 def prepare_glove(ixtow, source):
     """
@@ -52,9 +52,9 @@ def prepare_glove(ixtow, source):
         ixtow : index to word dictionnary of the vocab
         source: dict of the glove vectors
     """
-    G = np.zeros((len(ixtow) + 1, 300), dtype="float32")
-    G[0] = source['eos']
-    print "EOS norm:", np.sum(G[0] ** 2)
+    G = np.zeros((len(ixtow) + 1, 4096), dtype="float32") # 300 in case of using glove
+    # G[0] = source['eos']
+    print("EOS norm:", np.sum(G[0] ** 2))
     for i in range(1, len(ixtow) + 1):
         word = ixtow[str(i)]
         #  print "word:", word
@@ -65,14 +65,15 @@ def prepare_glove(ixtow, source):
         else:
             try:
                 if CORRECT[word.lower()] in source:
-                    print "Correcting %s into %s" % (word.lower(), CORRECT[word.lower()])
+                    print("Correcting %s into %s" % (word.lower(), CORRECT[word.lower()]))
                     word = CORRECT[word.lower()]
                     G[i] = source[word]
                     if not np.sum(G[i] ** 2):
                         raise ValueError("Norm of glove embedding null token %d| word %s" % (i, word) )
             except:
-                print "Missing word %s in Glove" % word
-    pickle.dump(G, open('data/Glove/cocotalk_glove_v2.pkl', 'w'), protocol=pickle.HIGHEST_PROTOCOL)
+                print("Missing word %s in Glove" % word)
+    # pickle.dump(G, open('data/Glove/%s' % output, 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
+    return G
 
 
 def get_synonyms(source, ixtow):
@@ -86,12 +87,12 @@ def get_synonyms(source, ixtow):
     ixtow['0'] = 'eos'
     for i in range(len(D)):
         q =  ixtow[str(i)]
-        print "word query:", q
-        print "nearest neighbors:"
+        # print "word query:", q
+        # print "nearest neighbors:"
         tmp = {}
         for dist, nbr in zip(D[i], N[i]):
             if dist > 0:
-                print "neighbor:", ixtow[str(nbr)], dist
+                # print "neighbor:", ixtow[str(nbr)], dist
                 tmp[nbr] = {"word": ixtow[str(nbr)], "dist": dist}
         NN[i] = {"word": q, "neighbors": tmp}
     pickle.dump(NN, open('data/Glove/nearest_neighbors.pkl', 'w'))
@@ -109,25 +110,24 @@ if __name__== '__main__':
     #          assert g.shape == (300,)
     #          Glove[word] = g
     #  pickle.dump(Glove, open('data/Glove/glove_dict.pkl', 'w'), protocol=pickle.HIGHEST_PROTOCOL)
-    #  Glove = pickle.load(open('data/Glove/glove_dict.pkl', 'r'))
-    #  data = json.load(open('data/coco/cocotalk.json', "r"))
-    #  ixtow = data['ix_to_word']
-    #  print "Preparing Glove embeddings matrix"
-    #  prepare_glove(ixtow, Glove)
-    #  data = json.load(open('data/coco/cocotalk.json', "r"))
-    #  ixtow = data['ix_to_word']
+    Glove = pickle.load(open('data/Glove/glove_dict.pkl', 'rb'), encoding='iso-8859-1')
+    # Glove = pickle.load(open('data/embeddings/full_image.pkl', 'rb'), encoding='iso-8859-1')
 
-    #  gloves = pickle.load(open('data/Glove/cocotalk_glove.pkl', 'r'))
-    #  get_synonyms(gloves, ixtow)
-    #  print "Preparing similarities matrix"
-    #  get_pairwise_distances()
-    Sim = pickle.load(open("data/Glove/cocotalk_similarities_v2.pkl"))
-    plt.figure()
-    plt.matshow(Sim)
-    plt.colorbar()
-    plt.savefig('data/Glove/cocotalk_similarites_v2.pdf', bbox_inches='tight')
-    vector = Sim.flatten()
-    plt.figure()
-    plt.hist(vector, 100)
-    plt.yscale('log', nonposy='clip')
-    plt.savefig('data/Glove/cocotalk_similarities_v2_hist.pdf', bbox_inches="tight")
+    data = json.load(open('data/flickr30k/freq5.json', "r"))
+    ixtow = data['ix_to_word']
+    print("Preparing Glove embeddings matrix")
+    gloves = prepare_glove(ixtow, Glove)
+    print("Preparing similarities matrix")
+    Sim = get_pairwise_distances(gloves)
+    pickle.dump(Sim, open('data/flickr30k/freq5_glove_sim.pkl', 'wb'))
+    # pickle.dump(Sim, open('data/embeddings/cocotalk_full_image_sim.pkl', 'wb'))
+
+    # plt.figure()
+    # plt.matshow(Sim)
+    # plt.colorbar()
+    # plt.savefig('data/Glove/cocotalk_similarites_v2.pdf', bbox_inches='tight')
+    # vector = Sim.flatten()
+    # plt.figure()
+    # plt.hist(vector, 100)
+    # plt.yscale('log', nonposy='clip')
+    # plt.savefig('data/Glove/cocotalk_similarities_v2_hist.pdf', bbox_inches="tight")

@@ -67,7 +67,7 @@ parser.add_argument('--input_h5', type=str, default='',
                     help='path to the h5file containing the preprocessed dataset')
 parser.add_argument('--input_json', type=str, default='',
                     help='path to the json file containing additional info and vocab. empty = fetch from model checkpoint.')
-parser.add_argument('--split', type=str, default='test',
+parser.add_argument('--split', type=str, default='val',
                     help='if running on MSCOCO images, which split to use: val|test|train')
 parser.add_argument('--coco_json', type=str, default='',
                     help='if nonempty then use this file in DataLoaderRaw (see docs there). Used only in MSCOCO test evaluation, where we have a specific json file of only test set images.')
@@ -142,8 +142,11 @@ else:
 
 # Set sample options
 #  loss, split_predictions, lang_stats = eval_utils.eval_eval(cnn_model, model, crit, loader, vars(opt))
-eval_kwargs = {'split': 'val',
-               'dataset': opt.input_json}
+if not 'upsampling_size' in opt:
+    opt.upsampling_size = 300
+eval_kwargs = {'split': opt.split,
+               'dataset': opt.input_json,
+               'upsampling_size' : opt.upsampling_size}
 eval_kwargs.update(vars(infos['opt']))
 eval_kwargs.update(vars(opt))
 eval_kwargs['num_images'] = opt.max_images

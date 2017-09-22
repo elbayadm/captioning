@@ -140,8 +140,8 @@ def language_eval(dataset, preds):
         sys.path.append("coco-caption")
         annFile = 'coco-caption/annotations/captions_val2014.json'
     else:
-        sys.path.append("f30k-caption")
-        annFile = 'f30k-caption/annotations/dataset_flickr30k.json'
+        sys.path.append("coco-caption")
+        annFile = 'data/flickr30k/flickr30k_val_annotations.json'
     from pycocotools.coco import COCO
     from pycocoevalcap.eval import COCOEvalCap
     encoder.FLOAT_REPR = lambda o: format(o, '.3f')
@@ -386,6 +386,7 @@ def eval_mil_extended(cnn_model, crit, loader, eval_kwargs={}):
     split = eval_kwargs.get('split', 'val')
     dataset = eval_kwargs.get('dataset', 'coco')
     logger = eval_kwargs.get('logger')
+    upsampling_size = eval_kwargs.get('upsampling_size')
     vocab_size = eval_kwargs.get('vocb_size')
     max_tokens = eval_kwargs.get('max_tokens', 16)
 
@@ -404,7 +405,7 @@ def eval_mil_extended(cnn_model, crit, loader, eval_kwargs={}):
         n = n + loader.batch_size
         # forward the model to get loss
         tmp = [data['images'], data['labels']]
-        tmp[0] = upsample_images(tmp[0], 300)
+        tmp[0] = upsample_images(tmp[0], upsampling_size)
         tmp = [Variable(torch.from_numpy(_), volatile=True).cuda() for _ in tmp]
         images, labels = tmp
         #  print("Images:", images.size())
@@ -423,13 +424,16 @@ def eval_mil_extended(cnn_model, crit, loader, eval_kwargs={}):
         region_indices = np.argmax(xf[:, :, indices], axis=1)
         print("Matched regions:", region_indices, region_indices.shape)
         print('Region probas:', xf[0][region_indices, indices])
+        region_codes = regions[0, region_indices]
+        print('Region codes:', region_codes.shape)
         # sel, indices = torch.sort(probs, dim=1, descending=True)
         indices = np.expand_dims(indices, axis=0)
         sents = utils.decode_sequence(loader.get_vocab(), torch.from_numpy(indices[:, :max_tokens]))
         #  print("Output:", sents)
         for k in range(loader.batch_size):
             entry = {'image_id': data['infos'][k]['id'], 'words': sents[k], "probs": sel,
-                     'regions': region_indices[0], 'region probs': xf[0][region_indices, indices][0]}
+                     'regions': region_indices[0], 'region probs': xf[0][region_indices, indices][0],
+                     'region codes': region_codes[0]}
             print(entry)
             predictions.append(entry)
         ix0 = data['bounds']['it_pos_now']
@@ -457,12 +461,14 @@ def eval_mil(cnn_model, crit, loader, eval_kwargs={}):
     split = eval_kwargs.get('split', 'val')
     dataset = eval_kwargs.get('dataset', 'coco')
     logger = eval_kwargs.get('logger')
+    upsampling_size = eval_kwargs.get('upsampling_size')
+
     vocab_size = eval_kwargs.get('vocb_size')
     max_tokens = eval_kwargs.get('max_tokens', 16)
 
     # Make sure in the evaluation mode
     cnn_model.eval()
-    logger.warn('Evaluating %d val images' % val_images_use)
+    logger.warn('Evaluating %d images' % val_images_use)
 
     loader.reset_iterator(split)
     n = 0
@@ -475,7 +481,7 @@ def eval_mil(cnn_model, crit, loader, eval_kwargs={}):
         n = n + loader.batch_size
         # forward the model to get loss
         tmp = [data['images'], data['labels']]
-        tmp[0] = upsample_images(tmp[0], 300)
+        tmp[0] = upsample_images(tmp[0], upsampling_size)
         tmp = [Variable(torch.from_numpy(_), volatile=True).cuda() for _ in tmp]
         images, labels = tmp
         #  print("Images:", images.size())
@@ -486,8 +492,7 @@ def eval_mil(cnn_model, crit, loader, eval_kwargs={}):
         loss_evals = loss_evals + 1
         # Pick the 16th most probable tokens as predictions:
         # print("Probabilities:", probs)
-        probs = probs.squeeze(0).cpu().data.numpy()
-        indices = np.argpartition(-probs, max_tokens)
+        # probs = probs.squeeze(0).cpu().data.numpy()
         # print('Tokens', indices)
         # sel = probs[indices]
         # indices = np.expand_dims(indices, axis=0)

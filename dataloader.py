@@ -252,6 +252,7 @@ class DataLoader(object):
 
             # record associated info as well
             info_dict = {}
+            # print(self.info['images'][ix].keys())
             info_dict['id'] = self.info['images'][ix]['id']
             info_dict['file_path'] = self.info['images'][ix]['file_path']
             infos.append(info_dict)

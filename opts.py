@@ -106,6 +106,8 @@ def parse_opt():
     # RAML Loss params:
     parser.add('--raml_loss', type=int,
                default=0, help='use smooth loss via similar words.')
+    parser.add('--similarity_matrix', type=str,
+               default='data/Glove/cocotalk_similarities_v2.pkl', help='path to the pre-computed similarity matrix between the vocab words')
     parser.add('--raml_version', type=str,
                default="exp", help='Version of RAML loss between (clip) and (exp)')
     parser.add('--raml_tau', type=float,
@@ -127,6 +129,8 @@ def parse_opt():
     parser.add('--raml_normalize', type=float,
                default=0, help='Apply tempered softmax (exp version)')
     #--------------------//RAML
+    parser.add('--upsampling_size', type=int,
+               default=300, help='upsampling size for MIL')
     parser.add('--combine_caps_losses', type=int,
                default=0, help='combine the loss of the captions relative to a single image.')
     parser.add('--num_regions', type=int,

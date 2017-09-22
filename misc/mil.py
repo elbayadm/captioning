@@ -228,8 +228,7 @@ class VGG_MIL(nn.Module):
         # rn = torch.norm(xregions, p=2, dim=1).detach()
         # xnorm = xregions.div(rn.expand_as(xregions))
         xnorm = xregions
-
-        # print('Normalized region features:', xnorm)
+        # print('Normalized region features:', xnorm.size())
 
         # Max pooling over all regions:
         # xmil, _ = torch.max(xnorm, dim=1)
@@ -237,7 +236,10 @@ class VGG_MIL(nn.Module):
         # print('pool mil:', xmil)
 
         # Classifiers:
-        xf = self.fc_conv(xnorm.view(-1, 512)).view(xconv.size(0), -1, self.num_words)
+        code_dim = xnorm.size(2)
+        # self.opt.logger.warn('Code dim: %s', str(code_dim))
+        # self.opt.logger.warn('#Regions : %s' % str(xnorm.size()))
+        xf = self.fc_conv(xnorm.view(-1, code_dim)).view(xconv.size(0), -1, self.num_words)
         # print('fc_conv', xf)
         xf = torch.exp(xf)
         xf = xf.div(xf.sum(dim=2).expand_as(xf))

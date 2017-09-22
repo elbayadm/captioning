@@ -1,0 +1,27 @@
+# Generic
+# -------------------------
+modelname : raml_exp_tau005_isolated_a03_1000words_full
+cnn_model : resnet50
+caption_model : show_tell
+save_checkpoint_every : 4000
+fc_feat_size : 2048
+batch_size : 10
+beam_size : 3
+#--------------------------RAML
+raml_loss : 1
+raml_version : exp
+raml_tau : 0.05
+raml_isolate : 1
+raml_alpha: 0.3
+#--------------------------//RAML
+input_json : data/coco/cocotalk1000_stops.json
+input_h5 : data/coco/cocotalk1000_stops.h5
+similarity_matrix : data/embeddings/cocotalk1000_full_image_sim.pkl
+restart : 1
+val_images_use : -1
+finetune_cnn_after : -1
+learning_rate : 5e-4
+learning_rate_decay_start : 5
+learning_rate_decay_rate : 0.6
+learning_rate_decay_every: 3
+smoothing_version : 2

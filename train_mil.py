@@ -201,7 +201,8 @@ def train(opt):
         start = time.time()
         tmp = [data['images'], data['labels']]
         # upsample images:
-        tmp[0] = upsample_images(tmp[0], 300)
+        opt.logger.debug('Upsampling dimension: %s' % str(opt.upsampling_size))
+        tmp[0] = upsample_images(tmp[0], opt.upsampling_size)
         tmp = [Variable(torch.from_numpy(_), requires_grad=True).cuda() for _ in tmp]
         images, labels = tmp
         optimizer.zero_grad()
@@ -241,7 +242,8 @@ def train(opt):
         if (iteration % opt.save_checkpoint_every == 0):
             # eval model
             eval_kwargs = {'split': 'val',
-                           'dataset': opt.input_json}
+                           'dataset': opt.input_json,
+                           'upsampling_size': opt.upsampling_size}
             eval_kwargs.update(vars(opt))
             val_loss, predictions = eval_utils.eval_mil(cnn_model, crit, loader, eval_kwargs)
 

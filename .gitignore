@@ -8,6 +8,7 @@ tmpcaps
 tmpimages
 vis
 *.txt
+*.pkl
 *.pyc
 *.json
 *.log

@@ -19,7 +19,7 @@ if __name__ == "__main__":
     ciders = [val[it]['lang_stats']["CIDEr"] for it in iters]
     b = np.argmax(np.array(ciders))
     b = iters[b]
-    table = "<tr>\n<td>  </td><td>RNN only</td>\n<td>9487</td>\n"
+    table = "<tr>\n<td>  </td><td>RNN only</td>\n<td>%d</td>\n" % len(infos['vocab'])
     ftable = "\n</tr>"
     score = "<td>%.2f</td>"
     good_score = "<td><b>%.2f</b></td>"
