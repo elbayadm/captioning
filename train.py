@@ -197,6 +197,7 @@ def train(opt):
     elif opt.combine_caps_losses:
         crit = utils.MultiLanguageModelCriterion(opt.seq_per_img)
     else:
+        opt.logger.warn('Using baseline loss criterion')
         crit = utils.LanguageModelCriterion(opt)
     optim_func = get_optimizer(opt.optim)
     # TODO; add sclaed lr for every chunk of cnn layers
@@ -233,7 +234,7 @@ def train(opt):
     log_optimizer(opt, optimizer)
     # Main loop
     # To save before training:
-    iteration -= 1
+    # iteration -= 1
     while True:
         if update_lr_flag:
             # Assign the learning rate
@@ -311,8 +312,8 @@ def train(opt):
             loss += opt.vae_weight * (recon_loss + opt.kld_weight * kld_loss)  #FIXME add the scaling as parameter
         elif opt.caption_model == 'show_tell_raml':
             probs, reward = model(fc_feats, att_feats, labels)
-            # raml_scores = reward * Variable(torch.ones(scores.size()))
-            raml_scores = Variable(torch.ones(scores.size()))
+            raml_scores = reward * Variable(torch.ones(scores.size()))
+            # raml_scores = Variable(torch.ones(scores.size()))
             print('Raml reward:', reward)
             real_loss, loss = crit(probs, labels[:, 1:], masks[:, 1:], raml_scores)
         else:

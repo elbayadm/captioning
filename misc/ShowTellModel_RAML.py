@@ -12,6 +12,17 @@ import numpy as np
 from scipy.special import binom
 import math
 
+
+def to_contiguous(tensor):
+    """
+    Convert tensor if not contiguous
+    """
+    if tensor.is_contiguous():
+        return tensor
+    else:
+        return tensor.contiguous()
+
+
 class ShowTellModel_RAML(nn.Module):
     def __init__(self, opt):
         super(ShowTellModel_RAML, self).__init__()
@@ -24,6 +35,9 @@ class ShowTellModel_RAML(nn.Module):
         self.seq_length = opt.seq_length
         self.fc_feat_size = opt.fc_feat_size
         self.use_glove = opt.use_glove
+        self.Dist = pickle.load(open(opt.similarity_matrix, 'rb'), encoding='iso-8859-1')
+        self.Dist = self.Dist.astype(np.float32)
+
         if self.use_glove:
             self.input_encoding_size = 300
         else:
@@ -38,6 +52,11 @@ class ShowTellModel_RAML(nn.Module):
         self.drop_x_lm = nn.Dropout(p=opt.drop_x_lm)
         self.logit = nn.Linear(self.rnn_size, self.vocab_size + 1)
         self.init_weights()
+        V = self.vocab_size
+        logp = [d * math.log(V-1) + math.log(binom(self.seq_length, d)) - self.seq_length * math.log(V) - d/ self.opt.raml_tau_sample for d in range(self.seq_length+1)]
+        distrib = np.array([math.exp(lp) for lp in logp])
+        self.distrib = distrib / sum(distrib)
+        opt.logger.debug('Sampling wrt: %s', str(distrib))
         opt.logger.warn('Show & Tell with RAML : %s' % str(self._modules))
 
     def init_weights(self):
@@ -60,39 +79,53 @@ class ShowTellModel_RAML(nn.Module):
             return Variable(weight.new(self.num_layers, bsz, self.rnn_size).zero_())
 
     def forward(self, fc_feats, att_feats, seq):
-        batch_size = fc_feats.size(0)
+        batch_size = seq.size(0)
         state = self.init_hidden(batch_size)
         outputs = []
         sample_vocab = np.unique(seq.cpu().data.numpy())
         # Process seq to sample new sequences with desired reward
-        V = 300
         # print("seqeunces lables:", seq.size())
         N = seq.size(0)
-        seq_length = seq.size(1) - 2
-        # distrib = [binom(seq_length, e) *
-                   # ((V-1) * math.exp(-1/self.opt.raml_tau))**(e-seq_length)
-                   # for e in range(seq_length+1)]
-        # distrib = [binom(seq_length, e) *
-                   # (V-1) ** (e - seq_length) * math.exp(-e/self.opt.raml_tau)
-                   # for e in range(seq_length+1)]
-
-        distrib = np.array([binom(seq_length, e) * math.exp(-e/self.opt.raml_tau)
-                            for e in range(seq_length + 1)])
-        # print('Sampling distribution:', distrib/sum(distrib))
-        select = np.random.choice(a=np.arange(seq_length+1),
-                                  p=distrib/sum(distrib))
+        select = np.random.choice(a=np.arange(self.seq_length+1),
+                                  p=self.distrib)
         score = math.exp(-select / self.opt.raml_tau)
         self.opt.logger.debug("Selected distance = %d" % select)
-        change_index = np.random.randint(seq_length + 2, size=(N, select))
+        change_index = np.random.randint(self.seq_length + 2, size=(N, select))
+        # print('Selected the indices:', change_index)
         # print('Sampled words:', change_index)
         rows = np.arange(N).reshape(-1, 1).repeat(select, axis=1)
         # print('Indexing rows;', rows)
-
-        select_index = np.random.randint(self.vocab_size, size=(N, select))
+        if self.opt.raml_version == 'vocab':
+            # limit the selected tokens to the gt vocab
+            num_img = fc_feats.size(0) // self.opt.seq_per_img
+            vocab_per_image = seq.chunk(num_img)
+            vocab_per_image = [np.unique(to_contiguous(t).data.cpu().numpy())
+                               for t in vocab_per_image]
+            max_vocab = max([len(t) for t in vocab_per_image])
+            vocab_per_image = [np.pad(t, (0, max_vocab - len(t)), 'constant')
+                               for t in vocab_per_image]
+            # print('Vocab per img:', vocab_per_image)
+            select_index = np.vstack([np.random.choice(row, size=(self.opt.seq_per_img, select)) for row in vocab_per_image])
+        elif self.opt.raml_version == 'vocab_glove':
+            sampled_seq = seq.cpu().cpu().data.numpy()
+            current_tokens = sampled_seq[rows, change_index]
+            print('Current:', current_tokens.shape)
+            select_index = current_tokens
+            (h, w) = select_index.shape
+            for i in np.arange(h):
+                for j in np.arange(w):
+                    p = self.Dist[current_tokens[i, j]] # similiraty to the be substituted token
+                    sub = np.random.choice(np.arange(self.vocab_size + 1), p=p/sum(p))
+                    select_index[i, j] = sub
+        else:
+            select_index = np.random.randint(self.vocab_size, size=(N, select))
+        # print('Substituting with:', select_index)
         sampled_seq = seq.cpu().cpu().data.numpy()
         sampled_seq[rows, change_index] = select_index
         sampled_seq = Variable(torch.from_numpy(sampled_seq)).cuda()
+
         # print(sampled_seq)
+        seq = sampled_seq
 
         for i in range(seq.size(1)):
             if i == 0:

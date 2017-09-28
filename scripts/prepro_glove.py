@@ -52,7 +52,7 @@ def prepare_glove(ixtow, source):
         ixtow : index to word dictionnary of the vocab
         source: dict of the glove vectors
     """
-    G = np.zeros((len(ixtow) + 1, 4096), dtype="float32") # 300 in case of using glove
+    G = np.zeros((len(ixtow) + 1, 300), dtype="float32") # 300 in case of using glove
     # G[0] = source['eos']
     print("EOS norm:", np.sum(G[0] ** 2))
     for i in range(1, len(ixtow) + 1):

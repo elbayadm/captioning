@@ -379,6 +379,7 @@ class SmoothLanguageModelCriterion(nn.Module):
             #  print "Dist:", dist
             if self.version == "exp":
                 smooth_target = torch.exp(torch.mul(torch.add(dist, -1.), 1/self.tau))
+                # print('Smooth target:', smooth_target)
             elif self.version == "clip":
                 indices_up = dist.ge(self.margin)
                 smooth_target = dist * indices_up.float()
@@ -481,7 +482,7 @@ class SmoothLanguageModelCriterion(nn.Module):
                     output = torch.sum(output)
                 return real_output, self.alpha * output + (1 - self.alpha) * real_output
 
-            elif self.version == 'hamming':
+            elif self.version == 'hamming': # here sampling with p instead of the reward q
                 preds = torch.max(input_, dim=2)[1].squeeze().cpu().data
                 refs =  target_.cpu().data.numpy()
                 num_img = target_.size(0) // self.seq_per_img
@@ -618,6 +619,8 @@ class LanguageModelCriterion(nn.Module):
     def __init__(self, opt):
         super(LanguageModelCriterion, self).__init__()
         self.less_confident = opt.less_confident
+        self.opt = opt
+        self.opt.logger.warn('Loss version : less confident: %d' % int(self.less_confident))
         self.seq_per_img = opt.seq_per_img
 
     def forward(self, input, target, mask, scores):
@@ -626,6 +629,7 @@ class LanguageModelCriterion(nn.Module):
         mask = mask[:, :input.size(1)]
         if self.less_confident:
             row_scores = scores.repeat(1, input.size(1))
+            # print('Scaling with:', scores)
             #  gen_rows = np.arange(mask.size(0),)
             #  gen_rows = (gen_rows % self.seq_per_img) > 4
             #  gen_rows = torch.from_numpy(np.where(gen_rows)[0]).cuda()
