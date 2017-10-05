@@ -14,4 +14,4 @@ vis
 *.log
 misc/rpn
 misc/ssd
-coco-caption
+captions

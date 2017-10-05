@@ -85,7 +85,8 @@ if len(opt.model_path) == 0:
 
 # Load infos
 with open(opt.infos_path, 'rb') as f:
-    infos = pickle.load(f)
+    print('Opening %s' % opt.infos_path)
+    infos = pickle.load(f, encoding="iso-8859-1")
 
 # override and collect parameters
 if len(opt.input_h5) == 0:
@@ -95,6 +96,10 @@ if len(opt.input_json) == 0:
 if opt.batch_size == 0:
     opt.batch_size = infos['opt'].batch_size
 #Check if new features in opt:
+if "raml_loss" not in opt:
+    opt.raml_loss = 0
+if "less_confident" not in opt:
+    opt.less_confident = 0
 if "scheduled_sampling_strategy" not in opt:
     opt.scheduled_sampling_strategy = "step"
 if "scheduled_sampling_vocab" not in opt:

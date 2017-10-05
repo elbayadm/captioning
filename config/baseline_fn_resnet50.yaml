@@ -1,6 +1,6 @@
 # Generic
 # -------------------------
-modelname : baseline_fn_resnet50
+modelname : baseline_fn_resnet50_decay
 start_from : save/baseline_resnet50_nobos
 start_from_best : 1
 grad_clip : 0.5
@@ -17,10 +17,10 @@ restart : 1
 val_images_use : -1
 
 finetune_cnn_after : 0
-learning_rate : 1e-5
-learning_rate_decay_start : -1
-# learning_rate_decay_rate : 0.6
-# learning_rate_decay_every: 3
+learning_rate : 1e-4
+learning_rate_decay_start : 5
+learning_rate_decay_rate : 0.8
+learning_rate_decay_every: 4
 
 # scheduled_sampling_start : 15
 # scheduled_sampling_increase_every: 3
