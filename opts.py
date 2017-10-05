@@ -112,6 +112,8 @@ def parse_opt():
                default="exp", help='Version of RAML loss between (clip) and (exp)')
     parser.add('--raml_tau', type=float,
                default=0.8, help='Temperature for the rbf kernel')
+    parser.add('--raml_tau_sample', type=float,
+               default=0.8, help='Temperature for the rbf kernel')
     parser.add('--raml_margin', type=float,
                default=0.9, help='clipping margin for the similarities')
     parser.add('--raml_isolate', type=int,

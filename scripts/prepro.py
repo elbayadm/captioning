@@ -233,7 +233,7 @@ def encode_extra_scored_captions(imgs, params, wtoi):
             #  print "Pre:", img['final_captions']
             #  img["final_captions"] = [[c, 3.] for c in img['final_captions']]
             try:
-                img["final_captions"] = extra[img['cocoid']]
+                img["final_captions"] = extra[img['cocoid']]  # I should append!!!!!
                 found_indices.append(img['cocoid'])
             except:
                 #  assert img['cocoid'] in extra
@@ -453,7 +453,7 @@ if __name__ == "__main__":
     #  $ python scripts/prepro.py --input_json .../dataset_coco.json --output_json data/cocotalk.json --output_h5 data/cocotalk.h5 --images_root ...
     parser = argparse.ArgumentParser()
     # input json
-    DATA_DIR = 'flickr30k'
+    DATA_DIR = 'coco'
     parser.add_argument('--input_json', default='data/%s/dataset_%s.json' % (DATA_DIR, DATA_DIR),  help='input json file to process into hdf5')
     parser.add_argument('--gen', default='', help='Source of additional captions')
     #  parser.add_argument('--output_json', default='%sgen_cocotalk.json' % DATA_DIR, help='output json file')
@@ -468,7 +468,7 @@ if __name__ == "__main__":
     params = vars(args) # convert to ordinary dict
     params['output_json'] = 'data/%s/%s.json' % (DATA_DIR, params['output'])
     params['output_h5'] = 'data/%s/%s.h5' % (DATA_DIR, params['output'])
-    params['gen_source'] = "data/%s/generated_captions_%s.json" % (DATA_DIR, params['gen'])
+    params['gen_source'] = "data/%s/%s.json" % (DATA_DIR, params['gen'])
     print('parsed input parameters:')
     print(json.dumps(params, indent=2))
     main(params)

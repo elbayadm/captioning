@@ -7,7 +7,7 @@ import numpy as np
 
 import time
 import os
-from six.moves import cPickle
+from six.moves import cPickle as pickle
 
 import opts
 import models
@@ -84,8 +84,9 @@ if len(opt.model_path) == 0:
     opt.infos_path = "save/%s/infos.pkl" % opt.model
 
 # Load infos
-with open(opt.infos_path) as f:
-    infos = cPickle.load(f)
+with open(opt.infos_path, 'rb') as f:
+    print('Opening %s' % opt.infos_path)
+    infos = pickle.load(f, encoding="iso-8859-1")
 
 # override and collect parameters
 if len(opt.input_h5) == 0:
@@ -95,6 +96,10 @@ if len(opt.input_json) == 0:
 if opt.batch_size == 0:
     opt.batch_size = infos['opt'].batch_size
 #Check if new features in opt:
+if "raml_loss" not in opt:
+    opt.raml_loss = 0
+if "less_confident" not in opt:
+    opt.less_confident = 0
 if "scheduled_sampling_strategy" not in opt:
     opt.scheduled_sampling_strategy = "step"
 if "scheduled_sampling_vocab" not in opt:
@@ -146,7 +151,8 @@ model = models.setup(opt)
 model.load_state_dict(torch.load(opt.model_path))
 model.cuda()
 model.eval()
-crit = utils.LanguageModelCriterion()
+#  print('Parsed options:', opt)
+crit = utils.LanguageModelCriterion(opt)
 
 # Create the Data Loader instance
 start = time.time()
@@ -162,16 +168,17 @@ else:
 
 
 # Set sample options
-#  loss, split_predictions, lang_stats = eval_utils.eval_eval(cnn_model, model, crit, loader, vars(opt))
-eval_kwargs = {'split': 'val',
-               'dataset': opt.input_json}
-eval_kwargs.update(vars(infos['opt']))
-eval_kwargs.update(vars(opt))
-eval_kwargs['num_images'] = opt.max_images
-eval_kwargs['beam_size'] = opt.beam_size
-print("Evaluation beam size:", eval_kwargs['beam_size'])
-predictions = eval_utils.eval_external(cnn_model, model, crit, loader, eval_kwargs)
+print('Options:', opt.beam_size)
+loss, split_predictions, lang_stats, _ = eval_utils.eval_eval(cnn_model, model, crit, loader, vars(opt))
+#  eval_kwargs = {'split': 'val',
+#                 'dataset': opt.input_json}
+#  eval_kwargs.update(vars(infos['opt']))
+#  eval_kwargs.update(vars(opt))
+#  eval_kwargs['num_images'] = opt.max_images
+#  eval_kwargs['beam_size'] = opt.beam_size
+#  print("Evaluation beam size:", eval_kwargs['beam_size'])
+#  predictions = eval_utils.eval_external(cnn_model, model, crit, loader, eval_kwargs)
 print("Finished evaluation in ", (time.time() - start))
 if opt.dump_json == 1:
     # dump the json
-    json.dump(predictions, open(opt.output_json, 'w'))
+    json.dump(split_predictions, open(opt.output_json, 'w'))

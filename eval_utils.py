@@ -723,6 +723,7 @@ def eval_external(cnn_model, model, crit, loader, eval_kwargs={}):
 def eval_eval(cnn_model, model, crit, loader, eval_kwargs={}):
     verbose = eval_kwargs.get('verbose', True)
     num_images = eval_kwargs.get('num_images', -1)
+    seq_length = eval_kwargs.get('seq_length', 16)
     split = eval_kwargs.get('split', 'test')
     lang_eval = eval_kwargs.get('language_eval', 0)
     dataset = eval_kwargs.get('dataset', 'coco')
@@ -748,9 +749,9 @@ def eval_eval(cnn_model, model, crit, loader, eval_kwargs={}):
         loss = 0
 
         # Get the image features first
-        tmp = [data['images'], data.get('labels', np.zeros(1)), data.get('masks', np.zeros(1))]
+        tmp = [data['images'], data.get('labels', np.zeros(1)), data.get('masks', np.zeros(1)), data['scores']]
         tmp = [Variable(torch.from_numpy(_), volatile=True).cuda() for _ in tmp]
-        images, labels, masks = tmp
+        images, labels, masks, scores = tmp
 
         att_feats, fc_feats = cnn_model.forward(images)
         _att_feats = att_feats
@@ -761,24 +762,47 @@ def eval_eval(cnn_model, model, crit, loader, eval_kwargs={}):
             att_feats = att_feats.unsqueeze(1).expand(*((att_feats.size(0), loader.seq_per_img,) + att_feats.size()[1:])).contiguous().view(*((att_feats.size(0) * loader.seq_per_img,) + att_feats.size()[1:]))
             fc_feats = fc_feats.unsqueeze(1).expand(*((fc_feats.size(0), loader.seq_per_img,) + fc_feats.size()[1:])).contiguous().view(*((fc_feats.size(0) * loader.seq_per_img,) + fc_feats.size()[1:]))
 
-            loss = crit(model(fc_feats, att_feats, labels), labels[:,1:], masks[:,1:]).data[0]
-            loss_sum = loss_sum + loss
+            input = model(fc_feats, att_feats, labels)
+            probs = input
+            N = input.size(0)
+            mask = masks[:,1:]
+            target = labels[:, 1:]
+            target = target[:, :input.size(1)]
+            mask = mask[:, :input.size(1)]
+            input = utils.to_contiguous(input).view(-1, input.size(2))
+            target = utils.to_contiguous(target).view(-1, 1)
+            mask = mask[:, :input.size(1)]
+            mask = utils.to_contiguous(mask).view(-1, 1)
+            output = input.gather(1, target) * mask
+            output = output.cpu().data.numpy()
+            # sum over seq_length
+            gt_scores = [np.sum(output[seq_length * i: seq_length * (i+1)]) for i in np.arange(N)]
+            gt_sents =  utils.decode_sequence(loader.get_vocab(), labels[:,1:].data)
+            real_loss, loss = crit(probs, labels[:,1:], masks[:,1:], scores)
+            loss_sum = loss_sum + loss.data[0]
             loss_evals = loss_evals + 1
 
         # forward the model to also get generated samples for each image
         # Only leave one feature for each image, in case duplicate sample
         fc_feats, att_feats = _fc_feats, _att_feats
         # forward the model to also get generated samples for each image
-        seq, _ = model.sample(fc_feats, att_feats, eval_kwargs)
-
+        seq, probs = model.sample(fc_feats, att_feats, eval_kwargs)
+        sent_scores = probs.cpu().numpy().sum(axis=1)
         #set_trace()
         sents = utils.decode_sequence(loader.get_vocab(), seq)
+        print('Gen:', len(sents), len(sent_scores))
 
         for k, sent in enumerate(sents):
-            entry = {'image_id': data['infos'][k]['id'], 'caption': sent}
+            entry = {'image_id': data['infos'][k]['id'], 'caption': sent, 'score': str(round(sent_scores[k], 4))}
             predictions.append(entry)
             if verbose:
-                print(('image %s: %s' %(entry['image_id'], entry['caption'])))
+                print(('image %s (%s) %s' %(entry['image_id'], entry['score'], entry['caption'])))
+        print('Gt:', len(gt_sents), len(gt_scores))
+        for k, sent in enumerate(gt_sents):
+            entry = {'image_id': data['infos'][k // loader.seq_per_img]['id'], 'caption': sent, 'score': str(round(gt_scores[k], 4))}
+            predictions.append(entry)
+            if verbose:
+                print(('image %s (GT : %s) %s' %(entry['image_id'], entry['score'], entry['caption'])))
 
         for k, sent in enumerate(sents):
             entry = {'image_id': data['infos'][k]['id'], 'caption': sent}
@@ -791,9 +815,6 @@ def eval_eval(cnn_model, model, crit, loader, eval_kwargs={}):
                 print(cmd)
                 os.system(cmd)
 
-            if verbose:
-                print(('image %s: %s' %(entry['image_id'], entry['caption'])))
-
         # if we wrapped around the split or used up val imgs budget then bail
         ix0 = data['bounds']['it_pos_now']
         ix1 = data['bounds']['it_max']
@@ -803,7 +824,7 @@ def eval_eval(cnn_model, model, crit, loader, eval_kwargs={}):
             predictions.pop()
 
         if verbose:
-            print(('evaluating validation preformance... %d/%d (%f)' %(ix0 - 1, ix1, loss)))
+            print('evaluating validation preformance... %d/%d (%f)' %(ix0 - 1, ix1, loss.data[0]))
 
         if data['bounds']['wrapped']:
             break
