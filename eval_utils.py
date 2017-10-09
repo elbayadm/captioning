@@ -786,20 +786,21 @@ def eval_eval(cnn_model, model, crit, loader, eval_kwargs={}):
         # Only leave one feature for each image, in case duplicate sample
         fc_feats, att_feats = _fc_feats, _att_feats
         # forward the model to also get generated samples for each image
-        seq, probs = model.sample(fc_feats, att_feats, eval_kwargs)
-        sent_scores = probs.cpu().numpy().sum(axis=1)
-        #set_trace()
-        sents = utils.decode_sequence(loader.get_vocab(), seq)
-        print('Gen:', len(sents), len(sent_scores))
-
-        for k, sent in enumerate(sents):
-            entry = {'image_id': data['infos'][k]['id'], 'caption': sent, 'score': str(round(sent_scores[k], 4))}
-            predictions.append(entry)
-            if verbose:
-                print(('image %s (%s) %s' %(entry['image_id'], entry['score'], entry['caption'])))
+        for _ in range(5):
+            seq, probs = model.sample(fc_feats, att_feats, eval_kwargs)
+            sent_scores = probs.cpu().numpy().sum(axis=1)
+            #set_trace()
+            sents = utils.decode_sequence(loader.get_vocab(), seq)
+            print('Gen:', len(sents), len(sent_scores))
+            for k, sent in enumerate(sents):
+                # print('id:', data['infos'][k]['id'])
+                entry = {'image_id': data['infos'][k]['id'], 'caption': sent, 'score': str(round(sent_scores[k], 4)), "source": 'gen'}
+                predictions.append(entry)
+                if verbose:
+                    print(('image %s (%s) %s' %(entry['image_id'], entry['score'], entry['caption'])))
         print('Gt:', len(gt_sents), len(gt_scores))
         for k, sent in enumerate(gt_sents):
-            entry = {'image_id': data['infos'][k // loader.seq_per_img]['id'], 'caption': sent, 'score': str(round(gt_scores[k], 4))}
+            entry = {'image_id': data['infos'][k // loader.seq_per_img]['id'], 'caption': sent, 'score': str(round(gt_scores[k], 4)), "source": 'gt'}
             predictions.append(entry)
             if verbose:
                 print(('image %s (GT : %s) %s' %(entry['image_id'], entry['score'], entry['caption'])))

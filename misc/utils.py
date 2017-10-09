@@ -615,6 +615,37 @@ class MultiLanguageModelCriterion(nn.Module):
         return real_output, output
 
 
+
+class ImportanceLanguageModelCriterion(nn.Module):
+    def __init__(self, opt):
+        super(ImportanceLanguageModelCriterion, self).__init__()
+        self.opt = opt
+        self.alpha = opt.raml_alpha
+
+    def forward(self, input, target, mask, sampling_ratios):
+        # truncate to the same size
+        sampling_ratios = sampling_ratios.repeat(1, input.size(1))
+        # self.opt.logger.debug('Importance scores shaped:', sampling_ratios)
+        target = target[:, :input.size(1)]
+        mask = mask[:, :input.size(1)]
+        # print('Updated mask:', mask_)
+        input = to_contiguous(input).view(-1, input.size(2))
+        target = to_contiguous(target).view(-1, 1)
+        mask = to_contiguous(mask).view(-1, 1)
+        real_output = - input.gather(1, target) * mask
+        real_output = torch.sum(real_output) / torch.sum(mask)
+        output = - input.gather(1, target) * mask * sampling_ratios
+        if torch.sum(sampling_ratios * mask).data[0] > 0:
+            output = torch.sum(output) / torch.sum(mask * sampling_ratios)
+        else:
+            self.opt.logger.warn("Smooth targets weights sum to 0")
+            output = torch.sum(output)
+            print('Output loss without normalization:', output.data[0])
+            output = real_output
+
+        return real_output, self.alpha * output + (1 - self.alpha) * real_output
+
+
 class LanguageModelCriterion(nn.Module):
     def __init__(self, opt):
         super(LanguageModelCriterion, self).__init__()

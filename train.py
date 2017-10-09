@@ -194,6 +194,10 @@ def train(opt):
         crit = utils.SmoothLanguageModelCriterion(Dist=D,
                                                   loader_vocab=loader.get_vocab(),
                                                   opt=opt)
+    elif opt.bootstrap_loss:
+        # Using importance sampling loss:
+        crit = utils.ImportanceLanguageModelCriterion(opt)
+
     elif opt.combine_caps_losses:
         crit = utils.MultiLanguageModelCriterion(opt.seq_per_img)
     else:
@@ -284,9 +288,29 @@ def train(opt):
         data = loader.get_batch('train')
         torch.cuda.synchronize()
         start = time.time()
-        tmp = [data['images'], data['labels'], data['masks'], data['scores']]
-        tmp = [Variable(torch.from_numpy(_), requires_grad=False).cuda() for _ in tmp]
-        images, labels, masks, scores = tmp
+        if opt.bootstrap_loss:
+            if opt.bootstrap_version in ["cider", "cider-exp"]:
+                tmp = [data['images'], data['labels'], data['masks'], data['scores'], data['cider']]
+                tmp = [Variable(torch.from_numpy(_), requires_grad=False).cuda() for _ in tmp]
+                images, labels, masks, scores, s_scores= tmp
+
+            elif opt.bootstrap_version in ["bleu4", "bleu4-exp"]:
+                tmp = [data['images'], data['labels'], data['masks'], data['scores'], data['bleu']]
+                tmp = [Variable(torch.from_numpy(_), requires_grad=False).cuda() for _ in tmp]
+                images, labels, masks, scores, s_scores = tmp
+
+            else:
+                raise ValueError('Unknown bootstrap distribution %s' % opt.bootstrap_version)
+            if "exp" in opt.bootstrap_version:
+                s_scores = torch.exp(torch.div(s_scores, opt.raml_tau))
+                print('Tempering the reward:', s_scores)
+            r_scores = torch.div(s_scores, torch.exp(scores))
+
+            print('Importance scores:', r_scores)
+        else:
+            tmp = [data['images'], data['labels'], data['masks'], data['scores']]
+            tmp = [Variable(torch.from_numpy(_), requires_grad=False).cuda() for _ in tmp]
+            images, labels, masks, scores = tmp
 
         if opt.use_feature_maps:
             ################################################## Att_feats and fc_feats from the same branch with att_feats as feature maps.
@@ -317,12 +341,17 @@ def train(opt):
             print('Raml reward:', reward)
             real_loss, loss = crit(probs, labels[:, 1:], masks[:, 1:], raml_scores)
         else:
-            real_loss, loss = crit(model(fc_feats, att_feats, labels), labels[:, 1:], masks[:, 1:], scores)
+            if opt.bootstrap_loss:
+                real_loss, loss = crit(model(fc_feats, att_feats, labels), labels[:, 1:], masks[:, 1:], r_scores)
+            else:
+                real_loss, loss = crit(model(fc_feats, att_feats, labels), labels[:, 1:], masks[:, 1:], scores)
         loss.backward()
         grad_norm = []
         grad_norm.append(utils.clip_gradient(optimizer, opt.grad_clip))
         optimizer.step()
         train_loss = loss.data[0]
+        if np.isnan(train_loss):
+            sys.exit('Loss is nan')
         train_real_loss = real_loss.data[0]
         try:
             train_kld_loss = kld_loss.data[0]

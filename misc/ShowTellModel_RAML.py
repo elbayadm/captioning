@@ -11,6 +11,18 @@ import _pickle as pickle
 import numpy as np
 from scipy.special import binom
 import math
+import scipy.misc as misc
+import numpy as np
+
+
+
+
+def hamming_distrib(m, v, tau):
+    x = [np.log(misc.comb(m, d, exact=False)) + d * np.log(v) - d/tau * np.log(v) - d/tau for d in range(m + 1)]
+    x = np.array(x)
+    p = np.exp(x)
+    p /= np.sum(p)
+    return p
 
 
 def to_contiguous(tensor):
@@ -53,10 +65,11 @@ class ShowTellModel_RAML(nn.Module):
         self.logit = nn.Linear(self.rnn_size, self.vocab_size + 1)
         self.init_weights()
         V = self.vocab_size
-        logp = [d * math.log(V-1) + math.log(binom(self.seq_length, d)) - self.seq_length * math.log(V) - d/ self.opt.raml_tau_sample for d in range(self.seq_length+1)]
-        distrib = np.array([math.exp(lp) for lp in logp])
-        self.distrib = distrib / sum(distrib)
-        opt.logger.debug('Sampling wrt: %s', str(distrib))
+        # logp = [d * math.log(V-1) + math.log(binom(self.seq_length, d)) - self.seq_length * math.log(V) - d/ self.opt.raml_tau_sample for d in range(self.seq_length+1)]
+        # distrib = np.array([math.exp(lp) for lp in logp])
+        # self.distrib = distrib / sum(distrib)
+        self.distrib = hamming_distrib(self.seq_length, V, self.opt.raml_tau)
+        opt.logger.debug('Sampling wrt: %s', str(self.distrib))
         opt.logger.warn('Show & Tell with RAML : %s' % str(self._modules))
 
     def init_weights(self):

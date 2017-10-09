@@ -104,6 +104,11 @@ def parse_opt():
                default=0, help='if neq 0, be less confident in the added captions (used to scale down the loss)')
 
     # RAML Loss params:
+    parser.add('--bootstrap_loss', type=int,
+               default=0, help='use bootstrap/importance sampling loss.')
+    parser.add('--bootstrap_version', type=str,
+               default="cider", help='Version of Bootstrap loss')
+
     parser.add('--raml_loss', type=int,
                default=0, help='use smooth loss via similar words.')
     parser.add('--similarity_matrix', type=str,

@@ -192,7 +192,9 @@ class ShowTellModel(nn.Module):
 
     def sample(self, fc_feats, att_feats, opt={}):
         sample_max = opt.get('sample_max', 1)
+        print('Sample max:', sample_max)
         beam_size = opt.get('beam_size', 1)
+        print('Beam size:', beam_size)
         temperature = opt.get('temperature', 1.0)
         forbid_unk = opt.get('forbid_unk', 1)
         if beam_size > 1:
@@ -241,4 +243,5 @@ class ShowTellModel(nn.Module):
                 logprobs = logprobs[:, :-1]
 
 
-        return torch.cat([_.unsqueeze(1) for _ in seq], 1), torch.cat([_.unsqueeze(1) for _ in seqLogprobs], 1)
+        return torch.cat([_.unsqueeze(1) for _ in seq], 1), torch.cat([_.unsqueeze(1) for _ in seqLogprobs], 1).data
+

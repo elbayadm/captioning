@@ -184,6 +184,8 @@ class DataLoader(object):
         img_batch = np.ndarray([batch_size, 3, 224,224], dtype ='float32')
         label_batch = np.zeros([batch_size * seq_per_img, self.seq_length + 2], dtype ='int')
         score_batch = np.ones([batch_size * seq_per_img, ], dtype ='float32')
+        cider_batch = np.ones([batch_size * seq_per_img, ], dtype ='float32')
+        bleu_batch = np.ones([batch_size * seq_per_img, ], dtype ='float32')
 
         #  label_syn_batch = np.zeros([batch_size * self.seq_per_img, self.seq_length + 2], dtype ='int')
         mask_batch = np.zeros([batch_size * seq_per_img, self.seq_length + 2], dtype ='float32')
@@ -217,6 +219,10 @@ class DataLoader(object):
                 # we need to subsample (with replacement)
                 seq = np.zeros([seq_per_img, self.seq_length], dtype = 'int')
                 scores = np.ones([seq_per_img,], dtype = 'float32')
+                ciders = np.ones([seq_per_img,], dtype = 'float32')
+                bleus = np.ones([seq_per_img,], dtype = 'float32')
+
+
                 #  if self.load_syn:
                 #      seq_syn = np.zeros([self.seq_per_img, self.seq_length], dtype = 'int')
 
@@ -225,6 +231,9 @@ class DataLoader(object):
                     seq[q, :] = self.h5_file['labels'][ixl, :self.seq_length]
                     try:
                         scores[q] = self.h5_file['scores'][ixl]
+                        ciders[q] = self.h5_file['cider'][ixl]
+                        belus[q] = self.h5_file['bleu4'][ixl]
+
                     except:
                         if self.opt.less_confident < 1 and self.opt.less_confident:
                             if ixl - ix1 > 4:
@@ -235,10 +244,13 @@ class DataLoader(object):
                 seq = self.h5_file['labels'][ixl: ixl + seq_per_img, :self.seq_length]
                 try:
                     scores = self.h5_file['scores'][ixl: ixl + seq_per_img]
-                    if not scores:
-                        scores = np.ones([seq_per_img,], dtype='float32')
+                    ciders = self.h5_file['cider'][ixl: ixl + seq_per_img]
+                    bleus = self.h5_file['bleu4'][ixl: ixl + seq_per_img]
                 except:
                     scores = np.ones([seq_per_img,], dtype='float32')
+                    ciders = np.ones([seq_per_img,], dtype='float32')
+                    bleus = np.ones([seq_per_img,], dtype='float32')
+
                     if self.opt.less_confident < 1 and self.opt.less_confident:
                         scores[5:] *= self.opt.less_confident
                 #  print "Seq:", seq
@@ -247,6 +259,10 @@ class DataLoader(object):
 
             label_batch[i * seq_per_img : (i + 1) * seq_per_img, 1 : self.seq_length + 1] = seq
             score_batch[i * seq_per_img : (i + 1) * seq_per_img] = scores
+            cider_batch[i * seq_per_img : (i + 1) * seq_per_img] = ciders
+            bleu_batch[i * seq_per_img : (i + 1) * seq_per_img] = bleus
+
+
             #  if self.load_syn:
             #      label_syn_batch[i * self.seq_per_img : (i + 1) * self.seq_per_img, 1 : self.seq_length + 1] = seq_syn
 
@@ -267,6 +283,10 @@ class DataLoader(object):
         data['images'] = img_batch
         data['labels'] = label_batch
         data['scores'] = score_batch
+        data['cider'] = cider_batch
+        data['bleu'] = bleu_batch
+
+
         #  data['labels_syn'] = label_syn_batch
         data['masks'] = mask_batch
         data['bounds'] = {'it_pos_now': self.iterators[split], 'it_max': len(split_ix), 'wrapped': wrapped}

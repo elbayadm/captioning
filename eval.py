@@ -30,6 +30,8 @@ parser.add_argument('--cnn_model_path', type=str, default='',
                     help='path to cnn model to evaluate')
 parser.add_argument('--infos_path', type=str, default='',
                     help='path to infos to evaluate')
+parser.add_argument('--verbose', type=int, default=0,
+                    help='code verbosity')
 # Basic options
 parser.add_argument('--batch_size', type=int, default=0,
                     help='if > 0 then overrule, otherwise load from checkpoint.')
@@ -48,6 +50,9 @@ parser.add_argument('--dump_path', type=int, default=0,
 # Sampling options
 parser.add_argument('--sample_max', type=int, default=1,
                     help='1 = sample argmax words. 0 = sample from distributions.')
+parser.add_argument('--forbid_unk', type=int, default=1,
+                    help='Forbid unk token generations.')
+
 parser.add_argument('--beam_size', type=int, default=1,
                     help='used when sample_max = 1, indicates number of beams in beam search. Usually 2 or 3 works well. More is not better. Set this to 1 for faster runtime but a bit worse performance.')
 parser.add_argument('--temperature', type=float, default=0.5,
@@ -168,7 +173,8 @@ else:
 
 
 # Set sample options
-print('Options:', opt.beam_size)
+# print('Options:', opt.beam_size)
+# print('Seq per img:', loader.seq_per_img)
 loss, split_predictions, lang_stats, _ = eval_utils.eval_eval(cnn_model, model, crit, loader, vars(opt))
 #  eval_kwargs = {'split': 'val',
 #                 'dataset': opt.input_json}
