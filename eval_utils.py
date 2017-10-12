@@ -599,7 +599,8 @@ def eval_split(cnn_model, model, crit, loader, eval_kwargs={}):
         # forward the model to also get generated samples for each image
         # Only leave one feature for each image, in case duplicate sample
         fc_feats, att_feats = _fc_feats, _att_feats
-        seq, _ = model.sample(fc_feats, att_feats, {'beam_size': beam_size, "vocab_size": vocab_size})
+        seq, probs = model.sample(fc_feats, att_feats, {'beam_size': beam_size, "vocab_size": vocab_size})
+        sent_scores = probs.cpu().numpy().sum(axis=1)
         #set_trace()
         sents = utils.decode_sequence(loader.get_vocab(), seq)
         #  seq2, _ = model.sample(fc_feats, att_feats, {'beam_size': beam_size, "vocab_size": vocab_size})
@@ -608,8 +609,21 @@ def eval_split(cnn_model, model, crit, loader, eval_kwargs={}):
 
         for k, sent in enumerate(sents):
             #  print _OKGREEN, '%d >> %s\n %s %8s %s' % (data['infos'][k]['id'], sent, _WARNING, '>>', sents2[k]), _ENDC
-            entry = {'image_id': data['infos'][k]['id'], 'caption': sent}
-            predictions.append(entry)
+            if loader.flip:
+                entry = {'image_id': data['infos'][k // 2]['id'], 'caption': sent, 'score': sent_scores[k]}
+                if not k % 2:
+                    unflipped = entry
+                else:
+                    if entry['score'] > unflipped['score']:
+                        del entry['score']
+                        predictions.append(entry)
+                    else:
+                        del unflipped['score']
+                        predictions.append(unflipped)
+            else:
+                entry = {'image_id': data['infos'][k]['id'], 'caption': sent, 'score': sent_scores[k]}
+                predictions.append(entry)
+
             #  logger.debug('image %s: %s' %(entry['image_id'], entry['caption']))
         ix0 = data['bounds']['it_pos_now']
         ix1 = data['bounds']['it_max']

@@ -28,9 +28,9 @@ class ShowAttendTellModel(nn.Module):
         # the first x is 2 * encoding size while for t>1 we concatenate the
         # word embedding (encoding size) with the subtensor of att_feats
         # (encoding_size)
-        self.img_embed = nn.Linear(self.fc_feat_size, self.input_encoding_size * 2)
+        self.img_embed = nn.Linear(self.fc_feat_size, self.input_encoding_size)
         # RNN block
-        self.core = getattr(nn, self.rnn_type.upper())(self.input_encoding_size * 2,
+        self.core = getattr(nn, self.rnn_type.upper())(self.input_encoding_size,
                                                        self.rnn_size,
                                                        self.num_layers,
                                                        bias=(opt.rnn_bias == 1),
@@ -41,12 +41,8 @@ class ShowAttendTellModel(nn.Module):
         # Regions/context embedding:
         self.ctx_embed = nn.Linear(self.att_feat_size, self.input_encoding_size)
         # Attention weights
-        if self.attend_mode == "concat":
-            self.attend = nn.Linear(self.rnn_size + self.input_encoding_size, 1)
-        elif self.attend_mode == "product":
-            self.attend = nn.Linear(self.rnn_size, 1)
-        else:
-            raise ValueError('Unknown attention mode %s' % self.attend_mode)
+        self.attend_1 = nn.Linear(self.rnn_size, self.input_encoding_size)  #maps the hidden state from 2*dim back to dim
+        self.attend_2 = nn.Linear(self.input_encoding_size, 1, bias=False)
         self.Softmax = nn.Softmax()
         self.logit = nn.Linear(self.rnn_size, self.vocab_size + 1)
         self.init_weights()
@@ -62,8 +58,9 @@ class ShowAttendTellModel(nn.Module):
         self.ctx_embed.bias.data.fill_(0)
         self.ctx_embed.weight.data.uniform_(-initrange, initrange)
 
-        self.attend.bias.data.fill_(0)
-        self.attend.weight.data.uniform_(-initrange, initrange)
+        self.attend_1.bias.data.fill_(0)
+        self.attend_1.weight.data.uniform_(-initrange, initrange)
+        self.attend_2.weight.data.uniform_(-initrange, initrange)
 
         self.logit.bias.data.fill_(0)
         self.logit.weight.data.uniform_(-initrange, initrange)
@@ -86,17 +83,12 @@ class ShowAttendTellModel(nn.Module):
         # option 2: dot(h, v_i)->MLP->
         state = state.squeeze(0).unsqueeze(1)
         state = state.expand(batch_size, self.num_regions, self.rnn_size)
-        #  self.opt.logger.warn('state %s - ctx %s' % (str(state.size()), str(ctx.size())))
-        if self.attend_mode == 'concat':
-            x = torch.cat((state, ctx), 2)
-            alphas = self.attend(x.resize(x.size(0) * x.size(1), x.size(2)))
-            alphas = alphas.resize(batch_size, self.num_regions)
-            alphas = self.Softmax(alphas)
-        elif self.attend_mode == "product":
-            x = state * ctx
-            alphas = self.attend(x.resize(x.size(0) * x.size(1), x.size(2)))
-            alphas = alphas.resize(batch_size, self.num_regions)
-            alphas = self.Softmax(alphas)
+        # self.opt.logger.warn('state %s - ctx %s' % (str(state.size()), str(ctx.size())))
+        att = self.attend_1(state)
+        alphas = self.attend_2(F.relu(ctx + att))
+        # print('alphas:', alphas.size())
+        alphas = alphas.resize(batch_size, self.num_regions)
+        alphas = self.Softmax(alphas)
         return alphas
 
     def forward(self, fc_feats, att_feats, seq):
@@ -132,20 +124,18 @@ class ShowAttendTellModel(nn.Module):
                 # TODO Reshape att_feats somehow to project each feature map
                 #  self.opt.logger.warn('Att feats size: %s' % str(att_feats.size()))
                 att_feats = att_feats.resize(batch_size * self.num_regions, self.att_feat_size)
-                #  self.opt.logger.warn('> Att feats resized: %s' % str(att_feats.size()))
-                ctx = F.relu(self.ctx_embed(att_feats))  #FIXME: Add it porperly in the init if issue fixed
+                # self.opt.logger.warn('> Att feats resized: %s' % str(att_feats.size()))
+                ctx = self.ctx_embed(att_feats)
                 ctx = ctx.resize(batch_size, self.num_regions, self.input_encoding_size)
-                #  self.opt.logger.warn('CTX mapped: %s' % str(ctx.size()))
+                # self.opt.logger.warn('CTX mapped: %s' % str(ctx.size()))
                 alphas = self.get_alphas(state, ctx)
-                # print('Predicted alphas:', alphas)
                 alphas = alphas.unsqueeze(1).expand(batch_size, self.num_regions, self.input_encoding_size)
-                #  self.opt.logger.warn('> Alphas size %s' % str(alphas.size()))
+                # self.opt.logger.warn('> Alphas size %s' % str(alphas.size()))
                 weighted_ctx = (ctx * alphas).sum(1).squeeze(1)
-                print("Fed to the RNN:", weighted_ctx)
                 #  self.opt.logger.warn('> weighted ctx size %s' % str(weighted_ctx.size()))
                 #  self.opt.logger.warn('> xt size %s' % str(xt.size()))
                 # Concat xt and weighted_ctx:
-                xt = torch.cat((xt, weighted_ctx), 1)
+                xt += weighted_ctx
                 xt = self.drop_x_lm(xt)
             output, state = self.core(xt.unsqueeze(0), state)
             output = F.log_softmax(self.logit(output.squeeze(0)))
@@ -227,6 +217,15 @@ class ShowAttendTellModel(nn.Module):
                     # encode as vectors
                     it = beam_seq[t-2]
                     xt = self.embed(Variable(it.cuda()))
+                    # The context embedding
+                    att_feats = att_feats.resize(batch_size * self.num_regions, self.att_feat_size)
+                    ctx = self.ctx_embed(att_feats)
+                    ctx = ctx.resize(batch_size, self.num_regions, self.input_encoding_size)
+                    alphas = self.get_alphas(state, ctx)
+                    alphas = alphas.unsqueeze(1).expand(batch_size, self.num_regions, self.input_encoding_size)
+                    weighted_ctx = (ctx * alphas).sum(1).squeeze(1)
+                    xt += weighted_ctx
+
                 if t >= 2:
                     state = new_state
 
@@ -272,14 +271,12 @@ class ShowAttendTellModel(nn.Module):
                 xt = self.embed(Variable(it, requires_grad=False))
                 # The context embedding
                 att_feats = att_feats.resize(batch_size * self.num_regions, self.att_feat_size)
-                ctx = F.relu(self.ctx_embed(att_feats))
+                ctx = self.ctx_embed(att_feats)
                 ctx = ctx.resize(batch_size, self.num_regions, self.input_encoding_size)
                 alphas = self.get_alphas(state, ctx)
-                alphas = alphas.unsqueeze(2).expand(batch_size, self.num_regions, self.input_encoding_size)
+                alphas = alphas.unsqueeze(1).expand(batch_size, self.num_regions, self.input_encoding_size)
                 weighted_ctx = (ctx * alphas).sum(1).squeeze(1)
-                # Concat xt and weighted_ctx:
-                xt = torch.cat((xt, weighted_ctx), 1)
-
+                xt += weighted_ctx
             if t >= 2:
                 # stop when all finished
                 if t == 2:

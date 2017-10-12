@@ -10,7 +10,8 @@ from pycocoevalcap.cider.cider_scorer import CiderScorer
 from pycocoevalcap.bleu.bleu_scorer import BleuScorer
 
 GLOVE_PATH = '../InferSent/dataset/GloVe/glove.840B.300d.txt'
-infersent = torch.load('../InferSent/infersent.allnli.pickle')
+# infersent = torch.load('../InferSent/infersent.allnli.pickle')
+infersent = torch.load('../InferSent/infersent.allnli.pickle', map_location=lambda storage, loc: storage)
 infersent.set_glove_path(GLOVE_PATH)
 infersent.build_vocab_k_words(K=100000)
 
@@ -86,10 +87,12 @@ for item in bs1:
 # Stats:
 gens = []
 gts = []
+max_gt = 15
+max_gen = 5
 for k in Caps:
     lgen = len(Caps[k]['gen']['sents'])
-    if lgen > 5:
-        idx = np.argsort(- np.array(Caps[k]['gen']['scores']))[:5]
+    if lgen > max_gen:
+        idx = np.argsort(- np.array(Caps[k]['gen']['scores']))[:max_gen]
         print('Selecting:', idx)
         sents = [Caps[k]['gen']['sents'][i] for i in idx]
         scores = [Caps[k]['gen']['scores'][i] for i in idx]
@@ -97,10 +100,13 @@ for k in Caps:
         print('Scores:', scores)
         Caps[k]['gen']['sents'] = sents
         Caps[k]['gen']['scores'] = scores
+    elif lgen < max_gen:
+        raise ValueError('too few generated caps')
     gens.append(len(Caps[k]['gen']['sents']))
     lgt = len(Caps[k]['gt']['sents'])
-    if lgt > 5:
-        idx = np.argsort(- np.array(Caps[k]['gt']['scores']))[:5]
+    # print('Number of gt caps:', lgt)
+    if lgt > max_gt:
+        idx = np.argsort(- np.array(Caps[k]['gt']['scores']))[:max_gt]
         print('Selecting:', idx)
         sents = [Caps[k]['gt']['sents'][i] for i in idx]
         scores = [Caps[k]['gt']['scores'][i] for i in idx]
@@ -108,13 +114,14 @@ for k in Caps:
         print('Scores:', scores)
         Caps[k]['gt']['sents'] = sents
         Caps[k]['gt']['scores'] = scores
+    elif lgt < max_gt:
+        raise ValueError('Too few captions than expected')
     gts.append(len(Caps[k]['gt']['sents']))
     # Average the scores on the sampled + gt (reduced support)
     sum_scores = sum(Caps[k]['gt']['scores']) + sum(Caps[k]['gen']['scores'])
-    print('Sum of scores:', sum_scores)
     Caps[k]['gt']['scores'],  Caps[k]['gen']['scores'] = c_softmax(Caps[k]['gt']['scores'],  Caps[k]['gen']['scores'])
-    print(sum(np.exp(Caps[k]['gt']['scores'])), sum(np.exp(Caps[k]['gen']['scores'])))
-    print(Caps[k])
+    print("Mass distribution:", "gt:", sum(np.exp(Caps[k]['gt']['scores'])), "gen:", sum(np.exp(Caps[k]['gen']['scores'])))
+    # print(Caps[k])
 
 print('Gen:', np.unique(np.array(gens)))
 print('Gt:', np.unique(np.array(gts)))
@@ -122,8 +129,10 @@ print('Gt:', np.unique(np.array(gts)))
 
 keys = np.array(list(Caps))
 batches = np.array_split(keys, 1000)
-print(len(batches))
+print("Processing in %d batches" % len(batches))
+cnt = 0
 for batch in batches:
+    cnt += 1
     cider_scorer = CiderScorer(n=4, sigma=6)
     bleu4 = BleuScorer(n=4)
     infer = []
@@ -138,28 +147,30 @@ for batch in batches:
             cider_scorer += (c, refs)
             bleu4 += (c, refs)
         infer += infer_cosine_gp(Caps[k]['gen']['sents'], refs)
-
-
     (cd, cds) = cider_scorer.compute_score()
-    (bl, bls) = bleu4.compute_score(option='closest', verbose=1)
+    (bl, bls) = bleu4.compute_score(option='closest', verbose=0)
+    # print('Bleu multi:', np.mean(bl), [np.mean(n) for n in bls])
     infer = np.array(infer)
     bls = bls[-1]
+    # print('Mean BLeu4:', np.mean(bls))
     index = 0
     for k in batch:
         cgen = len(Caps[k]['gen']['sents'])
         cgt = len(Caps[k]['gt']['sents'])
-        assert(cgt == 5)
+        assert(cgt == max_gt)
         # print('Generated:', cgen)
-        assert(cgen == 5)
+        assert(cgen == max_gen)
         Caps[k]['gt']['cider'] = cds[index: index + cgt]
         Caps[k]['gen']['cider'] = cds[index + cgt : index + cgt + cgen]
         Caps[k]['gt']['bleu4'] = bls[index: index + cgt]
         Caps[k]['gen']['bleu4'] = bls[index + cgt : index + cgt + cgen]
         Caps[k]['gt']['infersent'] = infer[index: index + cgt]
         Caps[k]['gen']['infersent'] = infer[index + cgt : index + cgt + cgen]
-        print('UPDATE:', Caps[k])
+        # print('UPDATE:', Caps[k])
 
         index += (cgen + cgt)
+    if not cnt % 5:
+        print("Processed %d batches" % cnt)
 ###### from math import exp
 Caps_gen = []
 for k in Caps:
@@ -169,7 +180,7 @@ for k in Caps:
              'infersent':  Caps[k]['gt']['infersent'].tolist() + Caps[k]['gen']['infersent'].tolist(),
              'bleu4':  list(Caps[k]['gt']['bleu4']) + list(Caps[k]['gen']['bleu4']),
              'id': k}
-    print(entry)
+    # print(entry)
     Caps_gen.append(entry)
 pickle.dump(Caps_gen, open('data/coco/captions_bootstrap_baseline_genconf15.pkl', 'wb'))
 

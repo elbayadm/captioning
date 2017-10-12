@@ -356,7 +356,7 @@ class SmoothLanguageModelCriterion(nn.Module):
         if 'infersent' in self.version:
             # load infersent model
             GLOVE_PATH = '../InferSent/dataset/GloVe/glove.840B.300d.txt'
-            self.infersent = torch.load('../InferSent/infersent.allnli.pickle')
+            self.infersent = torch.load('../InferSent/infersent.allnli.pickle', map_location=lambda storage, loc: storage)
             self.infersent.set_glove_path(GLOVE_PATH)
             self.infersent.build_vocab_k_words(K=100000)
             self.loader_vocab = loader_vocab
@@ -591,11 +591,12 @@ class SmoothLanguageModelCriterion(nn.Module):
             if self.isolate_gt:
                 indices_down = dist.lt(1.0)
                 smooth_target = smooth_target * indices_down.float()
+            # Deprecated
             if self.normalize:
                 # Make sur that each row of smoothtarget sum to 1:
                 Z = torch.sum(smooth_target, 1).repeat(1, smooth_target.size(1))
                 smooth_target = smooth_target / Z
-            #  print "Smooth target:", smooth_target
+            # // Deprecated
             mask_ = mask_.repeat(1, dist.size(1))
             output = - input * smooth_target * mask_
             if torch.sum(smooth_target * mask_).data[0] > 0:
@@ -603,10 +604,7 @@ class SmoothLanguageModelCriterion(nn.Module):
             else:
                 self.logger.warn("Smooth targets weights sum to 0")
                 output = torch.sum(output)
-            if self.isolate_gt:
-                return real_output, self.alpha * output + (1 - self.alpha) * real_output
-            else:
-                return real_output, output
+            return real_output, self.alpha * output + (1 - self.alpha) * real_output
         else:
             return real_output, real_output
 

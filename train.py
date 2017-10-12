@@ -238,7 +238,7 @@ def train(opt):
     log_optimizer(opt, optimizer)
     # Main loop
     # To save before training:
-    # iteration -= 1
+    iteration -= 1
     while True:
         if update_lr_flag:
             # Assign the learning rate

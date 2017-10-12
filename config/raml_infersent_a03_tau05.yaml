@@ -1,6 +1,6 @@
 # Generic
 # -------------------------
-modelname : raml_infersent_a03_tau3
+modelname : raml_infersent_a03_tau05
 cnn_model : resnet50
 caption_model : show_tell
 save_checkpoint_every : 4000
