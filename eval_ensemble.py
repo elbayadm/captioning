@@ -17,23 +17,16 @@ import eval_utils
 import argparse
 import misc.utils as utils
 import torch
-from misc.ssd import build_ssd
 
 NUM_THREADS = 2 #int(os.environ['OMP_NUM_THREADS'])
 
 # Input arguments and options
 parser = argparse.ArgumentParser()
 # Input paths
-parser.add_argument('--model_path', type=str, default='',
-                    help='path to model to evaluate')
-parser.add_argument('--cnn_model_path', type=str, default='',
-                    help='path to cnn model to evaluate')
-parser.add_argument('--infos_path', type=str, default='',
-                    help='path to infos to evaluate')
 parser.add_argument('--verbose', type=int, default=0,
                     help='code verbosity')
 # Basic options
-parser.add_argument('--batch_size', type=int, default=0,
+parser.add_argument('--batch_size', type=int, default=1,
                     help='if > 0 then overrule, otherwise load from checkpoint.')
 parser.add_argument('--num_images', type=int, default=-1,
                     help='how many images to use when periodically evaluating the loss? (-1 = all)')
@@ -76,72 +69,73 @@ parser.add_argument('--split', type=str, default='test',
                     help='if running on MSCOCO images, which split to use: val|test|train')
 parser.add_argument('--coco_json', type=str, default='',
                     help='if nonempty then use this file in DataLoaderRaw (see docs there). Used only in MSCOCO test evaluation, where we have a specific json file of only test set images.')
-# misc
-parser.add_argument('--id', type=str, default='evalscript',
-                    help='an id identifying this run/job. used only if language_eval = 1 for appending to intermediate files')
-parser.add_argument('--model', type=str, default='',
+parser.add_argument('--model', nargs="+",
                     help='shortcut')
-parser.add_argument('--fliplr', type=int, default=1,
-                    help='add flipped image')
 
+ens_opt = parser.parse_args()
+models_paths = []
+infos_paths = []
+infos_list = []
+cnn_models = []
+rnn_models = []
+for m in ens_opt.model:
+    models_paths.append('save/%s/model.pth' % m)
+    infos_path = "save/%s/infos.pkl" % m
+    with open(infos_path, 'rb') as f:
+        print('Opening %s' % infos_path)
+        infos = pickle.load(f, encoding="iso-8859-1")
+        infos_list.append(infos)
 
-opt = parser.parse_args()
+print("Parsed % infos files" % len(infos_list))
+options = []
+for e, infos in enumerate(infos_list):
+    # override and collect parameters
+    opt = argparse.Namespace(**vars(ens_opt))
+    print('List of models:', ens_opt.model)
+    opt.model = ens_opt.model[e]
+    print("Current model:", opt.model)
+    if len(opt.input_h5) == 0:
+        opt.input_h5 = infos['opt'].input_h5
+    if len(opt.input_json) == 0:
+        opt.input_json = infos['opt'].input_json
+    if opt.batch_size == 0:
+        opt.batch_size = infos['opt'].batch_size
+    #Check if new features in opt:
+    if "less_confident" not in opt:
+        opt.less_confident = 0
+    if "scheduled_sampling_strategy" not in opt:
+        opt.scheduled_sampling_strategy = "step"
+    if "scheduled_sampling_vocab" not in opt:
+        opt.scheduled_sampling_vocab = 0
+    ignore = ["id", "batch_size", "beam_size", "start_from", "language_eval"]
+    for k in list(vars(infos['opt']).keys()):
+        if k not in ignore:
+            if k in vars(opt):
+                assert vars(opt)[k] == vars(infos['opt'])[k], k + ' option not consistent'
+            else:
+                vars(opt).update({k: vars(infos['opt'])[k]}) # copy over options from model
+    opt.use_feature_maps = infos['opt'].use_feature_maps
+    opt.cnn_model = infos['opt'].cnn_model
+    opt.logger = opts.create_logger('./tmp_eval.log')
+    opt.start_from = "save/" + opt.model
+    opt.model_path = "save/" + opt.model + "/model.pth"
 
-if len(opt.model_path) == 0:
-    opt.model_path = "save/%s/model.pth" % opt.model
-    opt.infos_path = "save/%s/infos.pkl" % opt.model
+    opt.rnn_bias = 0
+    try:
+        opt.use_glove = infos['opt'].use_glove
+    except:
+        opt.use_glove = 0
+    try:
+        opt.use_synonyms = infos['opt'].use_synonyms
+    except:
+        opt.use_synonyms = 0
+    options.append(opt)
 
-# Load infos
-with open(opt.infos_path, 'rb') as f:
-    print('Opening %s' % opt.infos_path)
-    infos = pickle.load(f, encoding="iso-8859-1")
+vocab = infos_list[0]['vocab'] # ix -> word mapping
+ens_opt.logger = opts.create_logger('./tmp_eval.log')
 
-# override and collect parameters
-if len(opt.input_h5) == 0:
-    opt.input_h5 = infos['opt'].input_h5
-if len(opt.input_json) == 0:
-    opt.input_json = infos['opt'].input_json
-if opt.batch_size == 0:
-    opt.batch_size = infos['opt'].batch_size
-#Check if new features in opt:
-if "raml_loss" not in opt:
-    opt.raml_loss = 0
-if "less_confident" not in opt:
-    opt.less_confident = 0
-if "scheduled_sampling_strategy" not in opt:
-    opt.scheduled_sampling_strategy = "step"
-if "scheduled_sampling_vocab" not in opt:
-    opt.scheduled_sampling_vocab = 0
-
-
-ignore = ["id", "batch_size", "beam_size", "start_from", "language_eval", "input_h5"]
-for k in list(vars(infos['opt']).keys()):
-    if k not in ignore:
-        if k in vars(opt):
-            assert vars(opt)[k] == vars(infos['opt'])[k], k + ' option not consistent'
-        else:
-            vars(opt).update({k: vars(infos['opt'])[k]}) # copy over options from model
-
-vocab = infos['vocab'] # ix -> word mapping
-opt.use_feature_maps = infos['opt'].use_feature_maps
-opt.cnn_model = infos['opt'].cnn_model
-opt.logger = opts.create_logger('./tmp_eval.log')
-opt.start_from = "save/" + opt.model
-opt.rnn_bias = 0
-try:
-    opt.use_glove = infos['opt'].use_glove
-except:
-    opt.use_glove = 0
-try:
-    opt.use_synonyms = infos['opt'].use_synonyms
-except:
-    opt.use_synonyms = 0
-# Setup the model
-# opt.seq_per_img = 15
-if opt.use_feature_maps:
-    ###############################################################################################################
-    print('using single CNN branch with feature maps as regions embeddings')
-    # Build CNN model for single branch use
+# Build CNN model for single branch use
+for opt in options:
     if opt.cnn_model.startswith('resnet'):
         cnn_model = utils.ResNetModel(opt)
     elif opt.cnn_model.startswith('vgg'):
@@ -149,45 +143,34 @@ if opt.use_feature_maps:
     else:
         print('Unknown model %s' % opt.cnn_model)
         sys.exit(1)
-    ################################################################################################################
-else:
-    print('using SSD')
-    cnn_model = build_ssd('train', 300, 21)
-
-cnn_model.cuda()
-cnn_model.eval()
-model = capmodels.setup(opt)
-model.load_state_dict(torch.load(opt.model_path))
-model.cuda()
-model.eval()
-#  print('Parsed options:', opt)
-crit = utils.LanguageModelCriterion(opt)
+    cnn_model.cuda()
+    cnn_model.eval()
+    print('Loading model with', opt)
+    model = capmodels.setup(opt)
+    model.load_state_dict(torch.load(opt.model_path))
+    model.cuda()
+    model.eval()
+    cnn_models.append(cnn_model)
+    rnn_models.append(model)
 
 # Create the Data Loader instance
 start = time.time()
+external = False
 if len(opt.image_folder) == 0:
-  loader = DataLoader(opt)
+    loader = DataLoader(opt)
 else:
-  loader = DataLoaderRaw({'folder_path': opt.image_folder,
-                          'files_list': opt.image_list,
-                          'coco_json': opt.coco_json,
-                           'batch_size': opt.batch_size,
-                          'max_images': opt.max_images})
-  loader.ix_to_word = infos['vocab']
+    external = True
+    loader = DataLoaderRaw({'folder_path': opt.image_folder,
+                              'files_list': opt.image_list,
+                              'coco_json': opt.coco_json,
+                               'batch_size': opt.batch_size,
+                              'max_images': opt.max_images})
+    loader.ix_to_word = infos['vocab']
 
-
-# Set sample options
-# print('Options:', opt.beam_size)
-print('Seq per img:', loader.seq_per_img)
-loss, split_predictions, lang_stats, _ = eval_utils.eval_eval(cnn_model, model, crit, loader, vars(opt))
-#  eval_kwargs = {'split': 'val',
-#                 'dataset': opt.input_json}
-#  eval_kwargs.update(vars(infos['opt']))
-#  eval_kwargs.update(vars(opt))
-#  eval_kwargs['num_images'] = opt.max_images
-#  eval_kwargs['beam_size'] = opt.beam_size
-#  print("Evaluation beam size:", eval_kwargs['beam_size'])
-#  predictions = eval_utils.eval_external(cnn_model, model, crit, loader, eval_kwargs)
+if external:
+    split_predictions = eval_utils.eval_external_ensemble(cnn_models, rnn_models, loader, vars(ens_opt))
+else:
+    split_predictions, lang_stats, _ = eval_utils.eval_ensemble(cnn_models, rnn_models, loader, vars(ens_opt))
 print("Finished evaluation in ", (time.time() - start))
 if opt.dump_json == 1:
     # dump the json

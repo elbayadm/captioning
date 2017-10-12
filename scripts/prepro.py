@@ -206,14 +206,15 @@ def encode_meta_captions(imgs, params, wtoi):
     max_length = params['max_length']
     N = len(imgs)
     # Load additional captions
-    extra_ = json.load(open(params['gen_source'], 'r'))
+    # extra_ = json.load(open(params['gen_source'], 'r'))
+    extra_ = pickle.load(open(params['gen_source'], 'rb'))
     extra = {}
     scored = True
     no_scores = []
     with_scores = []
     for im in extra_:
         try:
-            extra[im['id']] = [[[w if w in wtoi else 'UNK' for w in sent.split()], sc, cid, bl] for sent, sc, cid, bl in zip(im['captions'], im['scores'], im['cider'], im['bleu4'])]
+            extra[im['id']] = [[[w if w in wtoi else 'UNK' for w in sent.split()], sc, cid, bl, ins] for sent, sc, cid, bl, ins in zip(im['captions'], im['scores'], im['cider'], im['bleu4'], im['infersent'])]
             print(extra[im['id']])
             # extra[im['id']] = [s for s in extra[im['id']] if len(s[0])]
             with_scores.append(im['id'])
@@ -221,7 +222,7 @@ def encode_meta_captions(imgs, params, wtoi):
         except:
             print('No scores found in the generated json')
             no_scores.append(im['id'])
-            extra[im['id']] = [[[w if w in wtoi else 'UNK' for w in sent.split()], 1., 1., 1.] for sent in im['captions']]
+            extra[im['id']] = [[[w if w in wtoi else 'UNK' for w in sent.split()], 1., 1., 1., 1.] for sent in im['captions']]
         #  print im['id']
 
     print("Len extra:", len(extra), "vs extra_", len(extra_))
@@ -239,12 +240,12 @@ def encode_meta_captions(imgs, params, wtoi):
                 found_indices.append(img['cocoid'])
             except:
                 #  assert img['cocoid'] in extra
-                img["final_captions"] = [[c, 1., 1., 1.] for c in img['final_captions']]
+                img["final_captions"] = [[c, 1., 1., 1., 1.] for c in img['final_captions']]
                 missing_indices.append(img['cocoid'])
             #  print "Post:",  img['final_captions']
         else:
             #  print "skipping val/restval/test"
-            img["final_captions"] = [[c, 1., 1., 1.] for c in img['final_captions']]
+            img["final_captions"] = [[c, 1., 1., 1., 1.] for c in img['final_captions']]
 
 
     M = sum(len(img['final_captions']) for img in imgs) # total number of captions
@@ -255,6 +256,7 @@ def encode_meta_captions(imgs, params, wtoi):
     score_arrays = []
     cider_arrays = []
     bleu_arrays = []
+    infer_arrays = []
 
     label_start_ix = np.zeros(N, dtype='uint32') # note: these will be one-indexed
     label_end_ix = np.zeros(N, dtype='uint32')
@@ -271,6 +273,7 @@ def encode_meta_captions(imgs, params, wtoi):
             score_arrays.append(s[1])
             cider_arrays.append(s[2])
             bleu_arrays.append(s[3])
+            infer_arrays.append(s[4])
             s_ = s
             s = s[0]
             label_length[caption_counter] = min(max_length, len(s)) # record the length of this sequence
@@ -290,15 +293,18 @@ def encode_meta_captions(imgs, params, wtoi):
         assert len(score_arrays) == M, "Missing scores"
         assert len(cider_arrays) == M, "Missing Cider"
         assert len(bleu_arrays) == M, "Missing Bleu4"
+        assert len(infer_arrays) == M, "Missing Infersent similarity"
+
 
     score_arrays = np.array(score_arrays)
     cider_arrays = np.array(cider_arrays)
     bleu_arrays = np.array(bleu_arrays)
+    infer_arrays = np.array(infer_arrays)
 
 
     assert np.all(label_length > 0), 'error: some caption had no words?'
     print('encoded captions to array of size ', L.shape)
-    return L, score_arrays, cider_arrays, bleu_arrays, label_start_ix, label_end_ix, label_length
+    return L, score_arrays, cider_arrays, bleu_arrays, infer_arrays, label_start_ix, label_end_ix, label_length
 
 
 
@@ -510,7 +516,7 @@ def main(params):
     else:
         #  L, Scores, label_start_ix, label_end_ix, label_length = encode_extra_captions(imgs, params, wtoi)
         # L, Scores, label_start_ix, label_end_ix, label_length = encode_extra_scored_captions(imgs, params, wtoi)
-        L, Scores, Cid, BL, label_start_ix, label_end_ix, label_length = encode_meta_captions(imgs, params, wtoi)
+        L, Scores, Cid, BL, Infer, label_start_ix, label_end_ix, label_length = encode_meta_captions(imgs, params, wtoi)
 
     #
     # create output h5 file
@@ -520,6 +526,7 @@ def main(params):
     f.create_dataset("scores", dtype='float32', data=Scores)
     f.create_dataset("cider", dtype='float32', data=Cid)
     f.create_dataset("bleu4", dtype='float32', data=BL)
+    f.create_dataset("infersent", dtype='float32', data=Infer)
     #  f.create_dataset("labels_syn", dtype='uint32', data=Lsyn)
     f.create_dataset("label_start_ix", dtype='uint32', data=label_start_ix)
     f.create_dataset("label_end_ix", dtype='uint32', data=label_end_ix)
@@ -583,7 +590,8 @@ if __name__ == "__main__":
     params = vars(args) # convert to ordinary dict
     params['output_json'] = 'data/%s/%s.json' % (DATA_DIR, params['output'])
     params['output_h5'] = 'data/%s/%s.h5' % (DATA_DIR, params['output'])
-    params['gen_source'] = "data/%s/%s.json" % (DATA_DIR, params['gen'])
+    # params['gen_source'] = "data/%s/%s.json" % (DATA_DIR, params['gen'])
+    params['gen_source'] = params['gen']
     print('parsed input parameters:')
     print(json.dumps(params, indent=2))
     main(params)

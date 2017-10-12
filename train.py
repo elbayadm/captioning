@@ -26,7 +26,7 @@ import sys
 from six.moves import cPickle as pickle
 import copy
 import opts
-import models
+import capmodels
 from dataloader import *
 import eval_utils
 import misc.utils as utils
@@ -176,7 +176,7 @@ def train(opt):
 
     # Build the captioning model
     opt.logger.error('-----------------------------SETUP')
-    model = models.setup(opt)
+    model = capmodels.setup(opt)
     opt.logger.error('-----------------------------/SETUP')
     model.cuda()
 
@@ -298,15 +298,19 @@ def train(opt):
                 tmp = [data['images'], data['labels'], data['masks'], data['scores'], data['bleu']]
                 tmp = [Variable(torch.from_numpy(_), requires_grad=False).cuda() for _ in tmp]
                 images, labels, masks, scores, s_scores = tmp
-
+            elif opt.bootstrap_version in ["infersent", "infersent-exp"]:
+                tmp = [data['images'], data['labels'], data['masks'], data['scores'], data['infersent']]
+                tmp = [Variable(torch.from_numpy(_), requires_grad=False).cuda() for _ in tmp]
+                images, labels, masks, scores, s_scores = tmp
             else:
                 raise ValueError('Unknown bootstrap distribution %s' % opt.bootstrap_version)
             if "exp" in opt.bootstrap_version:
+                print('Original rewards:', torch.mean(s_scores))
                 s_scores = torch.exp(torch.div(s_scores, opt.raml_tau))
-                print('Tempering the reward:', s_scores)
+                print('Tempering the reward:', torch.mean(s_scores))
             r_scores = torch.div(s_scores, torch.exp(scores))
 
-            print('Importance scores:', r_scores)
+            print('Importance scores:', torch.mean(r_scores))
         else:
             tmp = [data['images'], data['labels'], data['masks'], data['scores']]
             tmp = [Variable(torch.from_numpy(_), requires_grad=False).cuda() for _ in tmp]

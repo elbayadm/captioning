@@ -7,14 +7,15 @@ save_checkpoint_every : 4000
 fc_feat_size : 2048
 batch_size : 10
 beam_size : 3
+seq_per_img: 10
 #--------------------------RAML
 raml_loss : 0
 bootstrap_loss : 1
 bootstrap_version : cider
 raml_alpha : 0.3
 #--------------------------//RAML
-input_json : data/coco/bootstrap_baseline_s5.json
-input_h5 : data/coco/bootstrap_baseline_s5.h5
+input_json : data/coco/bootstrap_baseline_s5_infer.json
+input_h5 : data/coco/bootstrap_baseline_s5_infer.h5
 restart : 1
 val_images_use : -1
 finetune_cnn_after : -1

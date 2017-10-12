@@ -113,6 +113,7 @@ class DataLoader(object):
         self.opt = opt
         self.batch_size = self.opt.batch_size
         self.seq_per_img = self.opt.seq_per_img
+        self.flip = self.opt.fliplr
         #  self.load_syn = opt.use_synonyms
 
         # load the json file which contains additional information about the dataset
@@ -180,15 +181,19 @@ class DataLoader(object):
         batch_size = batch_size or self.batch_size
         seq_per_img = seq_per_img or self.seq_per_img
         #  print "get_batch seq_per_img:", seq_per_img
+        if self.flip:
+            effective_batch_size = 2 * batch_size
+        else:
+            effective_batch_size = batch_size
 
-        img_batch = np.ndarray([batch_size, 3, 224,224], dtype ='float32')
-        label_batch = np.zeros([batch_size * seq_per_img, self.seq_length + 2], dtype ='int')
-        score_batch = np.ones([batch_size * seq_per_img, ], dtype ='float32')
-        cider_batch = np.ones([batch_size * seq_per_img, ], dtype ='float32')
-        bleu_batch = np.ones([batch_size * seq_per_img, ], dtype ='float32')
-
+        img_batch = np.ndarray([effective_batch_size, 3, 224,224], dtype ='float32')
+        label_batch = np.zeros([effective_batch_size * seq_per_img, self.seq_length + 2], dtype ='int')
+        score_batch = np.ones([effective_batch_size * seq_per_img, ], dtype ='float32')
+        cider_batch = np.ones([effective_batch_size * seq_per_img, ], dtype ='float32')
+        bleu_batch = np.ones([effective_batch_size * seq_per_img, ], dtype ='float32')
+        infer_batch = np.ones([effective_batch_size * seq_per_img, ], dtype ='float32')
         #  label_syn_batch = np.zeros([batch_size * self.seq_per_img, self.seq_length + 2], dtype ='int')
-        mask_batch = np.zeros([batch_size * seq_per_img, self.seq_length + 2], dtype ='float32')
+        mask_batch = np.zeros([effective_batch_size * seq_per_img, self.seq_length + 2], dtype ='float32')
         max_index = len(split_ix)
         wrapped = False
 
@@ -206,7 +211,13 @@ class DataLoader(object):
             # fetch image
             #img = self.load_image(self.image_info[ix]['filename'])
             img = self.h5_file['images'][ix, :, :, :]
-            img_batch[i] = preprocess(torch.from_numpy(img[:, 16:-16, 16:-16].astype('float32')/255.0)).numpy()
+            if self.flip:
+                img_batch[2 * i] = preprocess(torch.from_numpy(img[:, 16:-16, 16:-16].astype('float32')/255.0)).numpy()
+                img_batch[2 * i + 1] = np.fliplr(img_batch[i])
+                # print('image and fliped', img_batch[2*i:2*i+1])
+            else:
+                img_batch[i] = preprocess(torch.from_numpy(img[:, 16:-16, 16:-16].astype('float32')/255.0)).numpy()
+                # print('image:', img_batch[i])
 
             # fetch the sequence labels
             ix1 = self.label_start_ix[ix] - 1 #label_start_ix starts from 1
@@ -221,7 +232,7 @@ class DataLoader(object):
                 scores = np.ones([seq_per_img,], dtype = 'float32')
                 ciders = np.ones([seq_per_img,], dtype = 'float32')
                 bleus = np.ones([seq_per_img,], dtype = 'float32')
-
+                infer = np.ones([seq_per_img,], dtype = 'float32')
 
                 #  if self.load_syn:
                 #      seq_syn = np.zeros([self.seq_per_img, self.seq_length], dtype = 'int')
@@ -233,6 +244,7 @@ class DataLoader(object):
                         scores[q] = self.h5_file['scores'][ixl]
                         ciders[q] = self.h5_file['cider'][ixl]
                         belus[q] = self.h5_file['bleu4'][ixl]
+                        infer[q] = self.h5_file['infersent'][ixl]
 
                     except:
                         if self.opt.less_confident < 1 and self.opt.less_confident:
@@ -246,10 +258,13 @@ class DataLoader(object):
                     scores = self.h5_file['scores'][ixl: ixl + seq_per_img]
                     ciders = self.h5_file['cider'][ixl: ixl + seq_per_img]
                     bleus = self.h5_file['bleu4'][ixl: ixl + seq_per_img]
+                    infer = self.h5_file['infersent'][ixl: ixl + seq_per_img]
+
                 except:
                     scores = np.ones([seq_per_img,], dtype='float32')
                     ciders = np.ones([seq_per_img,], dtype='float32')
                     bleus = np.ones([seq_per_img,], dtype='float32')
+                    infer = np.ones([seq_per_img,], dtype='float32')
 
                     if self.opt.less_confident < 1 and self.opt.less_confident:
                         scores[5:] *= self.opt.less_confident
@@ -257,11 +272,18 @@ class DataLoader(object):
                 #  if self.load_syn:
                 #      seq_syn = self.h5_file['labels_syn'][ixl: ixl + self.seq_per_img, :self.seq_length]
 
-            label_batch[i * seq_per_img : (i + 1) * seq_per_img, 1 : self.seq_length + 1] = seq
-            score_batch[i * seq_per_img : (i + 1) * seq_per_img] = scores
-            cider_batch[i * seq_per_img : (i + 1) * seq_per_img] = ciders
-            bleu_batch[i * seq_per_img : (i + 1) * seq_per_img] = bleus
-
+            if self.flip:
+                label_batch[ 2 * i * seq_per_img : 2 * (i + 1) * seq_per_img, 1 : self.seq_length + 1] = np.vstack((seq, seq))
+                score_batch[2 * i * seq_per_img : 2 * (i + 1)  * seq_per_img] = np.hstack((scores, scores))
+                cider_batch[2 * i * seq_per_img : 2 * (i + 1)  * seq_per_img] = np.hstack((ciders, ciders))
+                bleu_batch[2 * i * seq_per_img : 2 * (i + 1) * seq_per_img] = np.hstack((bleus, bleus))
+                infer_batch[2 * i * seq_per_img : 2 * (i + 1) * seq_per_img] = np.hstack((infer, infer))
+            else:
+                label_batch[i * seq_per_img : (i + 1) * seq_per_img, 1 : self.seq_length + 1] = seq
+                score_batch[i * seq_per_img : (i + 1) * seq_per_img] = scores
+                cider_batch[i * seq_per_img : (i + 1) * seq_per_img] = ciders
+                bleu_batch[i * seq_per_img : (i + 1) * seq_per_img] = bleus
+                infer_batch[i * seq_per_img : (i + 1) * seq_per_img] = infer
 
             #  if self.load_syn:
             #      label_syn_batch[i * self.seq_per_img : (i + 1) * self.seq_per_img, 1 : self.seq_length + 1] = seq_syn
@@ -285,6 +307,8 @@ class DataLoader(object):
         data['scores'] = score_batch
         data['cider'] = cider_batch
         data['bleu'] = bleu_batch
+        data['infersent'] = infer_batch
+
 
 
         #  data['labels_syn'] = label_syn_batch

@@ -40,6 +40,15 @@ model_configs = {
     'vgg19': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 256, 'M', 512, 512, 512, 512, 'M', 512, 512, 512, 512, 'M']
 }
 
+
+
+
+def group_similarity(u, refs):
+    sims = []
+    for v in refs:
+        sims.append(1 + np.dot(u, v) / (np.linalg.norm(u) * np.linalg.norm(v)))
+        return np.mean(sims)
+
 def repackage(h):
     """Wraps hidden states in new Variables, to detach them from their history."""
     if type(h) == Variable:
@@ -153,7 +162,8 @@ class ResNetModel(models.ResNet):
         #  x = x.mean(2).mean(3).squeeze(2).squeeze(2)
         x = self.avgpool(x)
         if self.opt.norm_feat:
-            x = self.norm2(x)
+            # x = self.norm2(x)
+            x = torch.nn.functional.normalize(x, dim=1)
         x = x.view(x.size(0), -1)
         #  x = self.fc(x)
         # TODO: add norm2 to the fc_feat.
@@ -338,11 +348,19 @@ class SmoothLanguageModelCriterion(nn.Module):
         self.vocab_size = opt.vocab_size
         if self.version not in ['clip', 'exp', 'vocab',
                                 'cider', 'cider-exp',  'bleu4',
-                                'hamming', 'hamming-sample']:
+                                'hamming', 'hamming-sample', 'infersent']:
             raise ValueError("Unknown smoothing version %s" % self.version)
         if 'cider' in self.version or 'bleu' in self.version:
             opt.logger.warn('RAML CIDER/Bleu: Storing the model vocab')
             self.loader_vocab = loader_vocab
+        if 'infersent' in self.version:
+            # load infersent model
+            GLOVE_PATH = '../InferSent/dataset/GloVe/glove.840B.300d.txt'
+            self.infersent = torch.load('../InferSent/infersent.allnli.pickle')
+            self.infersent.set_glove_path(GLOVE_PATH)
+            self.infersent.build_vocab_k_words(K=100000)
+            self.loader_vocab = loader_vocab
+
         self.alpha = opt.raml_alpha
         self.isolate_gt = opt.raml_isolate
         self.normalize = opt.raml_normalize
@@ -456,6 +474,36 @@ class SmoothLanguageModelCriterion(nn.Module):
                     self.logger.warn("Smooth targets weights sum to 0")
                     output = torch.sum(output)
                 return real_output, self.alpha * output + (1 - self.alpha) * real_output
+
+            elif self.version == 'infersent':
+                preds = torch.max(input_, dim=2)[1].squeeze().cpu().data
+                hypo = decode_sequence(self.loader_vocab, preds)  # candidate
+                refs = decode_sequence(self.loader_vocab, target_.data)  # references
+                num_img = target_.size(0) // self.seq_per_img
+                scores = []
+                lr = len(refs)
+                codes = self.infersent.encode(refs + hypo)
+                refs = codes[:lr]
+                hypo = codes[lr:]
+                for e, h in enumerate(hypo):
+                    ix_start =  e // self.seq_per_img * self.seq_per_img
+                    ix_end = ix_start + 5  # self.seq_per_img
+                    scores.append(group_similarity(h, refs[ix_start : ix_end]))
+                self.logger.debug("Infersent similairities: %s" %  str(scores))
+                #  scores = np.maximum(1 - np.repeat(scores, seq_length), 0)
+                scores = np.repeat(np.exp(np.array(scores)/ self.tau), seq_length)
+                print('Scaling with', scores)
+                smooth_target = Variable(torch.from_numpy(scores).view(-1, 1)).cuda().float()
+                preds = Variable(preds[:, :input.size(1)]).cuda()
+                preds = to_contiguous(preds).view(-1, 1)
+                output = - input.gather(1, preds) * mask_ * smooth_target
+                if torch.sum(smooth_target * mask_).data[0] > 0:
+                    output = torch.sum(output) / torch.sum(smooth_target * mask_)
+                else:
+                    self.logger.warn("Smooth targets weights sum to 0")
+                    output = torch.sum(output)
+                return real_output, self.alpha * output + (1 - self.alpha) * real_output
+
             elif self.version == 'bleu4':
                 bleu_scorer = BleuScorer(n=4)
                 preds = torch.max(input_, dim=2)[1].squeeze().cpu().data
@@ -624,6 +672,7 @@ class ImportanceLanguageModelCriterion(nn.Module):
 
     def forward(self, input, target, mask, sampling_ratios):
         # truncate to the same size
+        ratios = sampling_ratios
         sampling_ratios = sampling_ratios.repeat(1, input.size(1))
         # self.opt.logger.debug('Importance scores shaped:', sampling_ratios)
         target = target[:, :input.size(1)]
@@ -635,8 +684,10 @@ class ImportanceLanguageModelCriterion(nn.Module):
         real_output = - input.gather(1, target) * mask
         real_output = torch.sum(real_output) / torch.sum(mask)
         output = - input.gather(1, target) * mask * sampling_ratios
-        if torch.sum(sampling_ratios * mask).data[0] > 0:
-            output = torch.sum(output) / torch.sum(mask * sampling_ratios)
+        if torch.sum(mask).data[0] > 0 and torch.sum(ratios).data[0] > 0:
+            self.opt.logger.debug('output without avg %s' % str(torch.sum(output).data))
+            output = torch.sum(output) / torch.sum(mask) / torch.sum(ratios)
+            self.opt.logger.warn('Avergaging the sampling scores and the seq length')
         else:
             self.opt.logger.warn("Smooth targets weights sum to 0")
             output = torch.sum(output)

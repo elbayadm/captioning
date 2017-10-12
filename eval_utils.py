@@ -24,6 +24,7 @@ import misc.utils as utils
 from collections import Counter
 import pickle as pickle
 from misc.mil import upsample_images
+from misc.ensemble import Ensemble
 _OKGREEN = '\033[92m'
 _WARNING = '\033[93m'
 _FAIL = '\033[91m'
@@ -63,7 +64,7 @@ def captions_creativity(caps, minfreq):
         if not v:
             creative_5g += 1
             unseen_5g.append(k)
-            print('Unseen 5g:', k)
+            # print('Unseen 5g:', k)
     total_5g = 1 + sum([1 for line in open('%s_tmpcount5.txt' % tmp, 'r')])
     #------------------------------------------------------------------------------------------
     counts = {}
@@ -76,7 +77,7 @@ def captions_creativity(caps, minfreq):
         if not v:
             creative_4g += 1
             unseen_4g.append(k)
-            print('Unseen 4g:', k)
+            # print('Unseen 4g:', k)
     total_4g = 1 + sum([1 for line in open('%s_tmpcount4.txt' % tmp, 'r')])
     #------------------------------------------------------------------------------------------
     counts = {}
@@ -89,7 +90,7 @@ def captions_creativity(caps, minfreq):
         if not v:
             creative_3g += 1
             unseen_3g.append(k)
-            print('Unseen 3g:', k)
+            # print('Unseen 3g:', k)
     total_3g = 1 + sum([1 for line in open('%s_tmpcount3.txt' % tmp, 'r')])
     #------------------------------------------------------------------------------------------
     tmpfiles = glob.glob('%s_*' % tmp)
@@ -637,6 +638,75 @@ def short_path(path):
     basename, filename = os.path.split(path)
     return os.path.join(os.path.basename(basename), filename)
 
+
+def eval_external_ensemble(cnn_models, models, loader, eval_kwargs={}):
+    verbose = eval_kwargs.get('verbose', True)
+    num_images = eval_kwargs.get('num_images', -1)
+    split = eval_kwargs.get('split', 'val')
+    lang_eval = eval_kwargs.get('language_eval', 1)
+    dataset = eval_kwargs.get('dataset', 'coco')
+    beam_size = eval_kwargs.get('beam_size', 1)
+    logger = eval_kwargs.get('logger')
+    caption_model = eval_kwargs.get('caption_model')
+    vocab_size = eval_kwargs.get('vocb_size')
+    dump_path = eval_kwargs.get('dump_path')
+
+    ensemble = Ensemble(models, eval_kwargs)
+
+    # Make sure in the evaluation mode
+    for cnn_model  in cnn_models:
+        cnn_model.eval()
+
+    for model in models:
+        model.eval()
+
+    loader.reset_iterator(split)
+
+    n = 0
+    predictions = []
+    Feats = []
+    seq_per_img = 5
+    while True:
+        data = loader.get_batch(split, seq_per_img=seq_per_img)
+        n = n + loader.batch_size
+
+        # forward the model to get loss
+        images = data['images']
+        images = Variable(torch.from_numpy(images), volatile=True).cuda()
+
+        att_feats_ens = []
+        fc_feats_ens = []
+        for cnn_model in cnn_models:
+            att_feats, fc_feats = cnn_model.forward(images)
+            att_feats_ens.append(att_feats)
+            fc_feats_ens.append(fc_feats)
+
+        seq, probs = ensemble.sample_beam(fc_feats_ens, att_feats_ens, eval_kwargs)
+        sents = utils.decode_sequence(loader.get_vocab(), seq)
+
+        for k, sent in enumerate(sents):
+            spath = short_path(data['infos'][k]['file_path'])
+            print(spath, _OKGREEN, ">>", sent, _ENDC)
+            entry = {'image_path': spath, 'caption': sent}
+            predictions.append(entry)
+            #  logger.debug('image %s: %s' %(entry['image_id'], entry['caption']))
+        ix0 = data['bounds']['it_pos_now']
+        ix1 = data['bounds']['it_max']
+        #  logger.warn('ix1 = %d - ix0 = %d' % (ix1, ix0))
+        if num_images != -1:
+            ix1 = min(ix1, num_images)
+        for i in range(n - ix1):
+            predictions.pop()
+        #  logger.debug('validation loss ... %d/%d (%f)' %(ix0 - 1, ix1, loss))
+        if data['bounds']['wrapped']:
+            break
+        if n >= ix1:
+            logger.warn('Evaluated the required samples (%s)' % n)
+            break
+    #  pickle.dump(Feats, open('cnn_features.pkl', 'w'))
+    return  predictions
+
+
 def eval_external(cnn_model, model, crit, loader, eval_kwargs={}):
     verbose = eval_kwargs.get('verbose', True)
     num_images = eval_kwargs.get('num_images', -1)
@@ -716,12 +786,85 @@ def eval_external(cnn_model, model, crit, loader, eval_kwargs={}):
     return  predictions
 
 
+def eval_ensemble(cnn_models, models, loader, eval_kwargs={}):
+    verbose = eval_kwargs.get('verbose', True)
+    num_images = eval_kwargs.get('num_images', -1)
+    seq_length = eval_kwargs.get('seq_length', 16)
+    split = eval_kwargs.get('split', 'test')
+    lang_eval = eval_kwargs.get('language_eval', 0)
+    dataset = eval_kwargs.get('dataset', 'coco')
+    beam_size = eval_kwargs.get('beam_size', 1)
+    batch_size = eval_kwargs.get('batch_size', 1)
+    ensemble = Ensemble(models, eval_kwargs)
 
+    # Make sure in the evaluation mode
+    for cnn_model  in cnn_models:
+        cnn_model.eval()
+
+    for model in models:
+        model.eval()
+
+    loader.reset_iterator(split)
+
+    n = 0
+    loss_sum = 0
+    loss_evals = 1e-8
+    predictions = []
+
+    while True:
+        # fetch a batch of data
+        data = loader.get_batch(split, batch_size)
+        n = n + batch_size
+
+        #evaluate loss if we have the labels
+        loss = 0
+
+        # Get the image features first
+        tmp = [data['images'], data.get('labels', np.zeros(1)), data.get('masks', np.zeros(1)), data['scores']]
+        tmp = [Variable(torch.from_numpy(_), volatile=True).cuda() for _ in tmp]
+        images, labels, masks, scores = tmp
+
+        att_feats_ens = []
+        fc_feats_ens = []
+        for cnn_model in cnn_models:
+            att_feats, fc_feats = cnn_model.forward(images)
+            att_feats_ens.append(att_feats)
+            fc_feats_ens.append(fc_feats)
+        seq, probs = ensemble.sample_beam(fc_feats_ens, att_feats_ens, eval_kwargs)
+        sent_scores = probs.cpu().numpy().sum(axis=1)
+        sents = utils.decode_sequence(loader.get_vocab(), seq)
+        print('Gen:', len(sents), len(sent_scores))
+        for k, sent in enumerate(sents):
+            # print('id:', data['infos'][k]['id'])
+            entry = {'image_id': data['infos'][k]['id'], 'caption': sent, 'score': str(round(sent_scores[k], 4)), "source": 'gen'}
+            predictions.append(entry)
+            if verbose:
+                print(('image %s (%s) %s' %(entry['image_id'], entry['score'], entry['caption'])))
+        # if we wrapped around the split or used up val imgs budget then bail
+        ix0 = data['bounds']['it_pos_now']
+        ix1 = data['bounds']['it_max']
+        if num_images != -1:
+            ix1 = min(ix1, num_images)
+        for i in range(n - ix1):
+            predictions.pop()
+        if data['bounds']['wrapped']:
+            break
+        if num_images >= 0 and n >= num_images:
+            break
+
+    lang_stats = None
+    unseen_grams = None
+    if lang_eval == 1:
+        lang_stats, unseen_grams = language_eval(dataset, predictions)
+    # Switch back to training mode
+    model.train()
+    return predictions, lang_stats, unseen_grams
 
 
 # Evaluation fun(ction)
 def eval_eval(cnn_model, model, crit, loader, eval_kwargs={}):
     verbose = eval_kwargs.get('verbose', True)
+    score_ground_truth = eval_kwargs.get('score_ground_truth', False)
     num_images = eval_kwargs.get('num_images', -1)
     seq_length = eval_kwargs.get('seq_length', 16)
     split = eval_kwargs.get('split', 'test')
@@ -786,7 +929,7 @@ def eval_eval(cnn_model, model, crit, loader, eval_kwargs={}):
         # Only leave one feature for each image, in case duplicate sample
         fc_feats, att_feats = _fc_feats, _att_feats
         # forward the model to also get generated samples for each image
-        for _ in range(5):
+        for _ in range(1):
             seq, probs = model.sample(fc_feats, att_feats, eval_kwargs)
             sent_scores = probs.cpu().numpy().sum(axis=1)
             #set_trace()
@@ -794,27 +937,35 @@ def eval_eval(cnn_model, model, crit, loader, eval_kwargs={}):
             print('Gen:', len(sents), len(sent_scores))
             for k, sent in enumerate(sents):
                 # print('id:', data['infos'][k]['id'])
-                entry = {'image_id': data['infos'][k]['id'], 'caption': sent, 'score': str(round(sent_scores[k], 4)), "source": 'gen'}
+                if loader.flip:
+                    entry = {'image_id': data['infos'][k // 2]['id'], 'caption': sent, 'score': str(round(sent_scores[k], 4)), "source": 'gen'}
+                    if not k % 2:
+                        unflipped = entry
+                    else:
+                        # compare the new entry to unflipped and keep the best candidate
+                        print('Comparing:', entry, ' to ', unflipped)
+                        if float(entry['score']) > float(unflipped['score']):
+                            predictions.append(entry)
+                            print('picking:', entry)
+                        else:
+                            predictions.append(unflipped)
+                            print('picking:', unflipped)
+                else:
+                    entry = {'image_id': data['infos'][k]['id'], 'caption': sent, 'score': str(round(sent_scores[k], 4)), "source": 'gen'}
+                    predictions.append(entry)
+                if verbose:
+                    print(entry)
+                    # print(('image %s (%s) %s' %(entry['image_id'], entry['score'], entry['caption'])))
+        if score_ground_truth:
+            print('Gt:', len(gt_sents), len(gt_scores))
+            for k, sent in enumerate(gt_sents):
+                if loader.flip:
+                    entry = {'image_id': data['infos'][k // (loader.seq_per_img * 2)]['id'], 'caption': sent, 'score': str(round(gt_scores[k], 4)), "source": 'gt'}
+                else:
+                    entry = {'image_id': data['infos'][k // loader.seq_per_img]['id'], 'caption': sent, 'score': str(round(gt_scores[k], 4)), "source": 'gt'}
                 predictions.append(entry)
                 if verbose:
-                    print(('image %s (%s) %s' %(entry['image_id'], entry['score'], entry['caption'])))
-        print('Gt:', len(gt_sents), len(gt_scores))
-        for k, sent in enumerate(gt_sents):
-            entry = {'image_id': data['infos'][k // loader.seq_per_img]['id'], 'caption': sent, 'score': str(round(gt_scores[k], 4)), "source": 'gt'}
-            predictions.append(entry)
-            if verbose:
-                print(('image %s (GT : %s) %s' %(entry['image_id'], entry['score'], entry['caption'])))
-
-        for k, sent in enumerate(sents):
-            entry = {'image_id': data['infos'][k]['id'], 'caption': sent}
-            if eval_kwargs['dump_path'] == 1:
-                entry['file_name'] = data['infos'][k]['file_path']
-                table.insert(predictions, entry)
-            if eval_kwargs['dump_images'] == 1:
-                # dump the raw image to vis/ folder
-                cmd = 'cp "' + os.path.join(eval_kwargs['image_root'], data['infos'][k]['file_path']) + '" vis/imgs/img' + str(len(predictions)) + '.jpg' # bit gross
-                print(cmd)
-                os.system(cmd)
+                    print(('image %s (GT : %s) %s' %(entry['image_id'], entry['score'], entry['caption'])))
 
         # if we wrapped around the split or used up val imgs budget then bail
         ix0 = data['bounds']['it_pos_now']

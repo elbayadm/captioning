@@ -8,6 +8,7 @@ fc_feat_size : 2048
 batch_size : 10
 beam_size : 3
 #--------------------------RAML
+seq_per_img: 10
 raml_loss : 0
 bootstrap_loss : 1
 bootstrap_version : cider-exp

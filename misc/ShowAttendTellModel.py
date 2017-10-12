@@ -133,13 +133,15 @@ class ShowAttendTellModel(nn.Module):
                 #  self.opt.logger.warn('Att feats size: %s' % str(att_feats.size()))
                 att_feats = att_feats.resize(batch_size * self.num_regions, self.att_feat_size)
                 #  self.opt.logger.warn('> Att feats resized: %s' % str(att_feats.size()))
-                ctx = self.ctx_embed(att_feats)
+                ctx = F.relu(self.ctx_embed(att_feats))  #FIXME: Add it porperly in the init if issue fixed
                 ctx = ctx.resize(batch_size, self.num_regions, self.input_encoding_size)
                 #  self.opt.logger.warn('CTX mapped: %s' % str(ctx.size()))
                 alphas = self.get_alphas(state, ctx)
-                alphas = alphas.unsqueeze(2).expand(batch_size, self.num_regions, self.input_encoding_size)
+                # print('Predicted alphas:', alphas)
+                alphas = alphas.unsqueeze(1).expand(batch_size, self.num_regions, self.input_encoding_size)
                 #  self.opt.logger.warn('> Alphas size %s' % str(alphas.size()))
                 weighted_ctx = (ctx * alphas).sum(1).squeeze(1)
+                print("Fed to the RNN:", weighted_ctx)
                 #  self.opt.logger.warn('> weighted ctx size %s' % str(weighted_ctx.size()))
                 #  self.opt.logger.warn('> xt size %s' % str(xt.size()))
                 # Concat xt and weighted_ctx:
@@ -168,7 +170,7 @@ class ShowAttendTellModel(nn.Module):
             beam_logprobs_sum = torch.zeros(beam_size) # running sum of logprobs for each beam
             for t in range(self.seq_length + 2):
                 if t == 0:
-                    xt = self.img_embed(fc_feats[k:k+1]).expand(beam_size, self.input_encoding_size)
+                    xt = self.img_embed(fc_feats[k:k+1]).expand(beam_size, 2 * self.input_encoding_size)
                 elif t == 1: # input <bos>
                     it = fc_feats.data.new(beam_size).long().zero_()
                     xt = self.embed(Variable(it, requires_grad=False))
@@ -270,7 +272,7 @@ class ShowAttendTellModel(nn.Module):
                 xt = self.embed(Variable(it, requires_grad=False))
                 # The context embedding
                 att_feats = att_feats.resize(batch_size * self.num_regions, self.att_feat_size)
-                ctx = self.ctx_embed(att_feats)
+                ctx = F.relu(self.ctx_embed(att_feats))
                 ctx = ctx.resize(batch_size, self.num_regions, self.input_encoding_size)
                 alphas = self.get_alphas(state, ctx)
                 alphas = alphas.unsqueeze(2).expand(batch_size, self.num_regions, self.input_encoding_size)

@@ -1,6 +1,6 @@
 # Generic
 # -------------------------
-modelname : bootstrap_cider_exp100_a03
+modelname : bootstrap_infersent_a1
 cnn_model : resnet50
 caption_model : show_tell
 save_checkpoint_every : 4000
@@ -11,9 +11,8 @@ seq_per_img: 10
 #--------------------------RAML
 raml_loss : 0
 bootstrap_loss : 1
-bootstrap_version : cider-exp
-raml_tau : 100
-raml_alpha : 0.3
+bootstrap_version : infersent
+raml_alpha : 1.
 #--------------------------//RAML
 input_json : data/coco/bootstrap_baseline_s5_infer.json
 input_h5 : data/coco/bootstrap_baseline_s5_infer.h5
