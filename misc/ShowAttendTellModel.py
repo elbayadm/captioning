@@ -48,6 +48,29 @@ class ShowAttendTellModel(nn.Module):
         self.init_weights()
         opt.logger.warn('Show, attend & Tell : %s' % str(self._modules))
 
+    def define_loss(self):
+        if self.opt.raml_loss:
+            #  D = np.eye(opt.vocab_size + 1, dtype="float32")
+            #  D = np.random.uniform(size=(opt.vocab_size + 1, opt.vocab_size + 1)).astype(np.float32)
+            # D = pickle.load(open('data/Glove/cocotalk_similarities_v2.pkl', 'rb'), encoding='iso-8859-1')
+            D = pickle.load(open(self.opt.similarity_matrix, 'rb'), encoding='iso-8859-1')
+
+            D = D.astype(np.float32)
+            D = Variable(torch.from_numpy(D)).cuda()
+            crit = utils.SmoothLanguageModelCriterion(Dist=D,
+                                                      loader_vocab=self.loader_vocab,
+                                                      opt=self.opt)
+        elif self.opt.bootstrap_loss:
+            # Using importance sampling loss:
+            crit = utils.ImportanceLanguageModelCriterion(self.opt)
+
+        elif self.opt.combine_caps_losses:
+            crit = utils.MultiLanguageModelCriterion(self.opt.seq_per_img)
+        else:
+            self.opt.logger.warn('Using baseline loss criterion')
+            crit = utils.LanguageModelCriterion(self.opt)
+        self.crit = crit
+
     def init_weights(self):
         initrange = 0.1
         self.embed.weight.data.uniform_(-initrange, initrange)

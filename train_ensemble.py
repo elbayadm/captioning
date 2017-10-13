@@ -106,10 +106,102 @@ def add_summary_value(writer, key, value, iteration, collections=None):
     summary = tf.Summary(value=[tf.Summary.Value(tag=key, simple_value=value)])
     writer.add_summary(summary, iteration)
 
-def train(opt):
+def train_ensemble(ens_opt):
     """
     main training loop
     """
+    models_paths = []
+    infos_paths = []
+    infos_list = []
+    cnn_models = []
+    rnn_models = []
+    for m in ens_opt.model:
+        models_paths.append('save/%s/model.pth' % m)
+        infos_path = "save/%s/infos.pkl" % m
+        with open(infos_path, 'rb') as f:
+            print('Opening %s' % infos_path)
+            infos = pickle.load(f, encoding="iso-8859-1")
+            infos_list.append(infos)
+
+    print("Parsed % infos files" % len(infos_list))
+    options = []
+    for e, infos in enumerate(infos_list):
+        # override and collect parameters
+        opt = argparse.Namespace(**vars(ens_opt))
+        print('List of models:', ens_opt.model)
+        opt.model = ens_opt.model[e]
+        print("Current model:", opt.model)
+        if len(opt.input_h5) == 0:
+            opt.input_h5 = infos['opt'].input_h5
+        if len(opt.input_json) == 0:
+            opt.input_json = infos['opt'].input_json
+        if opt.batch_size == 0:
+            opt.batch_size = infos['opt'].batch_size
+        #Check if new features in opt:
+        if "less_confident" not in opt:
+            opt.less_confident = 0
+        if "scheduled_sampling_strategy" not in opt:
+            opt.scheduled_sampling_strategy = "step"
+        if "scheduled_sampling_vocab" not in opt:
+            opt.scheduled_sampling_vocab = 0
+        ignore = ["id", "batch_size", "beam_size", "start_from", "language_eval"]
+        for k in list(vars(infos['opt']).keys()):
+            if k not in ignore:
+                if k in vars(opt):
+                    assert vars(opt)[k] == vars(infos['opt'])[k], k + ' option not consistent'
+                else:
+                    vars(opt).update({k: vars(infos['opt'])[k]}) # copy over options from model
+        opt.use_feature_maps = infos['opt'].use_feature_maps
+        opt.cnn_model = infos['opt'].cnn_model
+        opt.logger = opts.create_logger('./tmp_eval.log')
+        opt.start_from = "save/" + opt.model
+        opt.model_path = "save/" + opt.model + "/model.pth"
+
+        opt.rnn_bias = 0
+        try:
+            opt.use_glove = infos['opt'].use_glove
+        except:
+            opt.use_glove = 0
+        try:
+            opt.use_synonyms = infos['opt'].use_synonyms
+        except:
+            opt.use_synonyms = 0
+        options.append(opt)
+
+    vocab = infos_list[0]['vocab'] # ix -> word mapping
+    ens_opt.logger = opts.create_logger('%s/train.log' % ens_opt.ensemble_dir)
+    # Build CNN model for single branch use
+    for opt in options:
+        if opt.cnn_model.startswith('resnet'):
+            cnn_model = utils.ResNetModel(opt)
+        elif opt.cnn_model.startswith('vgg'):
+            cnn_model = utils.VggNetModel(opt)
+        else:
+            print('Unknown model %s' % opt.cnn_model)
+            sys.exit(1)
+        cnn_model.cuda()
+        # cnn_model.eval()
+        print('Loading model with', opt)
+        model = capmodels.setup(opt)
+        model.load_state_dict(torch.load(opt.model_path))
+        model.cuda()
+        # model.eval()
+        cnn_models.append(cnn_model)
+        rnn_models.append(model)
+    # Create the Data Loader instance
+    start = time.time()
+
+
+
+
+
+
+
+
+
+
+
+
     loader = DataLoader(opt)
     opt.vocab_size = loader.vocab_size
     opt.seq_length = loader.seq_length
@@ -183,10 +275,28 @@ def train(opt):
     update_lr_flag = True
     # Assure in training mode
     model.train()
-    model.define_loss(loader.get_vocab())
+    if opt.raml_loss:
+        #  D = np.eye(opt.vocab_size + 1, dtype="float32")
+        #  D = np.random.uniform(size=(opt.vocab_size + 1, opt.vocab_size + 1)).astype(np.float32)
+        # D = pickle.load(open('data/Glove/cocotalk_similarities_v2.pkl', 'rb'), encoding='iso-8859-1')
+        D = pickle.load(open(opt.similarity_matrix, 'rb'), encoding='iso-8859-1')
+
+        D = D.astype(np.float32)
+        D = Variable(torch.from_numpy(D)).cuda()
+        crit = utils.SmoothLanguageModelCriterion(Dist=D,
+                                                  loader_vocab=loader.get_vocab(),
+                                                  opt=opt)
+    elif opt.bootstrap_loss:
+        # Using importance sampling loss:
+        crit = utils.ImportanceLanguageModelCriterion(opt)
+
+    elif opt.combine_caps_losses:
+        crit = utils.MultiLanguageModelCriterion(opt.seq_per_img)
+    else:
+        opt.logger.warn('Using baseline loss criterion')
+        crit = utils.LanguageModelCriterion(opt)
     optim_func = get_optimizer(opt.optim)
     # TODO; add sclaed lr for every chunk of cnn layers
-    # TODO either define the ensemble as a seq or loop over the models & cnn_models >> Move to train_ensemble
     if opt.finetune_cnn_after != -1 and epoch >= opt.finetune_cnn_after:
         cnn_params = [{'params': module.parameters(), 'lr': opt.cnn_learning_rate * opt.learning_rate} for module in cnn_model.to_finetune]
         main_params = [{'params': model.parameters(), 'lr': opt.learning_rate}]
@@ -194,6 +304,7 @@ def train(opt):
                                lr=opt.learning_rate, weight_decay=opt.weight_decay)
     else:
         optimizer = optim_func(model.parameters(), lr=opt.learning_rate, weight_decay=opt.weight_decay)
+
 
 
     # Load the optimizer
@@ -245,7 +356,7 @@ def train(opt):
                 opt.logger.warn('Updating the loss scaling param alpha')
                 frac = epoch // opt.raml_alpha_increase_every
                 new_alpha = min(opt.raml_alpha_increase_factor  * frac, 1)
-                model.crit.alpha = new_alpha
+                crit.alpha = new_alpha
                 opt.logger.warn('New alpha %.3e' % new_alpha)
             update_lr_flag = False
 
@@ -260,10 +371,10 @@ def train(opt):
             opt.logger.warn('Updating the loss scaling param alpha')
             new_alpha = 1 - opt.raml_alpha_speed / (opt.raml_alpha_speed + exp(iteration / opt.raml_alpha_speed))
             new_alpha = min(new_alpha, 1)
-            model.crit.alpha = new_alpha
+            crit.alpha = new_alpha
             opt.logger.warn('New alpha %.3e' % new_alpha)
         if opt.raml_loss:
-            opt.logger.error('Sanity check alpha = %.3e' % model.crit.alpha)
+            opt.logger.error('Sanity check alpha = %.3e' % crit.alpha)
 
         # Load data from train split (0)
         data = loader.get_batch('train')
@@ -309,31 +420,27 @@ def train(opt):
                                                     fc_feats.size()[1:])).contiguous().view(*((fc_feats.size(0) * opt.seq_per_img,) + fc_feats.size()[1:]))
             ###########################################################################
         else:
-            # Deprecated
             conf, loc, priorbox = cnn_model.forward(images)
             print("conf:", conf.size())
             print("loc:", loc.size())
             print("priorbox", priorbox.size())
-            # // Deprecated
 
         optimizer.zero_grad()
-        # TODO: Move this inside model def
         if opt.caption_model == "show_tell_vae":
             preds, recon_loss, kld_loss = model(fc_feats, att_feats, labels)
-            real_loss, loss = model.crit(preds, labels[:, 1:], masks[:, 1:])
+            real_loss, loss = crit(preds, labels[:, 1:], masks[:, 1:])
             loss += opt.vae_weight * (recon_loss + opt.kld_weight * kld_loss)  #FIXME add the scaling as parameter
         elif opt.caption_model == 'show_tell_raml':
             probs, reward = model(fc_feats, att_feats, labels)
             raml_scores = reward * Variable(torch.ones(scores.size()))
             # raml_scores = Variable(torch.ones(scores.size()))
             print('Raml reward:', reward)
-            real_loss, loss = model.crit(probs, labels[:, 1:], masks[:, 1:], raml_scores)
+            real_loss, loss = crit(probs, labels[:, 1:], masks[:, 1:], raml_scores)
         else:
             if opt.bootstrap_loss:
-                real_loss, loss = model.crit(model(fc_feats, att_feats, labels), labels[:, 1:], masks[:, 1:], r_scores)
+                real_loss, loss = crit(model(fc_feats, att_feats, labels), labels[:, 1:], masks[:, 1:], r_scores)
             else:
-                real_loss, loss = model.crit(model(fc_feats, att_feats, labels), labels[:, 1:], masks[:, 1:], scores)
-        # // Move
+                real_loss, loss = crit(model(fc_feats, att_feats, labels), labels[:, 1:], masks[:, 1:], scores)
         loss.backward()
         grad_norm = []
         grad_norm.append(utils.clip_gradient(optimizer, opt.grad_clip))
@@ -350,7 +457,6 @@ def train(opt):
         #  grad_norm = [utils.get_grad_norm(optimizer)]
         torch.cuda.synchronize()
         end = time.time()
-        # Move all logging via Tensorflow's summaries outside
         message = "iter {} (epoch {}), train_real_loss = {:.3f}, train_loss = {:.3f}, lr = {:.2e}, grad_norm = {:.3e}"\
                    .format(iteration, epoch, train_real_loss,  train_loss, opt.current_lr, grad_norm[0])
 
@@ -402,7 +508,7 @@ def train(opt):
             eval_kwargs = {'split': 'val',
                            'dataset': opt.input_json}
             eval_kwargs.update(vars(opt))
-            real_val_loss, val_loss, predictions, lang_stats, unseen_grams = eval_utils.eval_split(cnn_model, model, model.crit, loader, eval_kwargs)
+            real_val_loss, val_loss, predictions, lang_stats, unseen_grams = eval_utils.eval_split(cnn_model, model, crit, loader, eval_kwargs)
 
             # Write validation result into summary
             add_summary_value(tf_summary_writer, 'validation loss', val_loss, iteration)
@@ -414,7 +520,6 @@ def train(opt):
             #      add_summary_text(tf_summary_writer, k, v, iteration)
             #  add_summary_embedding(tf_summary_writer)
             tf_summary_writer.flush()
-            # // End move tf
             val_result_history[iteration] = {'loss': val_loss, 'lang_stats': lang_stats, 'predictions': predictions}
             val_losses.insert(0, val_loss)
             # Save model if is improving on validation result
@@ -468,5 +573,34 @@ def train(opt):
         if epoch >= opt.max_epochs and opt.max_epochs != -1:
             break
 
-opt = opts.parse_opt()
-train(opt)
+if __name__ == "__main__":
+    # Input arguments and options
+    parser = argparse.ArgumentParser()
+    # Input paths
+    parser.add_argument('--verbose', type=int, default=0,
+                        help='code verbosity')
+    # Basic options
+    parser.add_argument('--batch_size', type=int, default=1,
+                        help='if > 0 then overrule, otherwise load from checkpoint.')
+    parser.add_argument('--language_eval', type=int, default=1,
+                        help='Evaluate language as well (1 = yes, 0 = no)? BLEU/CIDEr/METEOR/ROUGE_L? requires coco-caption code from Github.')
+    # Sampling options
+    parser.add_argument('--sample_max', type=int, default=1,
+                        help='1 = sample argmax words. 0 = sample from distributions.')
+    parser.add_argument('--forbid_unk', type=int, default=1,
+                        help='Forbid unk token generations.')
+    parser.add_argument('--beam_size', type=int, default=1,
+                        help='used when sample_max = 1, indicates number of beams in beam search. Usually 2 or 3 works well. More is not better. Set this to 1 for faster runtime but a bit worse performance.')
+    # For evaluation on MSCOCO images from some split:
+    parser.add_argument('--input_h5', type=str, default='',
+                        help='path to the h5file containing the preprocessed dataset')
+    parser.add_argument('--input_json', type=str, default='',
+                        help='path to the json file containing additional info and vocab. empty = fetch from model checkpoint.')
+    parser.add_argument('--model', nargs="+",
+                        help='shortcut')
+    parser.add_argument('--ensemble_dir', type=str,
+                        default='save/ensemble',
+                        help='shortcut')
+
+
+    #TODO:  Add option for epoch eval

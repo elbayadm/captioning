@@ -26,6 +26,52 @@ class Ensemble(nn.Module):
         self.n_models = len(models)
         self.seq_length = models[0].seq_length
 
+
+    def forward(self, fc_feats, att_feats, seq):
+        batch_size = fc_feats[0].size(0)
+        outputs = [[] for _ in self.models]
+        state = []
+        for i in range(seq.size(1)):
+            xt = []
+            if i == 0:
+                for model in self.models:
+                    xt.append(model.img_embed(fc_feats[e]))
+            else:
+                if i >= 2 and self.ss_prob > 0.0: # otherwiste no need to sample
+                    sample_prob = fc_feats.data.new(batch_size).uniform_(0, 1)
+                    sample_mask = sample_prob < self.ss_prob
+                    if sample_mask.sum() == 0:
+                        it = seq[:, i-1].clone()
+                    else:
+                        sample_ind = sample_mask.nonzero().view(-1)
+                        it = seq[:, i-1].data.clone()
+                        for e, model in enumerate(self.models):
+                            if not e:
+                                prob_prev = torch.exp(outputs[e][-1].data) # fetch prev distribution: shape Nx(M+1)
+                            else:
+                                prob_prev += torch.exp(outputs[e][-1].data)
+                        if self.ss_vocab:
+                            for token in sample_vocab:
+                                prob_prev[:, token] += 0.5
+                        it.index_copy_(0, sample_ind, torch.multinomial(prob_prev, 1).view(-1).index_select(0, sample_ind))
+                        it = Variable(it, requires_grad=False)
+                else:
+                    it = seq[:, i-1].clone()
+                # break if all the sequences end
+                if i >= 2 and seq[:, i-1].data.sum() == 0:
+                    break
+                for model in self.models:
+                    xtm = model.embed(it)
+                    xtm = model.drop_x_lm(xtm)
+                    xt.append(xtm)
+            for e, model in enumerate(self.models):
+                output, state[e] = model.core(xt[e].unsqueeze(0), state[e])
+                output = F.log_softmax(model.logit(output.squeeze(0)))
+                outputs[e].append(output)
+
+        return [torch.cat([_.unsqueeze(1) for _ in outputs[e][1:]], 1).contiguous() for e in range(self.n_models)]
+
+
     def sample_beam(self, fc_feats, att_feats, opt={}):
         beam_size = opt.get('beam_size', 10)
         batch_size = fc_feats[0].size(0)

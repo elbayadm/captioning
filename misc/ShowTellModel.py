@@ -14,6 +14,7 @@ import numpy as np
 class ShowTellModel(nn.Module):
     def __init__(self, opt):
         super(ShowTellModel, self).__init__()
+        self.opt = opt
         self.vocab_size = opt.vocab_size
         self.rnn_type = opt.rnn_type
         self.rnn_size = opt.rnn_size
@@ -56,6 +57,29 @@ class ShowTellModel(nn.Module):
                     Variable(weight.new(self.num_layers, bsz, self.rnn_size).zero_()))
         else:
             return Variable(weight.new(self.num_layers, bsz, self.rnn_size).zero_())
+
+    def define_loss(self, loader_vocab):
+        if self.opt.raml_loss:
+            #  D = np.eye(opt.vocab_size + 1, dtype="float32")
+            #  D = np.random.uniform(size=(opt.vocab_size + 1, opt.vocab_size + 1)).astype(np.float32)
+            # D = pickle.load(open('data/Glove/cocotalk_similarities_v2.pkl', 'rb'), encoding='iso-8859-1')
+            D = pickle.load(open(self.opt.similarity_matrix, 'rb'), encoding='iso-8859-1')
+
+            D = D.astype(np.float32)
+            D = Variable(torch.from_numpy(D)).cuda()
+            crit = utils.SmoothLanguageModelCriterion(Dist=D,
+                                                      loader_vocab=loader_vocab,
+                                                      opt=self.opt)
+        elif self.opt.bootstrap_loss:
+            # Using importance sampling loss:
+            crit = utils.ImportanceLanguageModelCriterion(self.opt)
+
+        elif self.opt.combine_caps_losses:
+            crit = utils.MultiLanguageModelCriterion(self.opt.seq_per_img)
+        else:
+            self.opt.logger.warn('Using baseline loss criterion')
+            crit = utils.LanguageModelCriterion(self.opt)
+        self.crit = crit
 
     def forward(self, fc_feats, att_feats, seq):
         batch_size = fc_feats.size(0)
@@ -192,9 +216,9 @@ class ShowTellModel(nn.Module):
 
     def sample(self, fc_feats, att_feats, opt={}):
         sample_max = opt.get('sample_max', 1)
-        print('Sample max:', sample_max)
+        # print('Sample max:', sample_max)
         beam_size = opt.get('beam_size', 1)
-        print('Beam size:', beam_size)
+        # print('Beam size:', beam_size)
         temperature = opt.get('temperature', 1.0)
         forbid_unk = opt.get('forbid_unk', 1)
         if beam_size > 1:
