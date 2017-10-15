@@ -1,4 +1,5 @@
 import configargparse
+import argparse
 import os
 import os.path as osp
 import logging
@@ -80,7 +81,6 @@ def parse_opt():
                                               Note: this file contains absolute paths, be careful when moving files around;
                         'model.ckpt-*'      : file(s) with model definition (created by tf)
                     """)
-
     # Model settings
     parser.add('--caption_model', type=str,
                default="show_tell", help='show_tell, show_attend_tell, attention, test_att, show_attend_tell_new')
@@ -276,6 +276,269 @@ def parse_opt():
     assert args.train_only == 0 or args.train_only == 1, "train_only should be 0 or 1"
     assert args.norm_feat == 0 or args.norm_feat == 1, "norm_feat should be 0 or 1"
     # mkdir the model save directory
+    args.eventname = 'events/' + args.modelname
     args.modelname = 'save/' + args.modelname
+    # Make sure the dirs exist:
+    if not os.path.exists(args.eventname):
+        os.makedirs(args.eventname)
+    if not os.path.exists(args.modelname):
+        os.makedirs(args.modelname)
     args.logger = create_logger('%s/train.log' % args.modelname)
     return args
+
+
+def parse_eval_opt():
+    # Input arguments and options
+    parser = argparse.ArgumentParser()
+    # Input paths
+    parser.add_argument('--model_path', type=str, default='',
+                        help='path to model to evaluate')
+    parser.add_argument('--ensemblename', type=str, default='',
+                        help='Enseble name if evaluating a finetuned ensemble')
+    parser.add_argument('--cnn_model_path', type=str, default='',
+                        help='path to cnn model to evaluate')
+    parser.add_argument('--infos_path', type=str, default='',
+                        help='path to infos to evaluate')
+    parser.add_argument('--verbose', type=int, default=0,
+                        help='code verbosity')
+    # Basic options
+    parser.add_argument('--batch_size', type=int, default=0,
+                        help='if > 0 then overrule, otherwise load from checkpoint.')
+    parser.add_argument('--num_images', type=int, default=-1,
+                        help='how many images to use when periodically evaluating the loss? (-1 = all)')
+    parser.add_argument('--language_eval', type=int, default=1,
+                        help='Evaluate language as well (1 = yes, 0 = no)? BLEU/CIDEr/METEOR/ROUGE_L? requires coco-caption code from Github.')
+    parser.add_argument('--dump_images', type=int, default=0,
+                        help='Dump images into vis/imgs folder for vis? (1=yes,0=no)')
+    parser.add_argument('--dump_json', type=int, default=1,
+                        help='Dump json with predictions into vis folder? (1=yes,0=no)')
+    parser.add_argument('--output_json', type=str,
+                        help='json path')
+    parser.add_argument('--dump_path', type=int, default=0,
+                        help='Write image paths along with predictions into vis json? (1=yes,0=no)')
+    # Sampling options
+    parser.add_argument('--sample_max', type=int, default=1,
+                        help='1 = sample argmax words. 0 = sample from distributions.')
+    parser.add_argument('--forbid_unk', type=int, default=1,
+                        help='Forbid unk token generations.')
+
+    parser.add_argument('--beam_size', type=int, default=1,
+                        help='used when sample_max = 1, indicates number of beams in beam search. Usually 2 or 3 works well. More is not better. Set this to 1 for faster runtime but a bit worse performance.')
+    parser.add_argument('--temperature', type=float, default=0.5,
+                        help='temperature when sampling from distributions (i.e. when sample_max = 0). Lower = "safer" predictions.')
+    # For evaluation on a folder of images:
+    parser.add_argument('--image_folder', type=str, default='',
+                        help='If this is nonempty then will predict on the images in this folder path')
+    parser.add_argument('--image_list', type=str,
+                        help='List of image from folder')
+    parser.add_argument('--max_images', type=int, default=-1,
+                        help='If not -1 limit the number of evaluated images')
+
+    parser.add_argument('--image_root', type=str, default='data/coco/images',
+                        help='In case the image paths have to be preprended with a root path to an image folder')
+    # For evaluation on MSCOCO images from some split:
+    parser.add_argument('--input_h5', type=str, default='',
+                        help='path to the h5file containing the preprocessed dataset')
+    parser.add_argument('--input_json', type=str, default='',
+                        help='path to the json file containing additional info and vocab. empty = fetch from model checkpoint.')
+    parser.add_argument('--split', type=str, default='test',
+                        help='if running on MSCOCO images, which split to use: val|test|train')
+    parser.add_argument('--coco_json', type=str, default='',
+                        help='if nonempty then use this file in DataLoaderRaw (see docs there). Used only in MSCOCO test evaluation, where we have a specific json file of only test set images.')
+    # misc
+    parser.add_argument('--id', type=str, default='evalscript',
+                        help='an id identifying this run/job. used only if language_eval = 1 for appending to intermediate files')
+    parser.add_argument('--fliplr', type=int, default=1,
+                        help='add flipped image')
+    parser.add_argument('--model', nargs="+",
+                        help='Model(s) to evaluate')
+
+
+    opt = parser.parse_args()
+    if opt.ensemblename:
+        opt.ensemblename = 'save/' + opt.ensemblename
+    return opt
+
+
+
+def parse_ens_opt():
+    parser = configargparse.ArgParser()
+    parser.add('-c', '--config', is_config_file=True, help='Config file path')
+    # Data input settings
+    parser.add_argument('--model', nargs="+", action="append",
+                        help='Model(s) to evaluate')
+
+    parser.add('--input_json', type=str,
+               default='data/coco/cocotalk.json',
+               help='path to the json file containing additional info and vocab')
+    parser.add('--input_h5', type=str,
+               default='data/coco/cocotalk.h5',
+               help='path to the h5file containing the preprocessed dataset')
+    parser.add('--restart', type=int,
+               default=1, help='0: to override the existing model or 1: to pick up the training')
+    parser.add('--start_from_best', type=int, default=0,
+               help="Whether to start from the best saved model (1) or the from the last checkpoint (0)")
+    parser.add('--start_from', type=str,
+               default=None,
+               help="""continue training from saved model at this path. Path must contain files saved by previous training process:
+                        'infos.pkl'         : configuration;
+                        'checkpoint'        : paths to model file(s) (created by tf).
+                                              Note: this file contains absolute paths, be careful when moving files around;
+                        'model.ckpt-*'      : file(s) with model definition (created by tf)
+                    """)
+
+    # Model settings
+    parser.add('--caption_model', type=str,
+               default="show_tell", help='show_tell, show_attend_tell, attention, test_att, show_attend_tell_new')
+
+    parser.add('--less_confident', type=float,
+               default=0, help='if neq 0, be less confident in the added captions (used to scale down the loss)')
+
+    # RAML Loss params:
+    parser.add('--combine_caps_losses', type=int,
+               default=0, help='combine the loss of the captions relative to a single image.')
+
+    parser.add('--bootstrap_loss', type=int,
+               default=0, help='use bootstrap/importance sampling loss.')
+    parser.add('--bootstrap_version', type=str,
+               default="cider", help='Version of Bootstrap loss')
+
+    parser.add('--raml_loss', type=int,
+               default=0, help='use smooth loss via similar words.')
+    parser.add('--similarity_matrix', type=str,
+               default='data/Glove/cocotalk_similarities_v2.pkl', help='path to the pre-computed similarity matrix between the vocab words')
+    parser.add('--raml_version', type=str,
+               default="exp", help='Version of RAML loss between (clip) and (exp)')
+    parser.add('--raml_tau', type=float,
+               default=0.8, help='Temperature for the rbf kernel')
+    parser.add('--raml_tau_sample', type=float,
+               default=0.8, help='Temperature for the rbf kernel')
+    parser.add('--raml_margin', type=float,
+               default=0.9, help='clipping margin for the similarities')
+    parser.add('--raml_isolate', type=int,
+                default=0, help='Whether to treat the gt separately or not')
+    parser.add('--raml_alpha', type=float,
+               default=0.9, help='Weight accorded to the gt is isolated')
+    parser.add('--raml_alpha_increase_every', type=int,
+               default=2, help='step width')
+    parser.add('--raml_alpha_increase_factor', type=float,
+               default=0.1, help='increase factor when step')
+    parser.add('--raml_alpha_speed', type=float,
+               default=20000, help='alpha decreasing speed')
+    parser.add('--raml_alpha_strategy', type=str,
+               default="constant", help='Increase strategy')
+    parser.add('--raml_normalize', type=float,
+               default=0, help='Apply tempered softmax (exp version)')
+    #--------------------//RAML
+    # Optimization: General
+    parser.add('--max_epochs', type=int,
+               default=-1, help='number of epochs')
+    parser.add('--batch_size', type=int,
+               default=25, help='minibatch size')
+    parser.add('--grad_clip', type=float,
+               default=0.1, help='clip gradients at this value')
+    parser.add('--finetune_cnn_after', type=int,
+               default=-1, help='After what epoch do we start finetuning the CNN? (-1 = disable; never finetune, 0 = finetune from start)')
+    parser.add('--finetune_cnn_only', type=int,
+               default=0, help="if 1, finetune the cnn only.")
+    parser.add('--seq_per_img', type=int,
+               default=5, help='number of captions to sample for each image during training. Done for efficiency since CNN forward pass is expensive. E.g. coco has 5 sents/image')
+    parser.add('--beam_size', type=int,
+               default=1, help='used when sample_max = 1, indicates number of beams in beam search. Usually 2 or 3 works well. More is not better. Set this to 1 for faster runtime but a bit worse performance.')
+    parser.add('--fliplr', type=int, default=0,
+               help="Whether or not to add flipped image when generating the batch")
+    #Optimization: for the Language Model
+    parser.add('--optim', type=str,
+               default='adam', help='what update to use? rmsprop|sgd|sgdmom|adagrad|adam')
+    parser.add('--learning_rate', type=float,
+               default=4e-4, help='learning rate')
+    parser.add('--learning_rate_decay_start', type=int,
+               default=-1, help='at what iteration to start decaying learning rate? (-1 = dont) (in epoch)')
+    parser.add('--lr_patience', type=int,
+               default=2, help='Epochs after overfitting before decreasing the lr')
+    parser.add('--lr_strategy', type=str,
+               default="step", help="between step (automatic decrease) or adaptive to the val loss")
+    parser.add('--learning_rate_decay_every', type=int,
+               default=3, help='every how many iterations thereafter to drop LR?(in epoch)')
+    parser.add('--learning_rate_decay_rate', type=float,
+               default=0.8, help='every how many iterations thereafter to drop LR?(in epoch)')
+    parser.add('--optim_alpha', type=float,
+               default=0.8, help='alpha for adam')
+    parser.add('--optim_beta', type=float,
+               default=0.999, help='beta used for adam')
+    parser.add('--optim_epsilon', type=float,
+               default=1e-8, help='epsilon that goes into denominator for smoothing')
+    parser.add('--weight_decay', type=float,
+               default=0, help='main optimizer weight decay')
+    #Optimization: for the CNN
+    parser.add('--cnn_optim', type=str,
+               default='adam', help='optimization to use for CNN')
+    parser.add('--cnn_optim_alpha', type=float,
+               default=0.8, help='alpha for momentum of CNN')
+    parser.add('--cnn_optim_beta', type=float,
+               default=0.999, help='beta for momentum of CNN')
+    parser.add('--cnn_learning_rate', type=float,
+               default=0.1, help='learning rate for the CNN = factor * learning_rate')
+    parser.add('--cnn_weight_decay', type=float,
+               default=0, help='L2 weight decay just for the CNN')
+    parser.add('--scheduled_sampling_strategy', type=str,
+               default="step", help='the decay schedule')
+
+    parser.add('--scheduled_sampling_start', type=int,
+               default=-1, help='at what iteration to start decay gt probability')
+    parser.add('--scheduled_sampling_vocab', type=int,
+               default=0, help='if 1 limits sampling to the gt vocab')
+    parser.add('--scheduled_sampling_speed', type=int,
+               default=100, help='ss speed')
+    parser.add('--scheduled_sampling_increase_every', type=int,
+               default=5, help='every how many iterations thereafter to gt probability')
+    parser.add('--scheduled_sampling_increase_prob', type=float,
+               default=0.05, help='How much to update the prob')
+    parser.add('--scheduled_sampling_max_prob', type=float,
+               default=0.25, help='Maximum scheduled sampling prob.')
+
+    # Evaluation/Checkpointing
+    parser.add('--val_images_use', type=int,
+               default=-1, help='how many images to use when periodically evaluating the validation loss? (-1 = all)')
+    parser.add('--save_checkpoint_every', type=int,
+               default=4000, help='how often to save a model checkpoint (in iterations)?')
+    parser.add('--ensemblename', type=str,
+               default='model1', help='directory to store checkpointed models')
+    parser.add('--language_eval', type=int,
+               default=1, help='Evaluate language as well (1 = yes, 0 = no)? BLEU/CIDEr/METEOR/ROUGE_L? requires coco-caption code from Github.')
+    parser.add('--forbid_unk', type=int,
+               default=1, help='Do not generate UNK tokens when evaluating')
+
+    parser.add('--losses_log_every', type=int,
+               default=25, help='How often do we snapshot losses, for inclusion in the progress dump? (0 = disable)')
+    parser.add('--load_best_score', type=int,
+               default=1, help='Do we load previous best score when resuming training.')
+
+    # misc
+    parser.add('--train_only', type=int,
+               default=1, help='if true then use 80k, else use 110k')
+
+
+    args = parser.parse_args()
+
+    # Check if args are valid
+    assert args.batch_size > 0, "batch_size should be greater than 0"
+    assert args.seq_per_img > 0, "seq_per_img should be greater than 0"
+    assert args.beam_size > 0, "beam_size should be greater than 0"
+    assert args.save_checkpoint_every > 0, "save_checkpoint_every should be greater than 0"
+    assert args.losses_log_every > 0, "losses_log_every should be greater than 0"
+    assert args.language_eval == 0 or args.language_eval == 1, "language_eval should be 0 or 1"
+    # mkdir the model save directory
+    args.eventname = 'events/' + args.ensemblename
+    args.ensemblename = 'save/' + args.ensemblename
+    # Make sure the dirs exist:
+    if not os.path.exists(args.eventname):
+        os.makedirs(args.eventname)
+    if not os.path.exists(args.ensemblename):
+        os.makedirs(args.ensemblename)
+    args.logger = create_logger('%s/train.log' % args.ensemblename)
+
+
+    return args
+
+

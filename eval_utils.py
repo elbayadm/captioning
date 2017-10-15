@@ -587,7 +587,6 @@ def eval_split(cnn_model, model, crit, loader, eval_kwargs={}):
             real_loss, loss = crit(probs, labels[:, 1:], masks[:, 1:], scores)
             real_loss = real_loss.data[0]
             loss = loss.data[0]
-
         else:
             real_loss, loss = crit(model(fc_feats, att_feats, labels), labels[:, 1:], masks[:, 1:], scores)
             real_loss = real_loss.data[0]
@@ -621,7 +620,7 @@ def eval_split(cnn_model, model, crit, loader, eval_kwargs={}):
                         del unflipped['score']
                         predictions.append(unflipped)
             else:
-                entry = {'image_id': data['infos'][k]['id'], 'caption': sent, 'score': sent_scores[k]}
+                entry = {'image_id': data['infos'][k]['id'], 'caption': sent}
                 predictions.append(entry)
 
             #  logger.debug('image %s: %s' %(entry['image_id'], entry['caption']))
@@ -653,7 +652,7 @@ def short_path(path):
     return os.path.join(os.path.basename(basename), filename)
 
 
-def eval_external_ensemble(cnn_models, models, loader, eval_kwargs={}):
+def eval_external_ensemble(ensemble, loader, eval_kwargs={}):
     verbose = eval_kwargs.get('verbose', True)
     num_images = eval_kwargs.get('num_images', -1)
     split = eval_kwargs.get('split', 'val')
@@ -665,13 +664,11 @@ def eval_external_ensemble(cnn_models, models, loader, eval_kwargs={}):
     vocab_size = eval_kwargs.get('vocb_size')
     dump_path = eval_kwargs.get('dump_path')
 
-    ensemble = Ensemble(models, eval_kwargs)
-
     # Make sure in the evaluation mode
-    for cnn_model  in cnn_models:
+    for cnn_model  in ensemble.cnn_models:
         cnn_model.eval()
 
-    for model in models:
+    for model in ensemble.models:
         model.eval()
 
     loader.reset_iterator(split)
@@ -688,13 +685,7 @@ def eval_external_ensemble(cnn_models, models, loader, eval_kwargs={}):
         images = data['images']
         images = Variable(torch.from_numpy(images), volatile=True).cuda()
 
-        att_feats_ens = []
-        fc_feats_ens = []
-        for cnn_model in cnn_models:
-            att_feats, fc_feats = cnn_model.forward(images)
-            att_feats_ens.append(att_feats)
-            fc_feats_ens.append(fc_feats)
-
+        att_feats_ens, fc_feats_ens = ensemble.get_feats(images)
         seq, probs = ensemble.sample_beam(fc_feats_ens, att_feats_ens, eval_kwargs)
         sents = utils.decode_sequence(loader.get_vocab(), seq)
 
@@ -800,29 +791,30 @@ def eval_external(cnn_model, model, crit, loader, eval_kwargs={}):
     return  predictions
 
 
-def eval_ensemble(cnn_models, models, loader, eval_kwargs={}):
+def eval_ensemble(ens_model, loader, eval_kwargs={}):
     verbose = eval_kwargs.get('verbose', True)
-    num_images = eval_kwargs.get('num_images', -1)
     seq_length = eval_kwargs.get('seq_length', 16)
     split = eval_kwargs.get('split', 'test')
     lang_eval = eval_kwargs.get('language_eval', 0)
     dataset = eval_kwargs.get('dataset', 'coco')
     beam_size = eval_kwargs.get('beam_size', 1)
     batch_size = eval_kwargs.get('batch_size', 1)
-    ensemble = Ensemble(models, eval_kwargs)
+    val_images_use = eval_kwargs.get('val_images_use', -1)
+    print('Evaluating ', val_images_use, ' images')
 
     # Make sure in the evaluation mode
-    for cnn_model  in cnn_models:
+    for cnn_model in ens_model.cnn_models:
         cnn_model.eval()
 
-    for model in models:
+    for model in ens_model.models:
         model.eval()
 
     loader.reset_iterator(split)
 
     n = 0
     loss_sum = 0
-    loss_evals = 1e-8
+    real_loss_sum = 0
+    loss_evals = 0
     predictions = []
 
     while True:
@@ -840,14 +832,19 @@ def eval_ensemble(cnn_models, models, loader, eval_kwargs={}):
 
         att_feats_ens = []
         fc_feats_ens = []
-        for cnn_model in cnn_models:
+        for cnn_model in ens_model.cnn_models:
             att_feats, fc_feats = cnn_model.forward(images)
             att_feats_ens.append(att_feats)
             fc_feats_ens.append(fc_feats)
-        seq, probs = ensemble.sample_beam(fc_feats_ens, att_feats_ens, eval_kwargs)
+        # Eavluate the loss:
+        real_loss, loss = ens_model.step(data)
+        loss_sum = loss_sum + loss.data[0]
+        real_loss_sum += real_loss.data[0]
+        loss_evals = loss_evals + 1
+
+        seq, probs = ens_model.sample_beam(fc_feats_ens, att_feats_ens, eval_kwargs)
         sent_scores = probs.cpu().numpy().sum(axis=1)
         sents = utils.decode_sequence(loader.get_vocab(), seq)
-        print('Gen:', len(sents), len(sent_scores))
         for k, sent in enumerate(sents):
             # print('id:', data['infos'][k]['id'])
             entry = {'image_id': data['infos'][k]['id'], 'caption': sent, 'score': str(round(sent_scores[k], 4)), "source": 'gen'}
@@ -857,22 +854,20 @@ def eval_ensemble(cnn_models, models, loader, eval_kwargs={}):
         # if we wrapped around the split or used up val imgs budget then bail
         ix0 = data['bounds']['it_pos_now']
         ix1 = data['bounds']['it_max']
-        if num_images != -1:
-            ix1 = min(ix1, num_images)
-        for i in range(n - ix1):
-            predictions.pop()
+        if val_images_use != -1:
+            ix1 = min(ix1, val_images_use)
         if data['bounds']['wrapped']:
             break
-        if num_images >= 0 and n >= num_images:
+        if n >= ix1:
+            ens_model.logger.warn('Evaluated the required samples (%s)' % n)
             break
-
     lang_stats = None
     unseen_grams = None
     if lang_eval == 1:
         lang_stats, unseen_grams = language_eval(dataset, predictions)
     # Switch back to training mode
     model.train()
-    return predictions, lang_stats, unseen_grams
+    return real_loss_sum/loss_evals, loss_sum/loss_evals, predictions, lang_stats, unseen_grams
 
 
 # Evaluation fun(ction)
@@ -957,19 +952,19 @@ def eval_eval(cnn_model, model, crit, loader, eval_kwargs={}):
                         unflipped = entry
                     else:
                         # compare the new entry to unflipped and keep the best candidate
-                        print('Comparing:', entry, ' to ', unflipped)
+                        # print('Comparing:', entry, ' to ', unflipped)
                         if float(entry['score']) > float(unflipped['score']):
                             predictions.append(entry)
-                            print('picking:', entry)
+                            # print('picking:', entry)
                         else:
                             predictions.append(unflipped)
-                            print('picking:', unflipped)
+                            # print('picking:', unflipped)
                 else:
                     entry = {'image_id': data['infos'][k]['id'], 'caption': sent, 'score': str(round(sent_scores[k], 4)), "source": 'gen'}
                     predictions.append(entry)
                 if verbose:
-                    print(entry)
-                    # print(('image %s (%s) %s' %(entry['image_id'], entry['score'], entry['caption'])))
+                    # print(entry)
+                    print(('%s >>  %s' %(entry['image_id'], entry['caption'])))
         if score_ground_truth:
             print('Gt:', len(gt_sents), len(gt_scores))
             for k, sent in enumerate(gt_sents):

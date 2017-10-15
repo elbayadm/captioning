@@ -13,29 +13,81 @@ import misc.utils as utils
 import _pickle as pickle
 import numpy as np
 from misc.ShowTellModel import ShowTellModel
-
+import misc.loss as loss
 
 class Ensemble(nn.Module):
-    def __init__(self, models, opt):
+    def __init__(self, models, cnn_models, opt):
         super(Ensemble, self).__init__()
         self.opt = opt
         for model in models:
             assert(type(model) == ShowTellModel)
         # Store each model as a component of the overall network
         self.models = models
+        self.cnn_models = cnn_models
         self.n_models = len(models)
+        assert self.n_models == len(self.cnn_models)
         self.seq_length = models[0].seq_length
+        self.ss_prob = 0
+        self.ss_vocab = 0
+        self.logger = opt.logger
 
+    def define_loss(self, loader_vocab):
+        opt = self.opt
+        if opt.raml_loss:
+            # D = np.eye(opt.vocab_size + 1, dtype="float32")
+            # D = np.random.uniform(size=(opt.vocab_size + 1,
+                                        # opt.vocab_size + 1)).astype(np.float32)
+            # D = pickle.load(open('data/Glove/cocotalk_similarities_v2.pkl', 'rb'),
+                            # encoding='iso-8859-1')
+            D = pickle.load(open(opt.similarity_matrix, 'rb'), encoding='iso-8859-1')
 
-    def forward(self, fc_feats, att_feats, seq):
-        batch_size = fc_feats[0].size(0)
+            D = D.astype(np.float32)
+            D = Variable(torch.from_numpy(D)).cuda()
+            crit = loss.SmoothLanguageModelCriterion(Dist=D,
+                                                      loader_vocab=loader_vocab,
+                                                      opt=opt)
+        elif opt.bootstrap_loss:
+            # Using importance sampling loss:
+            crit = loss.ImportanceLanguageModelCriterion(opt)
+
+        elif opt.combine_caps_losses:
+            crit = loss.MultiLanguageModelCriterion(opt.seq_per_img)
+        else:
+            opt.logger.warn('Using baseline loss criterion')
+            crit = loss.LanguageModelCriterion(opt)
+        self.crit = crit
+
+    def get_feats(self, images):
+        att_feats_ens = []
+        fc_feats_ens = []
+        for cnn_model in self.cnn_models:
+            att_feats, fc_feats = cnn_model.forward(images)
+            att_feats_ens.append(att_feats)
+            fc_feats_ens.append(fc_feats)
+        return att_feats_ens, fc_feats_ens
+
+    def forward(self, images, seq):
+        batch_size = seq.size(0)
+        # Get the image features first
+        att_feats_ens = []
+        fc_feats_ens = []
+        for cnn_model in self.cnn_models:
+            att_feats, fc_feats = cnn_model.forward_caps(images, self.opt.seq_per_img)
+            att_feats_ens.append(att_feats)
+            fc_feats_ens.append(fc_feats)
+
         outputs = [[] for _ in self.models]
         state = []
+        for model in self.models:
+            model_state = model.init_hidden(batch_size)
+            # print('Initial length:', [torch.sum(st).data[0] for st in model_state])
+            state.append(model_state)
+
         for i in range(seq.size(1)):
             xt = []
             if i == 0:
-                for model in self.models:
-                    xt.append(model.img_embed(fc_feats[e]))
+                for e, model in enumerate(self.models):
+                    xt.append(model.img_embed(fc_feats_ens[e]))
             else:
                 if i >= 2 and self.ss_prob > 0.0: # otherwiste no need to sample
                     sample_prob = fc_feats.data.new(batch_size).uniform_(0, 1)
@@ -69,7 +121,84 @@ class Ensemble(nn.Module):
                 output = F.log_softmax(model.logit(output.squeeze(0)))
                 outputs[e].append(output)
 
-        return [torch.cat([_.unsqueeze(1) for _ in outputs[e][1:]], 1).contiguous() for e in range(self.n_models)]
+        logprobs = [torch.cat([_.unsqueeze(1) for _ in outputs[e][1:]], 1).contiguous() for e in range(self.n_models)]
+        # combine the probabilities:
+        logprobs = torch.stack(logprobs, dim=1)
+        logprobs = torch.mean(logprobs, dim=1).squeeze(1)
+        return  logprobs
+
+
+    def sample(self, fc_feats, att_feats, opt={}):
+        sample_max = opt.get('sample_max', 1)
+        # print('Sample max:', sample_max)
+        beam_size = opt.get('beam_size', 1)
+        # print('Beam size:', beam_size)
+        temperature = opt.get('temperature', 1.0)
+        forbid_unk = opt.get('forbid_unk', 1)
+        if beam_size > 1:
+            return self.sample_beam(fc_feats, att_feats, opt)
+
+
+        batch_size = fc_feats[0].size(0)
+
+        seq = torch.LongTensor(self.seq_length, batch_size).zero_()
+        seqLogprobs = torch.FloatTensor(self.seq_length, batch_size)
+
+        # lets process every image independently for now, for simplicity
+        state = []
+        for model in self.models:
+            model_state = model.init_hidden(batch_size)
+            # print('Initial length:', [torch.sum(st).data[0] for st in model_state])
+            state.append(model_state)
+        for t in range(self.seq_length + 2):
+            # print('At step ',t, ' states:', [torch.sum(ss).data[0] for st in state for ss in st])
+            xt = []
+            if t == 0:
+                for e, model in enumerate(self.models):
+                    xt.append(model.img_embed(fc_feats[e]))
+            else:
+                if t == 1:
+                    it = fc_feats[e].data.new(batch_size).long().zero_()
+                elif sample_max:
+                    sampleLogprobs, it = torch.max(logprobs.data, 1)
+                    it = it.view(-1).long()
+                else:
+                    if temperature == 1.0:
+                        prob_prev = torch.exp(logprobs.data).cpu() # fetch prev distribution: shape Nx(M+1)
+                    else:
+                        # scale logprobs by temperature
+                        prob_prev = torch.exp(torch.div(logprobs.data, temperature)).cpu()
+                    it = torch.multinomial(prob_prev, 1).cuda()
+                    sampleLogprobs = logprobs.gather(1, Variable(it, requires_grad=False)) # gather the logprobs at sampled positions
+                    it = it.view(-1).long() # and flatten indices for downstream processing
+
+                for model in self.models:
+                    xt.append(model.embed(Variable(it, requires_grad=False)))
+            if t >= 2:
+                # stop when all finished
+                if t == 2:
+                    unfinished = it > 0
+                else:
+                    unfinished = unfinished * (it > 0)
+                if unfinished.sum() == 0:
+                    break
+                it = it * unfinished.type_as(it)
+                seq.append(it) #seq[t] the input of t+2 time step
+                seqLogprobs.append(sampleLogprobs.view(-1))
+
+            for e, model in enumerate(self.models):
+                if not e:
+                    output, state[e] = model.core(xt[e].unsqueeze(0), state[e])
+                else:
+                    out, state[e] = model.core(xt[e].unsqueeze(0), state[e])
+                    output += out_
+            logprobs = F.log_softmax(self.logit(output.squeeze(0)))
+            if forbid_unk:
+                logprobs = logprobs[:, :-1]
+        try:
+            return torch.cat([_.unsqueeze(1) for _ in seq], 1), torch.cat([_.unsqueeze(1) for _ in seqLogprobs], 1).data
+        except:  # Fix issue with Variable v. Tensor depending on the mode.
+            return torch.cat([_.unsqueeze(1) for _ in seq], 1), torch.cat([_.unsqueeze(1) for _ in seqLogprobs], 1)
 
 
     def sample_beam(self, fc_feats, att_feats, opt={}):
@@ -188,5 +317,49 @@ class Ensemble(nn.Module):
             seqLogprobs[:, k] = self.done_beams[k][0]['logps']
         # return the samples and their log likelihoods
         return seq.transpose(0, 1), seqLogprobs.transpose(0, 1)
+
+    def step(self, data):
+        opt = self.opt
+        if opt.bootstrap_loss:
+            if opt.bootstrap_version in ["cider", "cider-exp"]:
+                tmp = [data['images'], data['labels'], data['masks'], data['scores'], data['cider']]
+                tmp = [Variable(torch.from_numpy(_), requires_grad=False).cuda() for _ in tmp]
+                images, labels, masks, scores, s_scores= tmp
+
+            elif opt.bootstrap_version in ["bleu4", "bleu4-exp"]:
+                tmp = [data['images'], data['labels'], data['masks'], data['scores'], data['bleu']]
+                tmp = [Variable(torch.from_numpy(_), requires_grad=False).cuda() for _ in tmp]
+                images, labels, masks, scores, s_scores = tmp
+            elif opt.bootstrap_version in ["infersent", "infersent-exp"]:
+                tmp = [data['images'], data['labels'], data['masks'], data['scores'], data['infersent']]
+                tmp = [Variable(torch.from_numpy(_), requires_grad=False).cuda() for _ in tmp]
+                images, labels, masks, scores, s_scores = tmp
+            else:
+                raise ValueError('Unknown bootstrap distribution %s' % opt.bootstrap_version)
+            if "exp" in opt.bootstrap_version:
+                print('Original rewards:', torch.mean(s_scores))
+                s_scores = torch.exp(torch.div(s_scores, opt.raml_tau))
+                print('Tempering the reward:', torch.mean(s_scores))
+            r_scores = torch.div(s_scores, torch.exp(scores))
+            opt.logger.debug('Mean importance scores: %.3e' % torch.mean(r_scores).data[0])
+        else:
+            tmp = [data['images'], data['labels'], data['masks'], data['scores']]
+            tmp = [Variable(torch.from_numpy(_), requires_grad=False).cuda() for _ in tmp]
+            images, labels, masks, scores = tmp
+
+        if opt.caption_model == 'show_tell_raml':
+            probs, reward = self.forward(images, labels)
+            raml_scores = reward * Variable(torch.ones(scores.size()))
+            # raml_scores = Variable(torch.ones(scores.size()))
+            print('Raml reward:', reward)
+            real_loss, loss = self.crit(probs, labels[:, 1:], masks[:, 1:], raml_scores)
+        else:
+            if opt.bootstrap_loss:
+                real_loss, loss = self.crit(self.forward(images, labels),
+                                            labels[:, 1:], masks[:, 1:], r_scores)
+            else:
+                real_loss, loss = self.crit(self.forward(images, labels),
+                                            labels[:, 1:], masks[:, 1:], scores)
+        return real_loss, loss
 
 

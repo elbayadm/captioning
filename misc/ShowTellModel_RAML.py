@@ -319,3 +319,11 @@ class ShowTellModel_RAML(nn.Module):
 
 
         return torch.cat([_.unsqueeze(1) for _ in seq], 1), torch.cat([_.unsqueeze(1) for _ in seqLogprobs], 1)
+
+    def step():
+        probs, reward = model(fc_feats, att_feats, labels)
+        raml_scores = reward * Variable(torch.ones(scores.size()))
+        # raml_scores = Variable(torch.ones(scores.size()))
+        print('Raml reward:', reward)
+        real_loss, loss = model.crit(probs, labels[:, 1:], masks[:, 1:], raml_scores)
+

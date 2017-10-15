@@ -7,27 +7,13 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import *
 import misc.utils as utils
+from misc.Decoder import DecoderModel
 
-class ShowAttendTellModel(nn.Module):
+
+class ShowAttendTellModel(DecoderModel):
     def __init__(self, opt):
-        super(ShowAttendTellModel, self).__init__()
-        self.vocab_size = opt.vocab_size
-        self.input_encoding_size = opt.input_encoding_size
-        self.rnn_type = opt.rnn_type
-        self.rnn_size = opt.rnn_size
-        self.num_layers = opt.num_layers
-        self.drop_prob_lm = opt.drop_prob_lm
-        self.seq_length = opt.seq_length
-        self.fc_feat_size = opt.fc_feat_size
-        self.num_regions = opt.num_regions  # Or the number of candidate regions
-        self.att_feat_size = opt.att_feat_size
+        super(ShowAttendTellModel, self).__init__(opt)
         self.attend_mode = opt.attend_mode
-        self.opt = opt
-
-        self.ss_prob = 0.0 # Schedule sampling probability
-        # the first x is 2 * encoding size while for t>1 we concatenate the
-        # word embedding (encoding size) with the subtensor of att_feats
-        # (encoding_size)
         self.img_embed = nn.Linear(self.fc_feat_size, self.input_encoding_size)
         # RNN block
         self.core = getattr(nn, self.rnn_type.upper())(self.input_encoding_size,
@@ -48,28 +34,6 @@ class ShowAttendTellModel(nn.Module):
         self.init_weights()
         opt.logger.warn('Show, attend & Tell : %s' % str(self._modules))
 
-    def define_loss(self):
-        if self.opt.raml_loss:
-            #  D = np.eye(opt.vocab_size + 1, dtype="float32")
-            #  D = np.random.uniform(size=(opt.vocab_size + 1, opt.vocab_size + 1)).astype(np.float32)
-            # D = pickle.load(open('data/Glove/cocotalk_similarities_v2.pkl', 'rb'), encoding='iso-8859-1')
-            D = pickle.load(open(self.opt.similarity_matrix, 'rb'), encoding='iso-8859-1')
-
-            D = D.astype(np.float32)
-            D = Variable(torch.from_numpy(D)).cuda()
-            crit = utils.SmoothLanguageModelCriterion(Dist=D,
-                                                      loader_vocab=self.loader_vocab,
-                                                      opt=self.opt)
-        elif self.opt.bootstrap_loss:
-            # Using importance sampling loss:
-            crit = utils.ImportanceLanguageModelCriterion(self.opt)
-
-        elif self.opt.combine_caps_losses:
-            crit = utils.MultiLanguageModelCriterion(self.opt.seq_per_img)
-        else:
-            self.opt.logger.warn('Using baseline loss criterion')
-            crit = utils.LanguageModelCriterion(self.opt)
-        self.crit = crit
 
     def init_weights(self):
         initrange = 0.1
@@ -95,6 +59,19 @@ class ShowAttendTellModel(nn.Module):
                     Variable(weight.new(self.num_layers, bsz, self.rnn_size).zero_()))
         else:
             return Variable(weight.new(self.num_layers, bsz, self.rnn_size).zero_())
+
+    def get_ctx(self, att_feats, state):
+        batch_size = att_feats.size(0)
+        att_feats = att_feats.resize(batch_size * self.num_regions, self.att_feat_size)
+        # self.opt.logger.warn('> Att feats resized: %s' % str(att_feats.size()))
+        ctx = self.ctx_embed(att_feats)
+        ctx = ctx.resize(batch_size, self.num_regions, self.input_encoding_size)
+        # self.opt.logger.warn('CTX mapped: %s' % str(ctx.size()))
+        alphas = self.get_alphas(state, ctx)
+        alphas = alphas.unsqueeze(1).expand(batch_size, self.num_regions, self.input_encoding_size)
+        # self.opt.logger.warn('> Alphas size %s' % str(alphas.size()))
+        weighted_ctx = (ctx * alphas).sum(1).squeeze(1)
+        return weighted_ctx
 
     def get_alphas(self, state, ctx):
         # state (batch_size, rnn_size)
@@ -144,19 +121,7 @@ class ShowAttendTellModel(nn.Module):
                 xt = self.embed(it)
                 # -------------------------------------------------------------------------------
                 # The context embedding
-                # TODO Reshape att_feats somehow to project each feature map
-                #  self.opt.logger.warn('Att feats size: %s' % str(att_feats.size()))
-                att_feats = att_feats.resize(batch_size * self.num_regions, self.att_feat_size)
-                # self.opt.logger.warn('> Att feats resized: %s' % str(att_feats.size()))
-                ctx = self.ctx_embed(att_feats)
-                ctx = ctx.resize(batch_size, self.num_regions, self.input_encoding_size)
-                # self.opt.logger.warn('CTX mapped: %s' % str(ctx.size()))
-                alphas = self.get_alphas(state, ctx)
-                alphas = alphas.unsqueeze(1).expand(batch_size, self.num_regions, self.input_encoding_size)
-                # self.opt.logger.warn('> Alphas size %s' % str(alphas.size()))
-                weighted_ctx = (ctx * alphas).sum(1).squeeze(1)
-                #  self.opt.logger.warn('> weighted ctx size %s' % str(weighted_ctx.size()))
-                #  self.opt.logger.warn('> xt size %s' % str(xt.size()))
+                weighted_ctx = self.get_ctx(att_feats, state)
                 # Concat xt and weighted_ctx:
                 xt += weighted_ctx
                 xt = self.drop_x_lm(xt)
@@ -240,13 +205,7 @@ class ShowAttendTellModel(nn.Module):
                     # encode as vectors
                     it = beam_seq[t-2]
                     xt = self.embed(Variable(it.cuda()))
-                    # The context embedding
-                    att_feats = att_feats.resize(batch_size * self.num_regions, self.att_feat_size)
-                    ctx = self.ctx_embed(att_feats)
-                    ctx = ctx.resize(batch_size, self.num_regions, self.input_encoding_size)
-                    alphas = self.get_alphas(state, ctx)
-                    alphas = alphas.unsqueeze(1).expand(batch_size, self.num_regions, self.input_encoding_size)
-                    weighted_ctx = (ctx * alphas).sum(1).squeeze(1)
+                    weighted_ctx = self.get_ctx(att_feats, state)
                     xt += weighted_ctx
 
                 if t >= 2:
@@ -293,12 +252,7 @@ class ShowAttendTellModel(nn.Module):
 
                 xt = self.embed(Variable(it, requires_grad=False))
                 # The context embedding
-                att_feats = att_feats.resize(batch_size * self.num_regions, self.att_feat_size)
-                ctx = self.ctx_embed(att_feats)
-                ctx = ctx.resize(batch_size, self.num_regions, self.input_encoding_size)
-                alphas = self.get_alphas(state, ctx)
-                alphas = alphas.unsqueeze(1).expand(batch_size, self.num_regions, self.input_encoding_size)
-                weighted_ctx = (ctx * alphas).sum(1).squeeze(1)
+                weighted_ctx = self.get_ctx(att_feats, state)
                 xt += weighted_ctx
             if t >= 2:
                 # stop when all finished

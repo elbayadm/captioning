@@ -24,87 +24,17 @@ import os
 import os.path as osp
 import sys
 from six.moves import cPickle as pickle
-import copy
 import opts
-import capmodels
 from dataloader import *
 import eval_utils
 import misc.utils as utils
-from misc.ssd import build_ssd
+import misc.cnn as cnn
+import misc.decoder_utils as du
+import misc.logging as lg
 import tensorflow as tf
 from tensorflow.python.framework import dtypes
 from tensorflow.contrib.tensorboard.plugins import projector
 
-
-def log_optimizer(opt, optimizer):
-    opt.logger.debug('####################################')
-    print("Optimized params shapes:")
-    for p in optimizer.param_groups:
-        if isinstance(p, dict):
-            opt.logger.error('Dict: %s' % list(p.keys()))
-            print('LR:', p['lr'])
-            for pp in p['params']:
-                print(pp.size(), end=' ')
-            print('\n')
-    opt.logger.debug('####################################')
-
-
-def manage_lr(epoch, opt, val_losses):
-    if epoch > opt.learning_rate_decay_start and opt.learning_rate_decay_start >= 0:
-        opt.logger.error('Updating the lr')
-        if opt.lr_strategy == "step":
-            frac = (epoch - opt.learning_rate_decay_start) // opt.learning_rate_decay_every
-            decay_factor = opt.learning_rate_decay_rate  ** frac
-            opt.current_lr = opt.learning_rate * decay_factor
-            opt.scale_lr = decay_factor
-        elif opt.lr_strategy == "adaptive":
-            opt.logger.error('Adaptive mode')
-            print("val_losses:", val_losses)
-            if len(val_losses) > 2:
-                if val_losses[0] > val_losses[1]:
-                    opt.lr_wait += 1
-                    opt.logger.error('Waiting for more')
-                if opt.lr_wait > opt.lr_patience:
-                    opt.logger.error('You have plateaued, decreasing the lr')
-                    # decrease lr:
-                    opt.current_lr = opt.current_lr * opt.learning_rate_decay_rate
-                    opt.scale_lr = opt.learning_rate_decay_factor
-                    opt.lr_wait = 0
-            else:
-                opt.current_lr = opt.learning_rate
-                opt.scale_lr = 1
-
-    else:
-        opt.current_lr = opt.learning_rate
-        opt.scale_lr = 1
-    return opt
-
-
-
-def get_optimizer(ref):
-    #  rmsprop | sgd | sgdmom | adagrad | adam
-    if ref.lower() == 'adam':
-        return optim.Adam
-    elif ref.lower() == 'sgd':
-        return optim.SGD
-    elif ref.lower() == 'rmsprop':
-        return optim.RMSprop
-    elif ref.lower() == 'adagrad':
-        return optim.Adagrad
-    else:
-        raise ValueError('Unknown optimizer % s' % ref)
-
-
-
-def add_summary_value(writer, key, value, iteration, collections=None):
-    """
-    Add value to tensorflow events
-    """
-    _summary = tf.summary.scalar(name=key,
-                                 tensor=tf.Variable(value),
-                                 collections=collections)
-    summary = tf.Summary(value=[tf.Summary.Value(tag=key, simple_value=value)])
-    writer.add_summary(summary, iteration)
 
 def train(opt):
     """
@@ -115,119 +45,52 @@ def train(opt):
     opt.seq_length = loader.seq_length
     opt.lr_wait = 0
 
-    tf_summary_writer = tf.summary.FileWriter(opt.modelname)
-    infos = {}
-    #  opt.logger.warn('\n' + '\n'.join(['%24s : %s' % (str(k),str(v)) for k, v in vars(opt).iteritems()]))
-    # Restart training (useful with oar idempotant)
-    if opt.restart and osp.exists(osp.join(opt.modelname, 'model.pth')):
-        opt.tart_from_best = 0
-        opt.logger.warning('Picking up where we left')
-        opt.start_from = opt.modelname
-
-    if opt.start_from is not None:
-        # open old infos and check if models are compatible
-        opt.logger.warn('Starting from %s' % opt.start_from)
-        if opt.start_from_best:
-            opt.logger.warn('Starting from the best saved checkpoint (infos)')
-            f = open(osp.join(opt.start_from, 'infos-best.pkl'), 'rb')
-        else:
-            opt.logger.warn('Starting from the last saved checkpoint (infos)')
-            f = open(osp.join(opt.start_from, 'infos.pkl'), 'rb')
-        infos = pickle.load(f, encoding='iso-8859-1')
-        saved_model_opt = infos['opt']
-        need_be_same=["caption_model", "rnn_type", "rnn_size", "num_layers"]
-        for checkme in need_be_same:
-            assert vars(saved_model_opt)[checkme] == vars(opt)[checkme], "Command line argument and saved model disagree on '%s' " % checkme
-        f.close()
-    # Recover iteration index
-    iteration = infos.get('iter', 0)
-    epoch = infos.get('epoch', 0)
+    tf_summary_writer = tf.summary.FileWriter(opt.eventname)
+    iteration, epoch, opt, infos, history = du.recover_infos(opt)
     opt.logger.warn('Starting from iteration %d (epoch %d)' % (iteration, epoch))
-    # Recover training histtory
-    val_result_history = infos.get('val_result_history', {})
-    val_losses = []
-    loss_history = infos.get('loss_history', {})
-    lr_history = infos.get('lr_history', {})
-    ss_prob_history = infos.get('ss_prob_history', {})
     # Recover data iterator and best perf
     loader.iterators = infos.get('iterators', loader.iterators)
     if opt.load_best_score == 1:
         best_val_score = infos.get('best_val_score', None)
-
-
     # FIXME - temporary
     if opt.use_feature_maps:
-        ###############################################################################################################
         opt.logger.warn('using single CNN branch with feature maps as regions embeddings')
         # Build CNN model for single branch use
         if opt.cnn_model.startswith('resnet'):
-            cnn_model = utils.ResNetModel(opt)
+            cnn_model = cnn.ResNetModel(opt)
         elif opt.cnn_model.startswith('vgg'):
-            cnn_model = utils.VggNetModel(opt)
+            cnn_model = cnn.VggNetModel(opt)
         else:
             opt.logger.error('Unknown model %s' % opt.cnn_model)
             sys.exit(1)
-        ################################################################################################################
     else:
+        # Deprecated
         opt.logger.warn('using SSD')
-        cnn_model = build_ssd('train', 300, 21)
-
+        # // Deprecated
     cnn_model.cuda()
-
     # Build the captioning model
     opt.logger.error('-----------------------------SETUP')
-    model = capmodels.setup(opt)
+    model = du.select_model(opt)
+    model.load()
     opt.logger.error('-----------------------------/SETUP')
     model.cuda()
-
     update_lr_flag = True
     # Assure in training mode
     model.train()
     model.define_loss(loader.get_vocab())
-    optim_func = get_optimizer(opt.optim)
-    # TODO; add sclaed lr for every chunk of cnn layers
-    # TODO either define the ensemble as a seq or loop over the models & cnn_models >> Move to train_ensemble
-    if opt.finetune_cnn_after != -1 and epoch >= opt.finetune_cnn_after:
-        cnn_params = [{'params': module.parameters(), 'lr': opt.cnn_learning_rate * opt.learning_rate} for module in cnn_model.to_finetune]
-        main_params = [{'params': model.parameters(), 'lr': opt.learning_rate}]
-        optimizer = optim_func(cnn_params + main_params,
-                               lr=opt.learning_rate, weight_decay=opt.weight_decay)
-    else:
-        optimizer = optim_func(model.parameters(), lr=opt.learning_rate, weight_decay=opt.weight_decay)
-
-
-    # Load the optimizer
-    if vars(opt).get('start_from', None) is not None:
-        if osp.isfile(osp.join(opt.start_from, 'optimizer.pth')) and not opt.finetune_cnn_only:
-            opt.logger.warn('Loading saved optimizer')
-            if opt.start_from_best:
-                try:
-                    optimizer.load_state_dict(torch.load(osp.join(opt.start_from, 'optimizer-best.pth')))
-                except:
-                    print("Starting with blank optimizer")
-            else:
-                try:
-                    optimizer.load_state_dict(torch.load(osp.join(opt.start_from, 'optimizer.pth')))
-                except:
-                    print("The laoded optimizer doesn't have the same parms :> starting a clean optimizer")
-    # Require grads
-    for p in optimizer.param_groups:
-        if isinstance(p, dict):
-            for pp in p['params']:
-                pp.requires_grad = True
-
-    log_optimizer(opt, optimizer)
+    optimizer = du.set_optimizer(opt, epoch,
+                                 model, cnn_model)
+    lg.log_optimizer(opt, optimizer)
     # Main loop
     # To save before training:
     iteration -= 1
+    val_losses = []
     while True:
         if update_lr_flag:
             # Assign the learning rate
-            opt = manage_lr(epoch, opt, val_losses)
-            #  utils.set_lr(optimizer, opt.current_lr) # set the decayed rate
+            opt = utils.manage_lr(epoch, opt, val_losses)
             utils.scale_lr(optimizer, opt.scale_lr) # set the decayed rate
-            log_optimizer(opt, optimizer)
-
+            lg.log_optimizer(opt, optimizer)
             # Assign the scheduled sampling prob
             if opt.scheduled_sampling_strategy == "step":
                 if epoch >= opt.scheduled_sampling_start and opt.scheduled_sampling_start >= 0:
@@ -235,13 +98,8 @@ def train(opt):
                     opt.ss_prob = min(opt.scheduled_sampling_increase_prob  * frac, opt.scheduled_sampling_max_prob)
                     model.ss_prob = opt.ss_prob
                     opt.logger.warn('ss_prob= %.2e' % model.ss_prob )
-            # CNN finetuning
-            # -------------------------------------------------------FIXME
-            #  cnn_model.train()
-            #  opt.current_cnn_lr = opt.cnn_learning_rate * opt.current_lr
-            #-------------------------------------------------------------
             if opt.raml_loss and opt.raml_alpha_strategy == "step":
-                # Update crit's alpha:
+                # Update ncrit's alpha:
                 opt.logger.warn('Updating the loss scaling param alpha')
                 frac = epoch // opt.raml_alpha_increase_every
                 new_alpha = min(opt.raml_alpha_increase_factor  * frac, 1)
@@ -269,70 +127,12 @@ def train(opt):
         data = loader.get_batch('train')
         torch.cuda.synchronize()
         start = time.time()
-        if opt.bootstrap_loss:
-            if opt.bootstrap_version in ["cider", "cider-exp"]:
-                tmp = [data['images'], data['labels'], data['masks'], data['scores'], data['cider']]
-                tmp = [Variable(torch.from_numpy(_), requires_grad=False).cuda() for _ in tmp]
-                images, labels, masks, scores, s_scores= tmp
-
-            elif opt.bootstrap_version in ["bleu4", "bleu4-exp"]:
-                tmp = [data['images'], data['labels'], data['masks'], data['scores'], data['bleu']]
-                tmp = [Variable(torch.from_numpy(_), requires_grad=False).cuda() for _ in tmp]
-                images, labels, masks, scores, s_scores = tmp
-            elif opt.bootstrap_version in ["infersent", "infersent-exp"]:
-                tmp = [data['images'], data['labels'], data['masks'], data['scores'], data['infersent']]
-                tmp = [Variable(torch.from_numpy(_), requires_grad=False).cuda() for _ in tmp]
-                images, labels, masks, scores, s_scores = tmp
-            else:
-                raise ValueError('Unknown bootstrap distribution %s' % opt.bootstrap_version)
-            if "exp" in opt.bootstrap_version:
-                print('Original rewards:', torch.mean(s_scores))
-                s_scores = torch.exp(torch.div(s_scores, opt.raml_tau))
-                print('Tempering the reward:', torch.mean(s_scores))
-            r_scores = torch.div(s_scores, torch.exp(scores))
-
-            print('Importance scores:', torch.mean(r_scores))
-        else:
-            tmp = [data['images'], data['labels'], data['masks'], data['scores']]
-            tmp = [Variable(torch.from_numpy(_), requires_grad=False).cuda() for _ in tmp]
-            images, labels, masks, scores = tmp
-
-        if opt.use_feature_maps:
-            ################################################## Att_feats and fc_feats from the same branch with att_feats as feature maps.
-            att_feats, fc_feats = cnn_model(images)
-            #  print "Fc_feats:", fc_feats.size()
-            #  print "Att_feats:", att_feats.size()
-            # Duplicate for caps per image
-            att_feats = att_feats.unsqueeze(1).expand(*((att_feats.size(0), opt.seq_per_img,) +
-                                                        att_feats.size()[1:])).contiguous().view(*((att_feats.size(0) * opt.seq_per_img,) + att_feats.size()[1:]))
-            fc_feats = fc_feats.unsqueeze(1).expand(*((fc_feats.size(0), opt.seq_per_img,) +
-                                                    fc_feats.size()[1:])).contiguous().view(*((fc_feats.size(0) * opt.seq_per_img,) + fc_feats.size()[1:]))
-            ###########################################################################
-        else:
-            # Deprecated
-            conf, loc, priorbox = cnn_model.forward(images)
-            print("conf:", conf.size())
-            print("loc:", loc.size())
-            print("priorbox", priorbox.size())
-            # // Deprecated
-
+        images = data['images']
+        images = Variable(torch.from_numpy(images), requires_grad=False).cuda()
+        att_feats, fc_feats = cnn_model.forward_caps(images, opt.seq_per_img)
+        real_loss, loss = model.step(data, att_feats, fc_feats)
+        print('losses ater step:', real_loss, loss)
         optimizer.zero_grad()
-        # TODO: Move this inside model def
-        if opt.caption_model == "show_tell_vae":
-            preds, recon_loss, kld_loss = model(fc_feats, att_feats, labels)
-            real_loss, loss = model.crit(preds, labels[:, 1:], masks[:, 1:])
-            loss += opt.vae_weight * (recon_loss + opt.kld_weight * kld_loss)  #FIXME add the scaling as parameter
-        elif opt.caption_model == 'show_tell_raml':
-            probs, reward = model(fc_feats, att_feats, labels)
-            raml_scores = reward * Variable(torch.ones(scores.size()))
-            # raml_scores = Variable(torch.ones(scores.size()))
-            print('Raml reward:', reward)
-            real_loss, loss = model.crit(probs, labels[:, 1:], masks[:, 1:], raml_scores)
-        else:
-            if opt.bootstrap_loss:
-                real_loss, loss = model.crit(model(fc_feats, att_feats, labels), labels[:, 1:], masks[:, 1:], r_scores)
-            else:
-                real_loss, loss = model.crit(model(fc_feats, att_feats, labels), labels[:, 1:], masks[:, 1:], scores)
         # // Move
         loss.backward()
         grad_norm = []
@@ -350,51 +150,23 @@ def train(opt):
         #  grad_norm = [utils.get_grad_norm(optimizer)]
         torch.cuda.synchronize()
         end = time.time()
-        # Move all logging via Tensorflow's summaries outside
-        message = "iter {} (epoch {}), train_real_loss = {:.3f}, train_loss = {:.3f}, lr = {:.2e}, grad_norm = {:.3e}"\
-                   .format(iteration, epoch, train_real_loss,  train_loss, opt.current_lr, grad_norm[0])
+        losses = {'train_loss': train_loss,
+                  'train_real_loss': train_real_loss}
 
-        try:
-            message += ", cnn_lr = {:.2e}, cnn_grad_norm = {:.3e}".format(opt.current_cnn_lr, grad_norm[1])
-        except:
-            pass
-        try:
-            message += "\n{:>25s} = {:.3e}, kld loss = {:.3e}".format('recon loss', train_recon_loss, train_kld_loss)
-        except:
-            pass
-        message += "\n{:>25s} = {:.3f}" \
-                    .format("Time/batch", end - start)
-        opt.logger.debug(message)
+        lg.stderr_epoch(epoch, iteration, opt, losses, grad_norm, end-start)
         # Update the iteration and epoch
         iteration += 1
         if data['bounds']['wrapped']:
             epoch += 1
             update_lr_flag = True
-
         # Write the training loss summary
         if (iteration % opt.losses_log_every == 0):
-            add_summary_value(tf_summary_writer, 'train_loss', train_loss, iteration)
-            add_summary_value(tf_summary_writer, 'train_real_loss', train_real_loss, iteration)
-            add_summary_value(tf_summary_writer, 'learning_rate', opt.current_lr, iteration)
-            add_summary_value(tf_summary_writer, 'scheduled_sampling_prob', model.ss_prob, iteration)
-            add_summary_value(tf_summary_writer, 'RNN_grad_norm', grad_norm[0], iteration)
-            try:
-                add_summary_value(tf_summary_writer, 'CNN_grad_norm', grad_norm[1], iteration)
-                add_summary_value(tf_summary_writer, 'CNN_learning_rate', opt.current_cnn_lr, iteration)
-
-            except:
-                pass
-            try:
-                add_summary_value(tf_summary_writer, 'kld_loss', train_kld_loss, iteration)
-                add_summary_value(tf_summary_writer, 'recon_loss', train_recon_loss, iteration)
-            except:
-                pass
-
-            tf_summary_writer.flush()
-
-            loss_history[iteration] = train_loss
-            lr_history[iteration] = opt.current_lr
-            ss_prob_history[iteration] = model.ss_prob
+            lg.log_epoch(tf_summary_writer, iteration, opt,
+                         losses, grad_norm,
+                         model.ss_prob)
+            history['loss'][iteration] = losses['train_loss']
+            history['lr'][iteration] = opt.current_lr
+            history['ss_prob'][iteration] = model.ss_prob
 
         # make evaluation on validation set, and save model
         if (iteration % opt.save_checkpoint_every == 0):
@@ -402,71 +174,38 @@ def train(opt):
             eval_kwargs = {'split': 'val',
                            'dataset': opt.input_json}
             eval_kwargs.update(vars(opt))
-            real_val_loss, val_loss, predictions, lang_stats, unseen_grams = eval_utils.eval_split(cnn_model, model, model.crit, loader, eval_kwargs)
+            (real_val_loss, val_loss,
+             predictions, lang_stats, unseen_grams) = eval_utils.eval_split(cnn_model, model,
+                                                                            model.crit, loader,
+                                                                            eval_kwargs)
 
             # Write validation result into summary
-            add_summary_value(tf_summary_writer, 'validation loss', val_loss, iteration)
-            add_summary_value(tf_summary_writer, 'real validation loss', real_val_loss, iteration)
+            lg.add_summary_value(tf_summary_writer, 'validation loss', val_loss, iteration)
+            lg.add_summary_value(tf_summary_writer, 'real validation loss', real_val_loss, iteration)
 
             for k, v in lang_stats.items():
-                add_summary_value(tf_summary_writer, k, v, iteration)
-            #  for k, v in unseen_grams.iteritems():
-            #      add_summary_text(tf_summary_writer, k, v, iteration)
-            #  add_summary_embedding(tf_summary_writer)
+                lg.add_summary_value(tf_summary_writer, k, v, iteration)
             tf_summary_writer.flush()
-            # // End move tf
-            val_result_history[iteration] = {'loss': val_loss, 'lang_stats': lang_stats, 'predictions': predictions}
+            history['val_perf'][iteration] = {'loss': val_loss,
+                                              'lang_stats': lang_stats,
+                                              'predictions': predictions}
             val_losses.insert(0, val_loss)
             # Save model if is improving on validation result
             if opt.language_eval == 1:
                 current_score = lang_stats['CIDEr']
             else:
                 current_score = - val_loss
-
             best_flag = False
-            if True: # if true
-                if best_val_score is None or current_score > best_val_score:
-                    best_val_score = current_score
-                    best_flag = True
-                checkpoint_path = osp.join(opt.modelname, 'model.pth')
-                cnn_checkpoint_path = osp.join(opt.modelname, 'model-cnn.pth')
-                torch.save(model.state_dict(), checkpoint_path)
-                torch.save(cnn_model.state_dict(), cnn_checkpoint_path)
-                opt.logger.info("model saved to {}".format(checkpoint_path))
-                opt.logger.info("cnn model saved to {}".format(cnn_checkpoint_path))
-                optimizer_path = osp.join(opt.modelname, 'optimizer.pth')
-                torch.save(optimizer.state_dict(), optimizer_path)
-
-                # Dump miscalleous informations
-                infos['iter'] = iteration
-                infos['epoch'] = epoch
-                infos['iterators'] = loader.iterators
-                infos['best_val_score'] = best_val_score
-                infos['opt'] = copy.copy(opt)
-                infos['opt'].logger = None
-                infos['val_result_history'] = val_result_history
-                infos['loss_history'] = loss_history
-                infos['lr_history'] = lr_history
-                infos['ss_prob_history'] = ss_prob_history
-                infos['vocab'] = loader.get_vocab()
-                with open(osp.join(opt.modelname, 'infos.pkl'), 'wb') as f:
-                    pickle.dump(infos, f)
-
-                if best_flag:
-                    checkpoint_path = osp.join(opt.modelname, 'model-best.pth')
-                    cnn_checkpoint_path = osp.join(opt.modelname, 'model-cnn-best.pth')
-                    torch.save(model.state_dict(), checkpoint_path)
-                    torch.save(cnn_model.state_dict(), cnn_checkpoint_path)
-                    opt.logger.info("model saved to {}".format(checkpoint_path))
-                    opt.logger.info("cnn model saved to {}".format(cnn_checkpoint_path))
-                    optimizer_path = osp.join(opt.modelname, 'optimizer-best.pth')
-                    torch.save(optimizer.state_dict(), optimizer_path)
-                    with open(osp.join(opt.modelname, 'infos-best.pkl'), 'wb') as f:
-                        pickle.dump(infos, f)
-
+            if best_val_score is None or current_score > best_val_score:
+                best_val_score = current_score
+                best_flag = True
+            lg.save_model(model, cnn_model, optimizer, opt,
+                          iteration, epoch, loader, best_val_score,
+                          history, best_flag)
         # Stop if reaching max epochs
         if epoch >= opt.max_epochs and opt.max_epochs != -1:
             break
 
-opt = opts.parse_opt()
-train(opt)
+if __name__ == "__main__":
+    opt = opts.parse_opt()
+    train(opt)

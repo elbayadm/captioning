@@ -7,7 +7,7 @@ from torch.utils.serialization import load_lua
 import torch.nn.functional as F
 import cv2
 import torch.utils.model_zoo as model_zoo
-from .utils import model_urls, model_configs, L2Norm
+from .cnn import model_urls, model_configs, L2Norm
 
 def upsample_images(IMB, sz):
     """
@@ -38,6 +38,48 @@ def upsample_image(im, sz):
     SZ = I.shape;
     I_out[0:I.shape[0], 0:I.shape[1], :] = I;
     return I_out, I, SZ
+
+
+
+
+
+class ResNet_MIL(nn.Module):
+    """
+    Wrapper for ResNet with MIL
+    """
+    def __init__(self, opt):
+        self.opt = opt
+        super(ResNet_MIL, self).__init__()
+        self.resnet = ResNetModel(opt)
+        #  self.sigmoid = torch.nn.Sigmoid()
+        #  self.pool_mil = nn.MaxPool2d(kernel_size=7, stride=0)
+        self.classifier = nn.Linear(49, opt.vocab_size)
+        #  print "Modules:", self._modules
+
+    def init_added_weights(self):
+        initrange = 1.0
+        self.classifier.bias.data.fill_(0)
+        self.classifier.weight.data.uniform_(-initrange, initrange)
+
+    def forward(self, x):
+        x0, _ = self.resnet(x)
+        #  print "Resnet output:", x0.size()
+        #  x = self.pool_mil(x0)
+        x = x0.view(x0.size(0) * x0.size(1), -1)
+        #  x = x0.resize(x0.size(0) * x0.size(1), -1)
+        #  print 'Mil output:', x.size()
+        #  x = x.squeeze(2).squeeze(2)
+        x = self.classifier(x)
+        #  print "Classified:", x.size()
+        #  x = self.sigmoid(x)
+        x = F.log_softmax(x)
+        x = x.view(x0.size(0), x0.size(1), -1)
+        #  print "Resized:", x.size()
+        probs, cands = torch.max(x, 1)
+        probs = probs.squeeze(1)
+        #  print "vocab probs:", probs.size()
+        return probs
+
 
 class VGG_MIL(nn.Module):
     def __init__(self, opt):

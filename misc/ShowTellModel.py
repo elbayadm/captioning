@@ -9,30 +9,19 @@ from torch.autograd import *
 import misc.utils as utils
 import _pickle as pickle
 import numpy as np
+from misc.Decoder import DecoderModel
 
-
-class ShowTellModel(nn.Module):
+class ShowTellModel(DecoderModel):
     def __init__(self, opt):
-        super(ShowTellModel, self).__init__()
-        self.opt = opt
-        self.vocab_size = opt.vocab_size
-        self.rnn_type = opt.rnn_type
-        self.rnn_size = opt.rnn_size
-        self.num_layers = opt.num_layers
-        self.drop_prob_lm = opt.drop_prob_lm
-        self.seq_length = opt.seq_length
-        self.fc_feat_size = opt.fc_feat_size
-        self.use_glove = opt.use_glove
-        if self.use_glove:
-            self.input_encoding_size = 300
-        else:
-            self.input_encoding_size = opt.input_encoding_size
-        self.ss_prob = 0.0 # Schedule sampling probability
-        self.ss_vocab = opt.scheduled_sampling_vocab
+        super(ShowTellModel, self).__init__(opt)
+        # Network definition
         self.img_embed = nn.Linear(self.fc_feat_size, self.input_encoding_size)
         #TODO add dropout on rnn input.
-        self.core = getattr(nn, self.rnn_type.upper())(self.input_encoding_size, self.rnn_size, self.num_layers,
-                                                       bias=(opt.rnn_bias == 1), dropout=self.drop_prob_lm)
+        self.core = getattr(nn, self.rnn_type.upper())(self.input_encoding_size,
+                                                       self.rnn_size,
+                                                       self.num_layers,
+                                                       bias=(opt.rnn_bias == 1),
+                                                       dropout=self.drop_prob_lm)
         self.embed = nn.Embedding(self.vocab_size + 1, self.input_encoding_size)
         self.drop_x_lm = nn.Dropout(p=opt.drop_x_lm)
         self.logit = nn.Linear(self.rnn_size, self.vocab_size + 1)
@@ -57,29 +46,6 @@ class ShowTellModel(nn.Module):
                     Variable(weight.new(self.num_layers, bsz, self.rnn_size).zero_()))
         else:
             return Variable(weight.new(self.num_layers, bsz, self.rnn_size).zero_())
-
-    def define_loss(self, loader_vocab):
-        if self.opt.raml_loss:
-            #  D = np.eye(opt.vocab_size + 1, dtype="float32")
-            #  D = np.random.uniform(size=(opt.vocab_size + 1, opt.vocab_size + 1)).astype(np.float32)
-            # D = pickle.load(open('data/Glove/cocotalk_similarities_v2.pkl', 'rb'), encoding='iso-8859-1')
-            D = pickle.load(open(self.opt.similarity_matrix, 'rb'), encoding='iso-8859-1')
-
-            D = D.astype(np.float32)
-            D = Variable(torch.from_numpy(D)).cuda()
-            crit = utils.SmoothLanguageModelCriterion(Dist=D,
-                                                      loader_vocab=loader_vocab,
-                                                      opt=self.opt)
-        elif self.opt.bootstrap_loss:
-            # Using importance sampling loss:
-            crit = utils.ImportanceLanguageModelCriterion(self.opt)
-
-        elif self.opt.combine_caps_losses:
-            crit = utils.MultiLanguageModelCriterion(self.opt.seq_per_img)
-        else:
-            self.opt.logger.warn('Using baseline loss criterion')
-            crit = utils.LanguageModelCriterion(self.opt)
-        self.crit = crit
 
     def forward(self, fc_feats, att_feats, seq):
         batch_size = fc_feats.size(0)
