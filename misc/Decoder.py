@@ -55,10 +55,12 @@ class DecoderModel(nn.Module):
             crit = loss.SmoothLanguageModelCriterion(Dist=D,
                                                       loader_vocab=loader_vocab,
                                                       opt=opt)
-        elif opt.bootstrap_loss:
+        elif opt.bootstrap_loss == 1:
             # Using importance sampling loss:
             crit = loss.ImportanceLanguageModelCriterion(opt)
-
+        elif opt.bootstrap_loss == 2:
+            # Using importance sampling loss:
+            crit = loss.ImportanceLanguageModelCriterion_v2(opt)
         elif opt.combine_caps_losses:
             crit = loss.MultiLanguageModelCriterion(opt.seq_per_img)
         else:

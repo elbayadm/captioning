@@ -71,7 +71,7 @@ def c_softmax(scores1, scores2):
 # Load InferSent pretrained model:
 
 # bs1 = json.load(open('captions/bootstrap_bs1.json', 'r'))
-bs1 = json.load(open('captions/bootstrap_bs1.json', 'r'))
+bs1 = json.load(open('captions/bootstrap_20samples_baseline.json', 'r'))
 
 Caps = {}
 for item in bs1:
@@ -87,8 +87,8 @@ for item in bs1:
 # Stats:
 gens = []
 gts = []
-max_gt = 15
-max_gen = 5
+max_gt = 5
+max_gen = 10
 for k in Caps:
     lgen = len(Caps[k]['gen']['sents'])
     if lgen > max_gen:
@@ -151,7 +151,10 @@ for batch in batches:
     (bl, bls) = bleu4.compute_score(option='closest', verbose=0)
     # print('Bleu multi:', np.mean(bl), [np.mean(n) for n in bls])
     infer = np.array(infer)
-    bls = bls[-1]
+    bls4 = bls[3]
+    bls3 = bls[2]
+    bls2 = bls[1]
+
     # print('Mean BLeu4:', np.mean(bls))
     index = 0
     for k in batch:
@@ -162,8 +165,15 @@ for batch in batches:
         assert(cgen == max_gen)
         Caps[k]['gt']['cider'] = cds[index: index + cgt]
         Caps[k]['gen']['cider'] = cds[index + cgt : index + cgt + cgen]
-        Caps[k]['gt']['bleu4'] = bls[index: index + cgt]
-        Caps[k]['gen']['bleu4'] = bls[index + cgt : index + cgt + cgen]
+        Caps[k]['gt']['bleu4'] = bls4[index: index + cgt]
+        Caps[k]['gen']['bleu4'] = bls4[index + cgt : index + cgt + cgen]
+
+        Caps[k]['gt']['bleu3'] = bls3[index: index + cgt]
+        Caps[k]['gen']['bleu3'] = bls3[index + cgt : index + cgt + cgen]
+
+        Caps[k]['gt']['bleu2'] = bls2[index: index + cgt]
+        Caps[k]['gen']['bleu2'] = bls2[index + cgt : index + cgt + cgen]
+
         Caps[k]['gt']['infersent'] = infer[index: index + cgt]
         Caps[k]['gen']['infersent'] = infer[index + cgt : index + cgt + cgen]
         # print('UPDATE:', Caps[k])
@@ -179,8 +189,10 @@ for k in Caps:
              'cider':  Caps[k]['gt']['cider'].tolist() + Caps[k]['gen']['cider'].tolist(),
              'infersent':  Caps[k]['gt']['infersent'].tolist() + Caps[k]['gen']['infersent'].tolist(),
              'bleu4':  list(Caps[k]['gt']['bleu4']) + list(Caps[k]['gen']['bleu4']),
+             'bleu3':  list(Caps[k]['gt']['bleu3']) + list(Caps[k]['gen']['bleu3']),
+             'bleu2':  list(Caps[k]['gt']['bleu2']) + list(Caps[k]['gen']['bleu2']),
              'id': k}
     # print(entry)
     Caps_gen.append(entry)
-pickle.dump(Caps_gen, open('data/coco/captions_bootstrap_baseline_genconf15.pkl', 'wb'))
+pickle.dump(Caps_gen, open('data/coco/captions_bootstrap_baseline_s15.pkl', 'wb'))
 

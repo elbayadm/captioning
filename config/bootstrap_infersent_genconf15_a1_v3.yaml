@@ -18,7 +18,7 @@ raml_alpha : 1.
 input_json : data/coco/bootstrap_baseline_genconf15.json
 input_h5 : data/coco/bootstrap_baseline_genconf15.h5
 restart : 1
-val_images_use : 5
+val_images_use :-1
 finetune_cnn_after : -1
 learning_rate : 5e-4
 learning_rate_decay_start : 5

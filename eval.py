@@ -12,19 +12,18 @@ import misc.utils as utils
 import misc.decoder_utils as du
 import misc.cnn as cnn
 import torch
-from misc.ssd import build_ssd
 
 
 if __name__ == "__main__":
     opt = opts.parse_eval_opt()
     opt.model = opt.model[0]
     if len(opt.model_path) == 0:
-        opt.model_path = "save/%s/model.pth" % opt.model
-        opt.infos_path = "save/%s/infos.pkl" % opt.model
+        opt.start_from = "save/%s/model.pth" % opt.model
+        opt.infos_start_from = "save/%s/infos.pkl" % opt.model
 
     # Load infos
-    with open(opt.infos_path, 'rb') as f:
-        print('Opening %s' % opt.infos_path)
+    with open(opt.infos_start_from, 'rb') as f:
+        print('Opening %s' % opt.infos_start_from)
         infos = pickle.load(f, encoding="iso-8859-1")
 
     # override and collect parameters
@@ -59,7 +58,6 @@ if __name__ == "__main__":
     opt.use_feature_maps = infos['opt'].use_feature_maps
     opt.cnn_model = infos['opt'].cnn_model
     opt.logger = opts.create_logger('./tmp_eval.log')
-    opt.start_from = "save/" + opt.model
     opt.rnn_bias = 0
     try:
         opt.use_glove = infos['opt'].use_glove
@@ -71,19 +69,15 @@ if __name__ == "__main__":
         opt.use_synonyms = 0
     # Setup the model
     # opt.seq_per_img = 15
-    if opt.use_feature_maps:
-        print('using single CNN branch with feature maps as regions embeddings')
-        # Build CNN model for single branch use
-        if opt.cnn_model.startswith('resnet'):
-            cnn_model = cnn.ResNetModel(opt)
-        elif opt.cnn_model.startswith('vgg'):
-            cnn_model = cnn.VggNetModel(opt)
-        else:
-            print('Unknown model %s' % opt.cnn_model)
-            sys.exit(1)
+    print('using single CNN branch with feature maps as regions embeddings')
+    # Build CNN model for single branch use
+    if opt.cnn_model.startswith('resnet'):
+        cnn_model = cnn.ResNetModel(opt)
+    elif opt.cnn_model.startswith('vgg'):
+        cnn_model = cnn.VggNetModel(opt)
     else:
-        print('using SSD')
-        cnn_model = build_ssd('train', 300, 21)
+        print('Unknown model %s' % opt.cnn_model)
+        sys.exit(1)
 
     cnn_model.cuda()
     cnn_model.eval()
@@ -109,6 +103,9 @@ if __name__ == "__main__":
     # Set sample options
     print('Seq per img:', loader.seq_per_img)
     model.define_loss(loader.get_vocab())
+    opt.n_gen = 10
+    opt.score_ground_truth = True
+    opt.language_eval = 0
     loss, split_predictions, lang_stats, _ = eval_utils.eval_eval(cnn_model, model,
                                                                   model.crit,
                                                                   loader, vars(opt))

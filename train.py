@@ -83,7 +83,7 @@ def train(opt):
     lg.log_optimizer(opt, optimizer)
     # Main loop
     # To save before training:
-    iteration -= 1
+    # iteration -= 1
     val_losses = []
     while True:
         if update_lr_flag:
@@ -120,8 +120,8 @@ def train(opt):
             new_alpha = min(new_alpha, 1)
             model.crit.alpha = new_alpha
             opt.logger.warn('New alpha %.3e' % new_alpha)
-        if opt.raml_loss:
-            opt.logger.error('Sanity check alpha = %.3e' % model.crit.alpha)
+        # if opt.raml_loss:
+            # opt.logger.error('Sanity check alpha = %.3e' % model.crit.alpha)
 
         # Load data from train split (0)
         data = loader.get_batch('train')

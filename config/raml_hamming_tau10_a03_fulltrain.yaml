@@ -1,6 +1,7 @@
 # Generic
 # -------------------------
-modelname : bootstrap_bleu_a1
+modelname : raml_hamming_tau10_a03_fulltrain
+train_only : 0
 cnn_model : resnet50
 caption_model : show_tell
 save_checkpoint_every : 4000
@@ -8,13 +9,13 @@ fc_feat_size : 2048
 batch_size : 10
 beam_size : 3
 #--------------------------RAML
-raml_loss : 0
-bootstrap_loss : 1
-bootstrap_version : bleu4
-raml_alpha : 1.
+raml_loss : 1
+raml_version : hamming
+raml_tau : 1.0
+raml_alpha : 0.3
 #--------------------------//RAML
-input_json : data/coco/bootstrap_baseline_s5.json
-input_h5 : data/coco/bootstrap_baseline_s5.h5
+input_json : data/coco/cocotalk.json
+input_h5 : data/coco/cocotalk.h5
 restart : 1
 val_images_use : -1
 finetune_cnn_after : -1

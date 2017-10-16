@@ -3,7 +3,7 @@
 ensemblename: ensemble_raml_genconf15
 save_checkpoint_every : 4000
 caption_model: show_tell
-batch_size : 10
+batch_size : 5
 beam_size : 3
 seq_per_img : 15
 input_json : data/coco/genConf_cocotalk.json
@@ -16,5 +16,5 @@ learning_rate : 5e-4
 learning_rate_decay_start : 5
 learning_rate_decay_rate : 0.6
 learning_rate_decay_every: 3
-model: [fn_raml_exp_tau005_isolated_a03_genconf15_lr1, fn_raml_exp_tau005_isolated_a03_genconf15_v2, fn_raml_exp_tau005_isolated_a03_genconf15_v3, fn_raml_exp_tau005_isolated_a03_genconf15_v4, fn_raml_exp_tau005_isolated_a03_genconf15_v5 ]
+model: [fn_raml_exp_tau005_isolated_a03_genconf15_v2, fn_raml_exp_tau005_isolated_a03_genconf15_v3, fn_raml_exp_tau005_isolated_a03_genconf15_v4, fn_raml_exp_tau005_isolated_a03_genconf15_v5 ]
 

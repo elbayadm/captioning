@@ -874,6 +874,7 @@ def eval_ensemble(ens_model, loader, eval_kwargs={}):
 def eval_eval(cnn_model, model, crit, loader, eval_kwargs={}):
     verbose = eval_kwargs.get('verbose', True)
     score_ground_truth = eval_kwargs.get('score_ground_truth', False)
+    n_gen = eval_kwargs.get('n_gen', 5)
     num_images = eval_kwargs.get('num_images', -1)
     seq_length = eval_kwargs.get('seq_length', 16)
     split = eval_kwargs.get('split', 'test')
@@ -938,7 +939,7 @@ def eval_eval(cnn_model, model, crit, loader, eval_kwargs={}):
         # Only leave one feature for each image, in case duplicate sample
         fc_feats, att_feats = _fc_feats, _att_feats
         # forward the model to also get generated samples for each image
-        for _ in range(1):
+        for _ in range(n_gen):
             seq, probs = model.sample(fc_feats, att_feats, eval_kwargs)
             sent_scores = probs.cpu().numpy().sum(axis=1)
             #set_trace()
