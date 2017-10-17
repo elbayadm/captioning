@@ -2,22 +2,18 @@
 # -------------------------
 modelname : debug
 cnn_model : resnet50
-caption_model : show_tell
+caption_model : show_attend_tell
 save_checkpoint_every : 4000
 fc_feat_size : 2048
+att_feat_size : 196
+attend_mode : product
+num_regions : 512
+rnn_size : 512
 batch_size : 10
-beam_size : 3
-seq_per_img: 10
-#--------------------------RAML
-raml_loss : 0
-bootstrap_loss : 3
-bootstrap_version : cider
-raml_alpha : 0.3
-#--------------------------//RAML
-input_json : data/coco/bootstrap_baseline_s5_infer.json
-input_h5 : data/coco/bootstrap_baseline_s5_infer.h5
+input_json : data/coco/cocotalk.json
+input_h5 : data/coco/cocotalk.h5
 restart : 1
-val_images_use : -1
+val_images_use : 10
 finetune_cnn_after : -1
 learning_rate : 5e-4
 learning_rate_decay_start : 5

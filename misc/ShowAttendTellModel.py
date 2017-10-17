@@ -14,7 +14,9 @@ class ShowAttendTellModel(DecoderModel):
     def __init__(self, opt):
         super(ShowAttendTellModel, self).__init__(opt)
         self.attend_mode = opt.attend_mode
-        self.img_embed = nn.Linear(self.fc_feat_size, self.input_encoding_size)
+        self.img_embed = nn.Linear(self.att_feat_size, self.input_encoding_size)
+        # self.context_embed = nn.Linear(self.att_feat_size, self.input_encoding_size)
+
         # RNN block
         self.core = getattr(nn, self.rnn_type.upper())(self.input_encoding_size,
                                                        self.rnn_size,
@@ -42,6 +44,9 @@ class ShowAttendTellModel(DecoderModel):
         self.img_embed.bias.data.fill_(0)
         self.img_embed.weight.data.uniform_(-initrange, initrange)
 
+        # self.context_embed.bias.data.fill_(0)
+        # self.context_embed.weight.data.uniform_(-initrange, initrange)
+
         self.ctx_embed.bias.data.fill_(0)
         self.ctx_embed.weight.data.uniform_(-initrange, initrange)
 
@@ -62,7 +67,7 @@ class ShowAttendTellModel(DecoderModel):
 
     def get_ctx(self, att_feats, state):
         batch_size = att_feats.size(0)
-        att_feats = att_feats.resize(batch_size * self.num_regions, self.att_feat_size)
+        att_feats = att_feats.view(-1, self.att_feat_size)
         # self.opt.logger.warn('> Att feats resized: %s' % str(att_feats.size()))
         ctx = self.ctx_embed(att_feats)
         ctx = ctx.resize(batch_size, self.num_regions, self.input_encoding_size)
@@ -71,6 +76,8 @@ class ShowAttendTellModel(DecoderModel):
         alphas = alphas.unsqueeze(1).expand(batch_size, self.num_regions, self.input_encoding_size)
         # self.opt.logger.warn('> Alphas size %s' % str(alphas.size()))
         weighted_ctx = (ctx * alphas).sum(1).squeeze(1)
+        # print('Weighted context:', weighted_ctx.size())
+        # final_ctx = self.context_embed(weighted_ctx)
         return weighted_ctx
 
     def get_alphas(self, state, ctx):
@@ -97,7 +104,10 @@ class ShowAttendTellModel(DecoderModel):
         outputs = []
         for i in range(seq.size(1)):
             if i == 0:
-                xt = self.img_embed(fc_feats)
+                # MLP(mean(att_feats))
+                mean_region = torch.mean(att_feats.view(batch_size, -1, self.att_feat_size), dim=1)
+                # print('mean feat shape:', mean_region.size())
+                xt = self.img_embed(mean_region)
             else:
                 if i >= 2 and self.ss_prob > 0.0: # otherwiste no need to sample
                     sample_prob = fc_feats.data.new(batch_size).uniform_(0, 1)
@@ -121,9 +131,9 @@ class ShowAttendTellModel(DecoderModel):
                 xt = self.embed(it)
                 # -------------------------------------------------------------------------------
                 # The context embedding
-                weighted_ctx = self.get_ctx(att_feats, state)
+                ctx = self.get_ctx(att_feats, state)
                 # Concat xt and weighted_ctx:
-                xt += weighted_ctx
+                xt += ctx
                 xt = self.drop_x_lm(xt)
             output, state = self.core(xt.unsqueeze(0), state)
             output = F.log_softmax(self.logit(output.squeeze(0)))
@@ -133,7 +143,6 @@ class ShowAttendTellModel(DecoderModel):
     def sample_beam(self, fc_feats, att_feats, opt={}):
         beam_size = opt.get('beam_size', 10)
         batch_size = fc_feats.size(0)
-
         assert beam_size <= self.vocab_size + 1, 'lets assume this for now, otherwise this corner case causes a few headaches down the road. can be dealt with in future if needed'
         seq = torch.LongTensor(self.seq_length, batch_size).zero_()
         seqLogprobs = torch.FloatTensor(self.seq_length, batch_size)
@@ -148,7 +157,11 @@ class ShowAttendTellModel(DecoderModel):
             beam_logprobs_sum = torch.zeros(beam_size) # running sum of logprobs for each beam
             for t in range(self.seq_length + 2):
                 if t == 0:
-                    xt = self.img_embed(fc_feats[k:k+1]).expand(beam_size, 2 * self.input_encoding_size)
+                    # MLP(mean(att_feats))
+                    mean_regions = torch.mean(att_feats[k:k+1].view(batch_size, -1, self.att_feat_size), dim=1)
+                    # print('mean feat shape:', mean_regions.size())
+                    xt = self.img_embed(mean_regions).expand(beam_size, self.input_encoding_size)
+                    # xt = self.img_embed(fc_feats[k:k+1]).expand(beam_size, 2 * self.input_encoding_size)
                 elif t == 1: # input <bos>
                     it = fc_feats.data.new(beam_size).long().zero_()
                     xt = self.embed(Variable(it, requires_grad=False))
@@ -233,7 +246,9 @@ class ShowAttendTellModel(DecoderModel):
         seqLogprobs = []
         for t in range(self.seq_length + 2):
             if t == 0:
-                xt = self.img_embed(fc_feats)
+                mean_region = torch.mean(att_feats.view(batch_size, -1, self.att_feat_size), dim=1)
+                # print('mean feat shape:', mean_region.size())
+                xt = self.img_embed(mean_region)
             else:
                 if t == 1: # input <bos>
                     it = fc_feats.data.new(batch_size).long().zero_()

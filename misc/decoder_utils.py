@@ -1,3 +1,4 @@
+import sys
 from shutil import copy2
 import glob
 from six.moves import cPickle as pickle
@@ -131,7 +132,8 @@ def set_optimizer(opt, epoch, model, cnn_model):
         params = [{'params': m.parameters(), 'lr': opt.learning_rate}
                        for m in model]
     else:
-        params = [{'params': model.parameters(), 'lr': opt.learning_rate}]
+        active_params = filter(lambda p: p.requires_grad, model.parameters())
+        params = [{'params': active_params, 'lr': opt.learning_rate}]
 
     if opt.finetune_cnn_after != -1 and epoch >= opt.finetune_cnn_after:
         if isinstance(cnn_model, list):

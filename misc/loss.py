@@ -72,6 +72,10 @@ class SmoothLanguageModelCriterion(nn.Module):
             self.infersent = torch.load('../InferSent/infersent.allnli.pickle', map_location=lambda storage, loc: storage)
             self.infersent.set_glove_path(GLOVE_PATH)
             self.infersent.build_vocab_k_words(K=100000)
+            # Freeze infersent params:
+            for p in self.infersent.parameters():
+                p.requires_grad = False
+
             self.loader_vocab = loader_vocab
 
         self.alpha = opt.raml_alpha
@@ -140,10 +144,6 @@ class SmoothLanguageModelCriterion(nn.Module):
                     output = torch.sum(output)
                 return real_output, self.alpha * output + (1 - self.alpha) * real_output
             elif self.version == 'glove-cider':
-                smooth_target_wl = torch.exp(torch.mul(torch.add(dist, -1.), 1/self.tau))
-                mask_wl = mask_.repeat(1, dist.size(1))
-                output_wl = - input * smooth_target_wl * mask_wl
-
                 cider_scorer = CiderScorer(n=4, sigma=6)
                 preds = torch.max(input_, dim=2)[1].squeeze().cpu().data
                 hypo = decode_sequence(self.loader_vocab, preds)  # candidate
@@ -160,6 +160,10 @@ class SmoothLanguageModelCriterion(nn.Module):
                 smooth_target = Variable(torch.from_numpy(scores).view(-1, 1)).cuda().float()
                 preds = Variable(preds[:, :input.size(1)]).cuda()
                 preds = to_contiguous(preds).view(-1, 1)
+                dist = self.Dist[preds.squeeze().data]
+                smooth_target_wl = torch.exp(torch.mul(torch.add(dist, -1.), 1/self.tau))
+                mask_wl = mask_.repeat(1, dist.size(1))
+                output_wl = - input * smooth_target_wl
                 output = - output_wl.gather(1, preds) * mask_ * smooth_target
                 if torch.sum(smooth_target * mask_).data[0] > 0:
                     output = torch.sum(output) / torch.sum(smooth_target * mask_)
@@ -297,10 +301,6 @@ class SmoothLanguageModelCriterion(nn.Module):
                 return real_output, self.alpha * output + (1 - self.alpha) * real_output
 
             elif self.version == 'glove-hamming': # here sampling with p instead of the reward q
-                smooth_target_wl = torch.exp(torch.mul(torch.add(dist, -1.), 1/self.tau))
-                mask_wl = mask_.repeat(1, dist.size(1))
-                output_wl = - input * smooth_target_wl * mask_wl
-                print('Output scaled at word level', output_wl.size())
                 preds = torch.max(input_, dim=2)[1].squeeze().cpu().data
                 refs =  target_.cpu().data.numpy()
                 num_img = target_.size(0) // self.seq_per_img
@@ -314,9 +314,13 @@ class SmoothLanguageModelCriterion(nn.Module):
                 smooth_target = Variable(torch.from_numpy(scores).view(-1, 1)).cuda().float()
                 preds = Variable(preds[:, :input.size(1)]).cuda()
                 preds = to_contiguous(preds).view(-1, 1)
-                #  output = - input.gather(1, target) * mask * smooth_target
-                output = - output_wl.gather(1, preds) * mask_ * smooth_target
 
+                #  output = - input.gather(1, target) * mask * smooth_target
+                dist = self.Dist[preds.squeeze().data]
+                smooth_target_wl = torch.exp(torch.mul(torch.add(dist, -1.), 1/self.tau))
+                output_wl = - input * smooth_target_wl
+                print('Output scaled at word level', output_wl.size())
+                output = - output_wl.gather(1, preds) * mask_ * smooth_target
                 if torch.sum(smooth_target * mask_).data[0] > 0:
                     output = torch.sum(output) / torch.sum(smooth_target * mask_)
                 else:

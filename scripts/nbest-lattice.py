@@ -22,10 +22,14 @@ for img in data:
             for cap in caps:
                 f.write('-40 1 %d %s\n' % (len(cap.split()), cap))
                 print("%d >> %s" % (img['imgid'], cap))
+    else:
+        print(capsfile, ' exists')
     meshfile = 'caps%d.mesh' % img['imgid']
     if not osp.exists('tmpcaps/' + meshfile):
         print("Generating mesh file")
         os.system('nbest-lattice -use-mesh -nbest %s -write tmpcaps/%s' % (capsfile, meshfile))
+    else:
+        print(meshfile, " exists")
     genfile = 'tmpcaps/gen_srilm_caps%d.txt' % img['imgid']
     if not osp.exists(genfile):
         # os.system("lattice-tool -read-mesh -in-lattice tmpcaps/%s -nbest-decode 25 -nbest-viterbi -out-nbest-dir tmpcaps" % (meshfile))
@@ -42,3 +46,5 @@ for img in data:
                 print(score, ">> ", line)
                 f.write("%f %s\n" % (score, line))
         # os.system('rm tmpcaps/tmp%d.mesh' % img['imgid'])
+    else:
+        print(genfile, " exists")

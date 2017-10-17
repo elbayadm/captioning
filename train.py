@@ -71,6 +71,7 @@ def train(opt):
     # Build the captioning model
     opt.logger.error('-----------------------------SETUP')
     model = du.select_model(opt)
+    # model.define_loss(loader.get_vocab())
     model.load()
     opt.logger.error('-----------------------------/SETUP')
     model.cuda()
@@ -83,7 +84,7 @@ def train(opt):
     lg.log_optimizer(opt, optimizer)
     # Main loop
     # To save before training:
-    # iteration -= 1
+    iteration -= 1
     val_losses = []
     while True:
         if update_lr_flag:

@@ -36,6 +36,10 @@ class DecoderModel(nn.Module):
             assert osp.isfile(opt.infos_start_from),\
                     "infos file %s does not exist" % opt.start_from
             saved = torch.load(opt.start_from)
+            for k in list(saved):
+                if 'crit' in k:
+                    self.logger.warn('Deleting key %s' % k)
+                    del saved[k]
             self.logger.warn('Loading the model dict (last checkpoint) %s'\
                              % str(list(saved.keys())))
             self.load_state_dict(saved)
