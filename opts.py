@@ -45,6 +45,8 @@ def parse_opt():
     parser = configargparse.ArgParser()
     parser.add('-c', '--config', is_config_file=True, help='Config file path')
     # Data input settings
+    parser.add('--gpu_id', type=int,
+               default=0)
     parser.add('--input_json', type=str,
                default='data/coco/cocotalk.json',
                help='path to the json file containing additional info and vocab')

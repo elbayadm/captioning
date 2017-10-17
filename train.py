@@ -2,18 +2,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from math import exp
-
-# setup gpu
-try:
-    import os
-    import subprocess
-    gpu_id = int(subprocess.check_output('gpu_getIDs.sh', shell=True))
-    print("GPU:", gpu_id)
-except:
-    print("Failed to get gpu_id (setting gpu_id to 0)")
-    gpu_id = "0"
-os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_id)
-
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
@@ -40,6 +28,17 @@ def train(opt):
     """
     main training loop
     """
+    # setup gpu
+    try:
+        import os
+        import subprocess
+        gpu_id = int(subprocess.check_output('gpu_getIDs.sh', shell=True))
+        print("GPU:", gpu_id)
+    except:
+        print("Failed to get gpu_id (setting gpu_id to %d)" % opt.gpu_id)
+        gpu_id = str(opt.gpu_id)
+    os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_id)
+
     loader = DataLoader(opt)
     opt.vocab_size = loader.vocab_size
     opt.seq_length = loader.seq_length

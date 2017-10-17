@@ -59,7 +59,7 @@ class SmoothLanguageModelCriterion(nn.Module):
         self.vocab_size = opt.vocab_size
         if self.version not in ['clip', 'exp', 'vocab',
                                 'cider', 'cider-exp',  'bleu4',
-                                'glove-hamming', 'glove-cider',
+                                'glove-hamming', 'glove-cider', 'glove-cider-exp',
                                 'hamming', 'hamming-sample', 'infersent']:
             raise ValueError("Unknown smoothing version %s" % self.version)
         if 'cider' in self.version or 'bleu' in self.version:
@@ -196,6 +196,36 @@ class SmoothLanguageModelCriterion(nn.Module):
                     self.logger.warn("Smooth targets weights sum to 0")
                     output = torch.sum(output)
                 return real_output, self.alpha * output + (1 - self.alpha) * real_output
+            elif self.version == 'glove-cider-exp':
+                cider_scorer = CiderScorer(n=4, sigma=6)
+                preds = torch.max(input_, dim=2)[1].squeeze().cpu().data
+                hypo = decode_sequence(self.loader_vocab, preds)  # candidate
+                refs = decode_sequence(self.loader_vocab, target_.data)  # references
+                num_img = target_.size(0) // self.seq_per_img
+                for e, h in enumerate(hypo):
+                    ix_start =  e // self.seq_per_img * self.seq_per_img
+                    ix_end = ix_start + 5  # self.seq_per_img
+                    cider_scorer += (h, refs[ix_start : ix_end])
+                (score, scores) = cider_scorer.compute_score()
+                self.logger.debug("CIDEr score: %s" %  str(scores))
+                scores = np.exp(np.array(scores) / self.tau_bis)
+                scores = np.repeat(scores, seq_length)
+                smooth_target = Variable(torch.from_numpy(scores).view(-1, 1)).cuda().float()
+                preds = Variable(preds[:, :input.size(1)]).cuda()
+                preds = to_contiguous(preds).view(-1, 1)
+                dist = self.Dist[preds.squeeze().data]
+                smooth_target_wl = torch.exp(torch.mul(torch.add(dist, -1.), 1/self.tau))
+                mask_wl = mask_.repeat(1, dist.size(1))
+                output_wl = - input * smooth_target_wl
+                output = - output_wl.gather(1, preds) * mask_ * smooth_target
+                if torch.sum(smooth_target * mask_).data[0] > 0:
+                    output = torch.sum(output) / torch.sum(smooth_target * mask_)
+                else:
+                    self.logger.warn("Smooth targets weights sum to 0")
+                    output = torch.sum(output)
+                return real_output, self.alpha * output + (1 - self.alpha) * real_output
+
+
             elif self.version == 'cider-exp':
                 cider_scorer = CiderScorer(n=4, sigma=6)
                 preds = torch.max(input_, dim=2)[1].squeeze().cpu().data
