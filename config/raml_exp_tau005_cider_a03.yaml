@@ -17,7 +17,7 @@ raml_alpha: 0.3
 input_json : data/coco/cocotalk.json
 input_h5 : data/coco/cocotalk.h5
 restart : 1
-val_images_use : 10
+val_images_use : -1
 finetune_cnn_after : -1
 learning_rate : 5e-4
 learning_rate_decay_start : 5
