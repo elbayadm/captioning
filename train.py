@@ -38,6 +38,7 @@ def train(opt):
         print("Failed to get gpu_id (setting gpu_id to %d)" % opt.gpu_id)
         gpu_id = str(opt.gpu_id)
     os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_id)
+    opt.logger.warn('GPU ID: %s', os.environ['CUDA_VISIBLE_DEVICES'])
 
     loader = DataLoader(opt)
     opt.vocab_size = loader.vocab_size
