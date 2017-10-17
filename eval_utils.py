@@ -1,13 +1,3 @@
-# setup gpu
-try:
-    import os
-    import subprocess
-    gpu_id = int(subprocess.check_output('gpu_getIDs.sh', shell=True))
-    print("GPU:", gpu_id)
-except:
-    print("Failed to get gpu_id (setting gpu_id to 0)")
-    gpu_id = "0"
-os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_id)
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
