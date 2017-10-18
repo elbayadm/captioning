@@ -1,27 +1,14 @@
+
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from math import exp
-import torch
-import torch.nn as nn
-from torch.autograd import Variable
-import torch.optim as optim
 import numpy as np
 import time
 import os
 import os.path as osp
 import sys
 from six.moves import cPickle as pickle
-import opts
-from dataloader import *
-import eval_utils
-import misc.utils as utils
-import misc.cnn as cnn
-import misc.decoder_utils as du
-import misc.logging as lg
-import tensorflow as tf
-from tensorflow.python.framework import dtypes
-from tensorflow.contrib.tensorboard.plugins import projector
 
 
 def train(opt):
@@ -38,7 +25,22 @@ def train(opt):
         print("Failed to get gpu_id (setting gpu_id to %d)" % opt.gpu_id)
         gpu_id = str(opt.gpu_id)
     os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_id)
+
     opt.logger.warn('GPU ID: %s', os.environ['CUDA_VISIBLE_DEVICES'])
+
+    import torch
+    import torch.nn as nn
+    from torch.autograd import Variable
+    import torch.optim as optim
+    from dataloader import DataLoader
+    import eval_utils
+    import misc.utils as utils
+    import misc.cnn as cnn
+    import misc.decoder_utils as du
+    import misc.logging as lg
+    import tensorflow as tf
+    from tensorflow.python.framework import dtypes
+    from tensorflow.contrib.tensorboard.plugins import projector
 
     loader = DataLoader(opt)
     opt.vocab_size = loader.vocab_size
@@ -207,5 +209,6 @@ def train(opt):
             break
 
 if __name__ == "__main__":
+    import opts
     opt = opts.parse_opt()
     train(opt)

@@ -522,7 +522,7 @@ class ImportanceLanguageModelCriterion_v2(nn.Module):
         target_gen = torch.cat([t[5:] for t in target_per_image], dim=0)
         mask_gen = torch.cat([t[5:] for t in mask_per_image], dim=0)
         ratios_gen = torch.cat([t[5:] for t in ratios_per_image], dim=0)
-        print('Ratios GEN:', ratios_gen)
+        # print('Ratios GEN:', ratios_gen)
 
         # For the first 5 captions per image (gt) compute LM
         input_gt = to_contiguous(input_gt).view(-1, input_gt.size(2))

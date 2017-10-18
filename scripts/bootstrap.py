@@ -71,8 +71,9 @@ def c_softmax(scores1, scores2):
 # Load InferSent pretrained model:
 
 # bs1 = json.load(open('captions/bootstrap_bs1.json', 'r'))
-bs1 = json.load(open('captions/bootstrap_20samples_baseline.json', 'r'))
-
+# bs1 = json.load(open('captions/bootstrap_20samples_baseline.json', 'r'))
+bs1 = json.load(open('data/coco/generated_captions_confusion_bootstrap.json', 'r'))
+print('length of bs1:', len(bs1))
 Caps = {}
 for item in bs1:
     if item['image_id'] not in Caps:
@@ -80,7 +81,7 @@ for item in bs1:
                                           'scores': []},
                                   'gt': {'sents': [],
                                           'scores': []}
-                                 }
+                                  }
     Caps[item['image_id']][item['source']]['sents'].append(item['caption'])
     Caps[item['image_id']][item['source']]['scores'].append(float(item['score'])/len(item['caption'].split()))
 
@@ -101,7 +102,8 @@ for k in Caps:
         Caps[k]['gen']['sents'] = sents
         Caps[k]['gen']['scores'] = scores
     elif lgen < max_gen:
-        raise ValueError('too few generated caps')
+        print(Caps[k])
+        raise ValueError('too few generated caps only %d (id: %d)' % (lgen, k))
     gens.append(len(Caps[k]['gen']['sents']))
     lgt = len(Caps[k]['gt']['sents'])
     # print('Number of gt caps:', lgt)
@@ -136,8 +138,11 @@ for batch in batches:
     cider_scorer = CiderScorer(n=4, sigma=6)
     bleu4 = BleuScorer(n=4)
     infer = []
+    print('batch indices:', batch)
     for k in batch:
+        # print('all caps:', Caps[k])
         refs = Caps[k]['gt']['sents']
+        print("Refs:", refs)
         for e, ref in enumerate(refs):
             _refs = refs.copy()
             _refs.pop(e)
@@ -194,5 +199,5 @@ for k in Caps:
              'id': k}
     # print(entry)
     Caps_gen.append(entry)
-pickle.dump(Caps_gen, open('data/coco/captions_bootstrap_baseline_s15.pkl', 'wb'))
+pickle.dump(Caps_gen, open('data/coco/captions_bootstrap_confusion_s15.pkl', 'wb'))
 
