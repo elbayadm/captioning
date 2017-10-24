@@ -42,6 +42,70 @@ def upsample_image(im, sz):
 
 
 
+class MIL_crit(nn.Module):
+    def __init__(self, opt):
+        super(MIL_crit, self).__init__()
+        self.opt = opt
+        self.seq_per_img = opt.seq_per_img
+
+    def forward(self, input, target):
+        """
+        input: prob(w\in Image): shape: #images, #vocab
+        target: labels         : shape: #images * #seq_per_img, #seq_length
+        Beware batch_size = 1
+        """
+        # input = torch.log(input + 1e-30)
+        # print("Probs:", input)
+        # parse words in image from labels:
+        num_img = input.size(0)
+        # assert num_img == 1, "Batch size larger than 1"
+        words_per_image = np.unique(to_contiguous(target).data.cpu().numpy())
+        # print('Word in image:', words_per_image)
+        indices_pos = Variable(torch.from_numpy(words_per_image).view(1, -1), requires_grad=False).cuda()
+        indices_neg = Variable(torch.from_numpy(np.array([a for a in np.arange(self.opt.vocab_size) if a not in words_per_image])).view(1, -1), requires_grad=False).cuda()
+        mask_pos = torch.gt(indices_pos, 0).float()
+        mask_neg = torch.gt(indices_neg, 0).float()
+        # print('Positives:', torch.sum(mask_pos), "Negatives:", torch.sum(mask_neg))
+        log_pos = - torch.sum(torch.log(input + 1e-30).gather(1, indices_pos) * mask_pos)
+        log_neg = - torch.sum(torch.log(1 - input + 1e-15).gather(1, indices_neg) * mask_neg)
+        # print('Log_pos:', log_pos, 'log_neg:', log_neg)
+        out = log_pos / torch.sum(mask_pos) + log_neg / torch.sum(mask_neg)
+        # print("Final output:", out)
+        return out
+
+
+class ResNet_MIL_corr(nn.Module):
+    """
+    Wrapper for ResNet with MIL
+    """
+    def __init__(self, opt):
+        self.opt = opt
+        super(ResNet_MIL_corr, self).__init__()
+        self.resnet = ResNetModel(opt)
+        #  self.pool_mil = nn.MaxPool2d(kernel_size=7, stride=0)
+        self.classifier = nn.Linear(2048, opt.vocab_size)
+        self.sigmoid = nn.Sigmoid()
+        self.softmax = nn.Softmax()
+        #  print "Modules:", self._modules
+
+    def init_added_weights(self):
+        initrange = 0.1
+        self.classifier.bias.data.fill_(0)
+        self.classifier.weight.data.uniform_(-initrange, initrange)
+
+    def forward(self, x):
+        x0, _ = self.resnet(x)
+        x0 = to_contiguous(x0.permute(0, 2, 3, 1))
+        x = x0.view(x0.size(0) * x0.size(1) * x0.size(2), -1)
+        x = self.classifier(x)
+        x = self.softmax(self.sigmoid(x))
+        x = x.view(x0.size(0), x0.size(1) * x0.size(2), -1)
+        probs =  torch.log(1 - torch.prod(1 - x, dim=1))
+        self.opt.logger.error('Final probs: %s' % str(probs))
+        probs = probs.squeeze(1)
+        return probs
+
+
 
 class ResNet_MIL(nn.Module):
     """

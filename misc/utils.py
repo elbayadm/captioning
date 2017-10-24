@@ -4,7 +4,7 @@ from __future__ import print_function
 import os
 import os.path as osp
 import sys
-import collections
+from collections import Counter
 import math
 from scipy.special import binom
 import numpy as np
@@ -35,6 +35,51 @@ def covariance(X, Z):
     Zbar = Z - torch.mean(Z, 0).repeat(Z.size(0), 1)
     cov = torch.sum(torch.t(Xbar) * Zbar) / n
 
+
+def group_similarity(u, refs):
+    sims = []
+    for v in refs:
+        sims.append(1 + np.dot(u, v) / (np.linalg.norm(u) * np.linalg.norm(v)))
+        return np.mean(sims)
+
+
+def sentence_bleu(hypothesis, reference, smoothing=True, order=4, **kwargs):
+    """
+    Compute sentence-level BLEU score between a translation hypothesis and a reference.
+
+    :param hypothesis: list of tokens or token ids
+    :param reference: list of tokens or token ids
+    :param smoothing: apply smoothing (recommended, especially for short sequences)
+    :param order: count n-grams up to this value of n.
+    :param kwargs: additional (unused) parameters
+    :return: BLEU score (float)
+    """
+    log_score = 0
+
+    if len(hypothesis) == 0:
+        return 0
+
+    for i in range(order):
+        hyp_ngrams = Counter(zip(*[hypothesis[j:] for j in range(i + 1)]))
+        ref_ngrams = Counter(zip(*[reference[j:] for j in range(i + 1)]))
+
+        numerator = sum(min(count, ref_ngrams[bigram]) for bigram, count in hyp_ngrams.items())
+        denominator = sum(hyp_ngrams.values())
+
+        if smoothing:
+            numerator += 1
+            denominator += 1
+
+        score = numerator / denominator
+
+        if score == 0:
+            log_score += float('-inf')
+        else:
+            log_score += math.log(score) / order
+
+    bp = min(1, math.exp(1 - len(reference) / len(hypothesis)))
+
+    return math.exp(log_score) * bp
 
 
 def decode_sequence(ix_to_word, seq):

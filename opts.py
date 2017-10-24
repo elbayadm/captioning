@@ -102,7 +102,7 @@ def parse_opt():
                default=512, help='the encoding size of each token in the vocabulary, and the image.')
     parser.add('--use_glove', type=int,
                default=0, help='whether or not to use glove embeddings.')
-    parser.add('--less_confident', type=float,
+    parser.add('--scale_loss', type=float,
                default=0, help='if neq 0, be less confident in the added captions (used to scale down the loss)')
 
     # RAML Loss params:
@@ -397,7 +397,7 @@ def parse_ens_opt():
     parser.add('--caption_model', type=str,
                default="show_tell", help='show_tell, show_attend_tell, attention, test_att, show_attend_tell_new')
 
-    parser.add('--less_confident', type=float,
+    parser.add('--scale_loss', type=float,
                default=0, help='if neq 0, be less confident in the added captions (used to scale down the loss)')
 
     # RAML Loss params:
