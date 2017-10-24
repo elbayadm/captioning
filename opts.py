@@ -110,6 +110,8 @@ def parse_opt():
                default=0, help='use bootstrap/importance sampling loss.')
     parser.add('--bootstrap_version', type=str,
                default="cider", help='Version of Bootstrap loss')
+    parser.add('--add_word_level', type=int,
+               default=0, help='Version of Bootstrap loss')
 
     parser.add('--raml_loss', type=int,
                default=0, help='use smooth loss via similar words.')
@@ -406,6 +408,8 @@ def parse_ens_opt():
                default=0, help='use bootstrap/importance sampling loss.')
     parser.add('--bootstrap_version', type=str,
                default="cider", help='Version of Bootstrap loss')
+    parser.add('--add_word_level', type=int,
+               default=0, help='Version of Bootstrap loss')
 
     parser.add('--raml_loss', type=int,
                default=0, help='use smooth loss via similar words.')

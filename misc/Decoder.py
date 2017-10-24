@@ -64,7 +64,13 @@ class DecoderModel(nn.Module):
             crit = loss.ImportanceLanguageModelCriterion(opt)
         elif opt.bootstrap_loss == 2:
             # Using importance sampling loss:
-            crit = loss.ImportanceLanguageModelCriterion_v2(opt)
+            if opt.add_word_level:
+                D = pickle.load(open(opt.similarity_matrix, 'rb'), encoding='iso-8859-1')
+                D = D.astype(np.float32)
+                D = Variable(torch.from_numpy(D)).cuda()
+            else:
+                D = None
+            crit = loss.ImportanceLanguageModelCriterion_v2(opt, Dist=D)
         elif opt.combine_caps_losses:
             crit = loss.MultiLanguageModelCriterion(opt.seq_per_img)
         else:
