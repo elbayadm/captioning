@@ -29,7 +29,7 @@ class LanguageModelCriterion(nn.Module):
     of scaling the sentence loss
     """
     def __init__(self, opt):
-        super(LanguageModelCriterion, self).__init__()
+        super().__init__()
         self.logger = opt.logger
         self.scale_loss = opt.scale_loss
 
@@ -55,461 +55,403 @@ class LanguageModelCriterion(nn.Module):
         return output, output
 
 
-class WordLevelSmoothCriterion(nn.Module):
+def get_ml_loss(input, target, mask):
+    """
+    Compute the usual ML loss
+    """
+    input = to_contiguous(input).view(-1, input.size(2))
+    target = to_contiguous(target).view(-1, 1)
+    mask = to_contiguous(mask).view(-1, 1)
+    ml_output = - input.gather(1, target) * mask
+    ml_output = torch.sum(ml_output) / torch.sum(mask)
+    return ml_output
+
+def get_indices_vocab(target, seq_per_img):
+    seq_length = target.size(1)
+    num_img = target.size(0) // seq_per_img
+    vocab_per_image = target.chunk(num_img)
+    vocab_per_image = [np.unique(to_contiguous(t).data.cpu().numpy())
+                       for t in vocab_per_image]
+    max_vocab = max([len(t) for t in vocab_per_image])
+    vocab_per_image = [np.pad(t, (0, max_vocab - len(t)), 'constant')
+                       for t in vocab_per_image]
+    indices_vocab = Variable(torch.cat([torch.from_numpy(t).\
+                             repeat(seq_per_img * seq_length, 1)
+                             for t in vocab_per_image], dim=0)).cuda()
+    return indices_vocab
+
+
+class WordSmoothCriterion(nn.Module):
     """
     Apply word level loss smoothing given a similarity matrix
-
+    the two versions are:
+        full : to take into account the whole vocab
+        limited: to consider only the ground truth vocab
     """
-    def __init__(self, Sim_Matrix, opt):
-        super(WordLevelSmoothCriterion, self).__init__()
+    def __init__(self, opt):
+        super().__init__()
+        self.logger = opt.logger
+        self.seq_per_img = opt.seq_per_img
+        self.scale_loss = opt.scale_loss
+        self.clip_sim = opt.clip_sim
+        if self.clip_sim:
+            self.margin = opt.margin
+            self.logger.warn('Clipping similarities below %.2f' % self.margin)
+        self.limited = opt.limited_vocab_sim
+        # the final loss is (1-alpha) ML + alpha * RewardLoss
+        self.alpha = opt.alpha
+        assert self.alpha > 0, 'set alpha to a nonzero value, otherwise use the default loss'
+        self.tau_word = opt.tau_word
         # Load the similarity matrix:
         M = pickle.load(open(opt.similarity_matrix, 'rb'), encoding='iso-8859-1')
         M = M.astype(np.float32)
-        n, d = M.shape()
-        assert(n == d and n == opt.vocab_size, 'Similarity matrix has incompatible shape')
+        n, d = M.shape
+        assert n == d and n == opt.vocab_size, 'Similarity matrix has incompatible shape'
         M = Variable(torch.from_numpy(M)).cuda()
         self.Sim_Matrix = M
 
-    def forward(self, input, target, mask, pre_scores):
+    def forward(self, input, target, mask, scores=None):
         # truncate to the same size
-        input_ = input
         seq_length = input.size(1)
-        target = target[:, :input.size(1)]
-        target_ = target
-        mask = mask[:, :input.size(1)]
-        if self.less_confident:
-            row_scores = pre_scores.repeat(1, input.size(1))
-            #  gen_rows = np.arange(mask.size(0),)
-            #  gen_rows = (gen_rows % self.seq_per_img) > 4
-            #  gen_rows = torch.from_numpy(np.where(gen_rows)[0]).cuda()
-            #  mask_ = mask
-            #  mask_.data[gen_rows] = torch.mul(mask_.data[gen_rows], self.less_confident)
-            mask_ = torch.mul(mask, row_scores)
-            #  print "Mask (scaled)", mask_
+        target = target[:, :seq_length]
+        mask = mask[:, :seq_length]
+        if self.scale_loss:
+            row_scores = scores.repeat(1, seq_length)
+            mask = torch.mul(mask, row_scores)
+        ml_output = get_ml_loss(input, target, mask)
+        # Get the similarities of the words in the batch (Vb, V)
+        sim = self.Sim_Matrix[to_contiguous(target).view(-1, 1).squeeze().data]
+        if self.clip_sim:
+            # keep only the similarities larger than the margin
+            sim = sim * sim.ge(self.margin).float()
+        if self.limited:
+            indices_vocab = get_indices_vocab(target, self.seq_per_img)
+            sim = sim.gather(1, indices_vocab)
+            input = input.gather(1, indices_vocab)
+
+        if self.tau_word:
+            smooth_target = torch.exp(torch.mul(torch.add(sim, -1.), 1/self.tau_word))
         else:
-            mask_ = mask
-        input = to_contiguous(input).view(-1, input.size(2))
-        target = to_contiguous(target).view(-1, 1)
+            # Do not exponentiate
+            smooth_target = torch.add(sim, -1.)
+        # Format
         mask = to_contiguous(mask).view(-1, 1)
-        real_output = - input.gather(1, target) * mask_
-        real_output = torch.sum(real_output) / torch.sum(mask_)
+        mask = mask.repeat(1, sim.size(1))
+        input = to_contiguous(input).view(-1, input.size(2))
+        # print('in:', input.size(), 'mask:', mask.size(), 'smooth:', smooth_target.size())
+        output = - input * mask * smooth_target
 
-        #-------------------------------------------------------
-        if self.alpha > 0:
-            dist = self.Dist[target.squeeze().data]
-            #  print "Dist:", dist
-            if self.version == "exp":
-                smooth_target = torch.exp(torch.mul(torch.add(dist, -1.), 1/self.tau))
-                # print('Smooth target:', smooth_target)
-            elif self.version == "clip":
-                indices_up = dist.ge(self.margin)
-                smooth_target = dist * indices_up.float()
-            elif self.version == "vocab":
-                num_img = target_.size(0) // self.seq_per_img
-                vocab_per_image = target_.chunk(num_img)
-                vocab_per_image = [np.unique(to_contiguous(t).data.cpu().numpy())
-                                   for t in vocab_per_image]
-                max_vocab = max([len(t) for t in vocab_per_image])
-                vocab_per_image = [np.pad(t, (0, max_vocab - len(t)), 'constant')
-                                   for t in vocab_per_image]
-                indices_vocab = Variable(torch.cat([torch.from_numpy(t).\
-                                         repeat(self.seq_per_img * seq_length, 1)
-                                         for t in vocab_per_image], dim=0)).cuda()
-                mask_ = mask_.repeat(1, indices_vocab.size(1))
-                dist_vocab = dist.gather(1, indices_vocab)
-                smooth_target = torch.exp(torch.mul(torch.add(dist_vocab, -1.),
-                                                    1/self.tau))
-                output = - input.gather(1, indices_vocab) * mask_ * smooth_target
-                if self.isolate_gt:
-                    indices_down = dist_vocab.lt(1.0)
-                    smooth_target = smooth_target * indices_down.float()
-                if torch.sum(smooth_target * mask_).data[0] > 0:
-                    output = torch.sum(output) / torch.sum(smooth_target * mask_)
-                else:
-                    self.logger.warn("Smooth targets weights sum to 0")
-                    output = torch.sum(output)
-                return real_output, self.alpha * output + (1 - self.alpha) * real_output
-
-            # case exp & clip
-            if self.isolate_gt:
-                indices_down = dist.lt(1.0)
-                smooth_target = smooth_target * indices_down.float()
-            # Deprecated
-            if self.normalize:
-                # Make sur that each row of smoothtarget sum to 1:
-                Z = torch.sum(smooth_target, 1).repeat(1, smooth_target.size(1))
-                smooth_target = smooth_target / Z
-            # // Deprecated
-            mask_ = mask_.repeat(1, dist.size(1))
-            output = - input * smooth_target * mask_
-            if torch.sum(smooth_target * mask_).data[0] > 0:
-                output = torch.sum(output) / torch.sum(smooth_target * mask_)
-            else:
-                self.logger.warn("Smooth targets weights sum to 0")
-                output = torch.sum(output)
-            return real_output, self.alpha * output + (1 - self.alpha) * real_output
+        if torch.sum(smooth_target * mask).data[0] > 0:
+            output = torch.sum(output) / torch.sum(smooth_target * mask)
         else:
-            return real_output, real_output
+            self.logger.warn("Smooth targets weights sum to 0")
+            output = torch.sum(output)
+
+        return ml_output, self.alpha * output + (1 - self.alpha) * ml_output
 
 
-
-class SmoothLanguageModelCriterion(nn.Module):
+class SentSmoothCriterion(nn.Module):
     """
-        Inputs:
-            - Dist : similarity matrix d(y, y') for y,y' in vocab
-            - version: between clipping below m or exponential temperature
-                clip: params = {margin (m)}
-                exp : params = {temperature(tau)}
-            - isolate_gt : whether to include the gt in the smoother loss or not
-            - alpha : weight of the smoothed weight when isolating gt
-        Returns:
-            - The original loss term (for reference)
-            - The smoothed loss.
+    Apply sentence level loss smoothing
     """
-    def __init__(self, Dist, loader_vocab, opt):
-        super(SmoothLanguageModelCriterion, self).__init__()
-        self.Dist = Dist
-        self.margin = opt.raml_margin
-        self.tau = opt.raml_tau
-        self.tau_bis = opt.raml_tau_bis
-        self.version = opt.raml_version.lower()
-        self.seq_per_img = opt.seq_per_img
-        self.vocab_size = opt.vocab_size
-        if self.version not in ['clip', 'exp', 'vocab',
-                                'cider', 'cider-exp',  'bleu4', 'bleu3', 'bleu2', 'bleu1',
-                                'glove-hamming', 'glove-cider', 'glove-cider-exp',
-                                'hamming', 'hamming-sample', 'infersent']:
-            raise ValueError("Unknown smoothing version %s" % self.version)
-        if 'cider' in self.version or 'bleu' in self.version:
-            opt.logger.warn('RAML CIDER/Bleu: Storing the model vocab')
-            self.loader_vocab = loader_vocab
-        if 'infersent' in self.version:
-            # load infersent model
-            opt.logger.info('Loading the infersent pretrained model')
-            GLOVE_PATH = '../InferSent/dataset/GloVe/glove.840B.300d.txt'
-            self.infersent = torch.load('../InferSent/infersent.allnli.pickle', map_location=lambda storage, loc: storage)
-            self.infersent.set_glove_path(GLOVE_PATH)
-            self.infersent.build_vocab_k_words(K=100000)
-            # Freeze infersent params:
-            for p in self.infersent.parameters():
-                p.requires_grad = False
-
-            self.loader_vocab = loader_vocab
-
-        self.alpha = opt.raml_alpha
-        self.isolate_gt = opt.raml_isolate
-        self.normalize = opt.raml_normalize
-        self.less_confident = opt.less_confident
+    def __init__(self, opt):
+        nn.Module.__init__(self)
         self.logger = opt.logger
+        self.seq_per_img = opt.seq_per_img
+        self.version = opt.loss_version
+        # TODO assert type is defined
+        # the final loss is (1-alpha) ML + alpha * RewardLoss
+        self.alpha = opt.alpha
+        assert self.alpha > 0, 'set alpha to a nonzero value, otherwise use the default loss'
+        # tau set to zero means no exponentiation
+        self.tau_sent = opt.tau_sent
+        self.scale_loss = opt.scale_loss
 
-    def forward(self, input, target, mask, pre_scores):
-        # truncate to the same size
-        input_ = input
+    def forward(self, input, target, mask, scores=None):
+        # truncate
         seq_length = input.size(1)
-        target = target[:, :input.size(1)]
-        target_ = target
-        mask = mask[:, :input.size(1)]
-        if self.less_confident:
-            row_scores = pre_scores.repeat(1, input.size(1))
-            #  gen_rows = np.arange(mask.size(0),)
-            #  gen_rows = (gen_rows % self.seq_per_img) > 4
-            #  gen_rows = torch.from_numpy(np.where(gen_rows)[0]).cuda()
-            #  mask_ = mask
-            #  mask_.data[gen_rows] = torch.mul(mask_.data[gen_rows], self.less_confident)
-            mask_ = torch.mul(mask, row_scores)
-            #  print "Mask (scaled)", mask_
+        target = target[:, :seq_length]
+        mask = mask[:, :seq_length]
+        if self.scale_loss:
+            row_scores = scores.repeat(1, seq_length)
+            mask = torch.mul(mask, row_scores)
+        ml_output = get_ml_loss(input, target, mask)
+        preds = torch.max(input, dim=2)[1].squeeze().cpu().data
+        sent_scores = self.get_scores(preds, target)
+        # Process scores:
+        if self.tau_sent:
+            sent_scores = np.exp(np.array(sent_scores) / self.tau_sent)
         else:
-            mask_ = mask
+            sent_scores = np.array(sent_scores)
+            if not np.sum(sent_scores):
+                self.logger.warn('Adding +1 to the zero scores')
+                sent_scores += 1
+        # sent_scores from (N, 1) to (N, seq_length)
+        self.logger.warn('Scores after processing: %s' % str(sent_scores))
+        sent_scores = np.repeat(sent_scores, seq_length)
+        smooth_target = Variable(torch.from_numpy(sent_scores).view(-1, 1)).cuda().float()
+        # substitute target with the prediction (aka sampling wrt p_\theta)
+        preds = Variable(preds[:, :seq_length]).cuda()
+        # Flatten
+        preds = to_contiguous(preds).view(-1, 1)
         input = to_contiguous(input).view(-1, input.size(2))
-        target = to_contiguous(target).view(-1, 1)
         mask = to_contiguous(mask).view(-1, 1)
-        real_output = - input.gather(1, target) * mask_
-        real_output = torch.sum(real_output) / torch.sum(mask_)
+        output = - input.gather(1, preds) * mask * smooth_target
+        if torch.sum(smooth_target * mask).data[0] > 0:
+            output = torch.sum(output) / torch.sum(smooth_target * mask)
+        else:
+            self.logger.warn("Smooth targets weights sum to 0")
+            output = torch.sum(output)
 
-        #-------------------------------------------------------
-        if self.alpha > 0:
-            dist = self.Dist[target.squeeze().data]
-            elif self.version == 'glove-cider':
-                cider_scorer = CiderScorer(n=4, sigma=6)
-                preds = torch.max(input_, dim=2)[1].squeeze().cpu().data
-                hypo = decode_sequence(self.loader_vocab, preds)  # candidate
-                refs = decode_sequence(self.loader_vocab, target_.data)  # references
-                num_img = target_.size(0) // self.seq_per_img
-                for e, h in enumerate(hypo):
-                    ix_start =  e // self.seq_per_img * self.seq_per_img
-                    ix_end = ix_start + 5  # self.seq_per_img
-                    cider_scorer += (h, refs[ix_start : ix_end])
-                (score, scores) = cider_scorer.compute_score()
-                self.logger.debug("CIDEr score: %s" %  str(scores))
-                #  scores = np.maximum(1 - np.repeat(scores, seq_length), 0)
-                scores = np.minimum(np.repeat(scores, seq_length), 1)
-                smooth_target = Variable(torch.from_numpy(scores).view(-1, 1)).cuda().float()
-                preds = Variable(preds[:, :input.size(1)]).cuda()
-                preds = to_contiguous(preds).view(-1, 1)
-                dist = self.Dist[preds.squeeze().data]
-                smooth_target_wl = torch.exp(torch.mul(torch.add(dist, -1.), 1/self.tau))
-                mask_wl = mask_.repeat(1, dist.size(1))
-                smooth_target = smooth_target.repeat(1, dist.size(1))
-                output_wl = - input * smooth_target_wl * mask_wl * smooth_target
-                norm = torch.sum(smooth_target_wl * mask_wl * smooth_target)
-                if norm.data[0] > 0:
-                    output = torch.sum(output_wl) / norm
-                else:
-                    self.logger.warn("Smooth targets weights sum to 0")
-                    output = torch.sum(output_wl)
-                return real_output, self.alpha * output + (1 - self.alpha) * real_output
-
-            elif self.version == 'cider':
-                cider_scorer = CiderScorer(n=4, sigma=6)
-                preds = torch.max(input_, dim=2)[1].squeeze().cpu().data
-                hypo = decode_sequence(self.loader_vocab, preds)  # candidate
-                refs = decode_sequence(self.loader_vocab, target_.data)  # references
-                num_img = target_.size(0) // self.seq_per_img
-                for e, h in enumerate(hypo):
-                    ix_start =  e // self.seq_per_img * self.seq_per_img
-                    ix_end = ix_start + 5  # self.seq_per_img
-                    cider_scorer += (h, refs[ix_start : ix_end])
-                (score, scores) = cider_scorer.compute_score()
-                self.logger.debug("CIDEr score: %s" %  str(scores))
-                #  scores = np.maximum(1 - np.repeat(scores, seq_length), 0)
-                scores = np.minimum(np.repeat(scores, seq_length), 1)
-                smooth_target = Variable(torch.from_numpy(scores).view(-1, 1)).cuda().float()
-                preds = Variable(preds[:, :input.size(1)]).cuda()
-                preds = to_contiguous(preds).view(-1, 1)
-                output = - input.gather(1, preds) * mask_ * smooth_target
-                if torch.sum(smooth_target * mask_).data[0] > 0:
-                    output = torch.sum(output) / torch.sum(smooth_target * mask_)
-                else:
-                    self.logger.warn("Smooth targets weights sum to 0")
-                    output = torch.sum(output)
-                return real_output, self.alpha * output + (1 - self.alpha) * real_output
-            elif self.version == 'glove-cider-exp':
-                cider_scorer = CiderScorer(n=4, sigma=6)
-                preds = torch.max(input_, dim=2)[1].squeeze().cpu().data
-                hypo = decode_sequence(self.loader_vocab, preds)  # candidate
-                refs = decode_sequence(self.loader_vocab, target_.data)  # references
-                num_img = target_.size(0) // self.seq_per_img
-                for e, h in enumerate(hypo):
-                    ix_start =  e // self.seq_per_img * self.seq_per_img
-                    ix_end = ix_start + 5  # self.seq_per_img
-                    cider_scorer += (h, refs[ix_start : ix_end])
-                (score, scores) = cider_scorer.compute_score()
-                self.logger.debug("CIDEr score: %s" %  str(scores))
-                scores = np.exp(np.array(scores) / self.tau_bis)
-                scores = np.repeat(scores, seq_length)
-                smooth_target = Variable(torch.from_numpy(scores).view(-1, 1)).cuda().float()
-                preds = Variable(preds[:, :input.size(1)]).cuda()
-                preds = to_contiguous(preds).view(-1, 1)
-
-                dist = self.Dist[preds.squeeze().data]
-                smooth_target_wl = torch.exp(torch.mul(torch.add(dist, -1.), 1/self.tau))
-                mask_wl = mask_.repeat(1, dist.size(1))
-                smooth_target = smooth_target.repeat(1, dist.size(1))
-                output_wl = - input * smooth_target_wl * mask_wl * smooth_target
-                norm = torch.sum(smooth_target_wl * mask_wl * smooth_target)
-                if norm.data[0] > 0:
-                    output = torch.sum(output_wl) / norm
-                else:
-                    self.logger.warn("Smooth targets weights sum to 0")
-                    output = torch.sum(output_wl)
-                return real_output, self.alpha * output + (1 - self.alpha) * real_output
-
-            elif self.version == 'cider-exp':
-                cider_scorer = CiderScorer(n=4, sigma=6)
-                preds = torch.max(input_, dim=2)[1].squeeze().cpu().data
-                hypo = decode_sequence(self.loader_vocab, preds)  # candidate
-                refs = decode_sequence(self.loader_vocab, target_.data)  # references
-                num_img = target_.size(0) // self.seq_per_img
-                for e, h in enumerate(hypo):
-                    ix_start = e // self.seq_per_img * self.seq_per_img
-                    ix_end = ix_start + 5  # self.seq_per_img
-                    cider_scorer += (h, refs[ix_start : ix_end])
-                (score, scores) = cider_scorer.compute_score()
-                self.logger.debug("CIDEr score: %s" %  str(scores))
-                scores = np.exp(np.array(scores) / self.tau)
-                scores = np.repeat(scores, seq_length)
-                smooth_target = Variable(torch.from_numpy(scores).view(-1, 1)).cuda().float()
-                preds = Variable(preds[:, :input.size(1)]).cuda()
-                preds = to_contiguous(preds).view(-1, 1)
-                output = - input.gather(1, preds) * mask_ * smooth_target
-                if torch.sum(smooth_target * mask_).data[0] > 0:
-                    output = torch.sum(output) / torch.sum(smooth_target * mask_)
-                else:
-                    self.logger.warn("Smooth targets weights sum to 0")
-                    output = torch.sum(output)
-                return real_output, self.alpha * output + (1 - self.alpha) * real_output
-
-            elif self.version == 'infersent':
-                preds = torch.max(input_, dim=2)[1].squeeze().cpu().data
-                hypo = decode_sequence(self.loader_vocab, preds)  # candidate
-                refs = decode_sequence(self.loader_vocab, target_.data)  # references
-                num_img = target_.size(0) // self.seq_per_img
-                scores = []
-                lr = len(refs)
-                codes = self.infersent.encode(refs + hypo)
-                refs = codes[:lr]
-                hypo = codes[lr:]
-                for e, h in enumerate(hypo):
-                    ix_start =  e // self.seq_per_img * self.seq_per_img
-                    ix_end = ix_start + 5  # self.seq_per_img
-                    scores.append(group_similarity(h, refs[ix_start : ix_end]))
-                self.logger.debug("Infersent similairities: %s" %  str(scores))
-                #  scores = np.maximum(1 - np.repeat(scores, seq_length), 0)
-                scores = np.repeat(np.exp(np.array(scores)/ self.tau), seq_length)
-                print('Scaling with', scores)
-                smooth_target = Variable(torch.from_numpy(scores).view(-1, 1)).cuda().float()
-                preds = Variable(preds[:, :input.size(1)]).cuda()
-                preds = to_contiguous(preds).view(-1, 1)
-                output = - input.gather(1, preds) * mask_ * smooth_target
-                if torch.sum(smooth_target * mask_).data[0] > 0:
-                    output = torch.sum(output) / torch.sum(smooth_target * mask_)
-                else:
-                    self.logger.warn("Smooth targets weights sum to 0")
-                    output = torch.sum(output)
-                return real_output, self.alpha * output + (1 - self.alpha) * real_output
-
-            elif "bleu" in self.version:
-                n = int(self.version[-1])
-                # bleu_scorer = BleuScorer(n=n)
-                preds = torch.max(input_, dim=2)[1].squeeze().cpu().data
-                hypo = decode_sequence(self.loader_vocab, preds)  # candidate
-                refs = decode_sequence(self.loader_vocab, target_.data)  # references
-                num_img = target_.size(0) // self.seq_per_img
-                scores = []
-                for e, h in enumerate(hypo):
-                    ix_start =  e // self.seq_per_img * self.seq_per_img
-                    ix_end = ix_start + 5  # self.seq_per_img
-                    # bleu_scorer += (h, refs[ix_start : ix_end])
-                    scores.append(sentence_bleu(h, ' '.join(refs[ix_start: ix_end]), order=n))
-                # (score, scores) = bleu_scorer.compute_score()
-                # scores = scores[-1]
-                self.logger.debug("Bleu scores: %s" %  str(scores))
-                #  scores = np.maximum(1 - np.repeat(scores, seq_length), 0)
-                scores = np.minimum(np.repeat(scores, seq_length), 1)
-                smooth_target = Variable(torch.from_numpy(scores).view(-1, 1)).cuda().float()
-                preds = Variable(preds[:, :input.size(1)]).cuda()
-                preds = to_contiguous(preds).view(-1, 1)
-                output = - input.gather(1, preds) * mask_ * smooth_target
-                if torch.sum(smooth_target * mask_).data[0] > 0:
-                    output = torch.sum(output) / torch.sum(smooth_target * mask_)
-                else:
-                    self.logger.warn("Smooth targets weights sum to 0")
-                    output = torch.sum(output)
-                return real_output, self.alpha * output + (1 - self.alpha) * real_output
-
-            elif self.version == 'hamming': # here sampling with p instead of the reward q
-                preds = torch.max(input_, dim=2)[1].squeeze().cpu().data
-                refs =  target_.cpu().data.numpy()
-                num_img = target_.size(0) // self.seq_per_img
-                # Hamming distances
-                scores = np.array([hamming(u, v) for u, v in zip(preds.numpy(), refs)])
-                #  scores = np.maximum(1 - np.repeat(scores, seq_length), 0)
-                scores = np.exp(-1 * scores / self.tau)
-                self.logger.debug("exp-neg Hamming distances: %s" %  str(scores))
-
-                scores = np.repeat(scores, seq_length)
-                smooth_target = Variable(torch.from_numpy(scores).view(-1, 1)).cuda().float()
-                preds = Variable(preds[:, :input.size(1)]).cuda()
-                preds = to_contiguous(preds).view(-1, 1)
-                #  output = - input.gather(1, target) * mask * smooth_target
-                output = - input.gather(1, preds) * mask_ * smooth_target
-
-                if torch.sum(smooth_target * mask_).data[0] > 0:
-                    output = torch.sum(output) / torch.sum(smooth_target * mask_)
-                else:
-                    self.logger.warn("Smooth targets weights sum to 0")
-                    output = torch.sum(output)
-                return real_output, self.alpha * output + (1 - self.alpha) * real_output
-
-            elif self.version == 'glove-hamming': # here sampling with p instead of the reward q
-                preds = torch.max(input_, dim=2)[1].squeeze().cpu().data
-                refs =  target_.cpu().data.numpy()
-                num_img = target_.size(0) // self.seq_per_img
-                # Hamming distances
-                scores = np.array([hamming(u, v) for u, v in zip(preds.numpy(), refs)])
-                #  scores = np.maximum(1 - np.repeat(scores, seq_length), 0)
-                scores = np.exp(-1 * scores / self.tau_bis)
-                self.logger.debug("exp-neg Hamming distances: %s" %  str(scores))
-
-                scores = np.repeat(scores, seq_length)
-                smooth_target = Variable(torch.from_numpy(scores).view(-1, 1)).cuda().float()
-                preds = Variable(preds[:, :input.size(1)]).cuda()
-                preds = to_contiguous(preds).view(-1, 1)
-
-                #  output = - input.gather(1, target) * mask * smooth_target
-
-                dist = self.Dist[preds.squeeze().data]
-                smooth_target_wl = torch.exp(torch.mul(torch.add(dist, -1.), 1/self.tau))
-                mask_wl = mask_.repeat(1, dist.size(1))
-                smooth_target = smooth_target.repeat(1, dist.size(1))
-                output_wl = - input * smooth_target_wl * mask_wl * smooth_target
-                norm = torch.sum(smooth_target_wl * mask_wl * smooth_target)
-                if norm.data[0] > 0:
-                    output = torch.sum(output_wl) / norm
-                else:
-                    self.logger.warn("Smooth targets weights sum to 0")
-                    output = torch.sum(output_wl)
-
-                return real_output, self.alpha * output + (1 - self.alpha) * real_output
-
-            elif self.version == 'hamming-sample':
-                # Sample a distance:
-                V = 30
-                N = input_.size(0)
-                distrib = [binom(seq_length, e) *
-                           ((V-1) * math.exp(-1/self.tau))**(e-seq_length)
-                           for e in range(seq_length+1)]
-                select = np.random.choice(a=np.arange(seq_length+1),
-                                          p=distrib/sum(distrib))
-                score = math.exp(-select / self.tau)
-                self.logger.debug("exp-neg Hamming distances (d=%d): %.2e" %
-                                  (select, score))
-                scores = np.ones((N, seq_length), dtype="float32") * score
-                smooth_target = Variable(torch.from_numpy(scores).view(-1, 1)).cuda().float()
-                refs =  target_.cpu().data.numpy()
-                # Format preds by changing d=select tokens at random
-                preds = refs
-                change_index = np.random.randint(seq_length, size=(N, select))
-                rows = np.arange(N).reshape(-1, 1).repeat(select, axis=1)
-                select_index = np.random.randint(self.vocab_size, size=(N, select))
-                preds[rows, change_index] = select_index
-                preds = Variable(torch.from_numpy(preds)).cuda()
-                preds = to_contiguous(preds).view(-1, 1)
-                #  output = - input.gather(1, target) * mask * smooth_target
-                output = - input.gather(1, preds) * mask_ * smooth_target
-
-                if torch.sum(smooth_target * mask_).data[0] > 0:
-                    output = torch.sum(output) / torch.sum(smooth_target * mask_)
-                else:
-                    self.logger.warn("Smooth targets weights sum to 0")
-                    output = torch.sum(output)
-                return real_output, self.alpha * output + (1 - self.alpha) * real_output
+        return ml_output, self.alpha * output + (1 - self.alpha) * ml_output
 
 
-#  class LanguageModelCriterion(nn.Module):
-#      def __init__(self, use_syn):
-#          super(LanguageModelCriterion, self).__init__()
-#          self.use_syn = use_syn
-#
-#      def forward(self, input, target, syntarget, mask):
-#          # truncate to the same size
-#          input_ = input
-#          target = target[:, :input.size(1)]
-#          mask =  mask[:, :input.size(1)]
-#          input = to_contiguous(input).view(-1, input.size(2))
-#          target = to_contiguous(target).view(-1, 1)
-#          mask = to_contiguous(mask).view(-1, 1)
-#          output = - input.gather(1, target) * mask
-#          output = torch.sum(output) / torch.sum(mask)
-#          if self.use_syn:
-#              syntarget = syntarget[:, :input_.size(1)]
-#              syntarget = to_contiguous(syntarget).view(-1, 1)
-#              synoutput = - input.gather(1, syntarget) * mask
-#              synoutput = torch.sum(synoutput) / torch.sum(mask)
-#          else:
-#              synoutput = 0
-#          return (1 - self.use_syn) * output + self.use_syn * synoutput
+class WordSentSmoothCriterion(nn.Module):
+    """
+    Combine a word level smothing with sentence scores
+    """
+    def __init__(self, opt):
+        nn.Module.__init__(self)
+        self.logger = opt.logger
+        self.seq_per_img = opt.seq_per_img
+        self.version = opt.loss_version
+        self.scale_loss = opt.scale_loss
+        self.clip_sim = opt.clip_sim
+        if self.clip_sim:
+            self.margin = opt.margin
+            self.logger.warn('Clipping similarities below %.2f' % self.margin)
+        self.limited = opt.limited_vocab_sim
+        # the final loss is (1-alpha) ML + alpha * RewardLoss
+        self.alpha = opt.alpha
+        assert self.alpha > 0, 'set alpha to a nonzero value, otherwise use the default loss'
+        self.tau_sent = opt.tau_sent
+        self.tau_word = opt.tau_word
+        # Load the similarity matrix:
+        M = pickle.load(open(opt.similarity_matrix, 'rb'), encoding='iso-8859-1')
+        M = M.astype(np.float32)
+        n, d = M.shape
+        assert n == d and n == opt.vocab_size, \
+                'Similarity matrix has incompatible shape %d x %d \
+                whilst vocab size is %d' % (n, d, opt.vocab_size)
+        M = Variable(torch.from_numpy(M)).cuda()
+        self.Sim_Matrix = M
 
+    def forward(self, input, target, mask, scores=None):
+        # truncate
+        seq_length = input.size(1)
+        target = target[:, :seq_length]
+        mask = mask[:, :seq_length]
+        if self.scale_loss:
+            row_scores = scores.repeat(1, seq_length)
+            mask = torch.mul(mask, row_scores)
+        ml_output = get_ml_loss(input, target, mask)
+        # Sentence level
+        preds = torch.max(input, dim=2)[1].squeeze().cpu().data
+        sent_scores = self.get_scores(preds, target)
+        # Process scores:
+        if self.tau_sent:
+            sent_scores = np.exp(np.array(sent_scores) / self.tau_sent)
+        else:
+            sent_scores = np.array(sent_scores)
+            if not np.sum(sent_scores):
+                self.logger.warn('Adding +1 to the zero scores')
+                sent_scores += 1
+
+        # sent_scores from (N, 1) to (N, seq_length)
+        self.logger.warn('Scores after processing: %s' % str(sent_scores))
+        sent_scores = np.repeat(sent_scores, seq_length)
+        smooth_target = Variable(torch.from_numpy(sent_scores).view(-1, 1)).cuda().float()
+
+        # Word level
+        preds = Variable(preds[:, :input.size(1)]).cuda()
+        preds = to_contiguous(preds).view(-1, 1)
+        sim = self.Sim_Matrix[preds.squeeze().data]
+        if self.tau_word:
+            smooth_target_wl = torch.exp(torch.mul(torch.add(sim, -1.), 1/self.tau_word))
+        else:
+            smooth_target_wl = torch.add(sim, -1.)
+
+        mask_wl = mask.repeat(1, sim.size(1))
+        # format the sentence scores
+        smooth_target = smooth_target.repeat(1, sim.size(1))
+        output_wl = - input * smooth_target_wl * mask_wl * smooth_target
+        norm = torch.sum(smooth_target_wl * mask_wl * smooth_target)
+        if norm.data[0] > 0:
+            output = torch.sum(output_wl) / norm
+        else:
+            self.logger.warn("Smooth targets weights sum to 0")
+            output = torch.sum(output_wl)
+        return ml_output, self.alpha * output + (1 - self.alpha) * ml_output
+
+
+class CiderRewardCriterion(SentSmoothCriterion, WordSentSmoothCriterion):
+    def __init__(self, opt, vocab):
+        if 'word' in opt.loss_version:
+            WordSentSmoothCriterion.__init__(self, opt)
+        else:
+            SentSmoothCriterion.__init__(self, opt)
+        self.vocab = vocab
+
+    def get_scores(self, preds, target):
+        # The reward loss:
+        cider_scorer = CiderScorer(n=4, sigma=6)
+        # Go to sentence space to compute scores:
+        hypo = decode_sequence(self.vocab, preds)  # candidate
+        refs = decode_sequence(self.vocab, target.data)  # references
+        num_img = target.size(0) // self.seq_per_img
+        for e, h in enumerate(hypo):
+            ix_start =  e // self.seq_per_img * self.seq_per_img
+            ix_end = ix_start + 5  # self.seq_per_img
+            cider_scorer += (h, refs[ix_start : ix_end])
+        (score, scores) = cider_scorer.compute_score()
+        self.logger.debug("CIDEr score: %s" %  str(scores))
+        return scores
+
+    # def forward(self, input, target, mask, scores=None):
+        # print('In:', input.size(), 'traget:', target.size(),
+              # 'mask:', mask.size(), "scores:", scores)
+        # return SentSmoothCriterion.forward(input, target, mask, scores)
+
+
+class BleuRewardCriterion(SentSmoothCriterion, WordSentSmoothCriterion):
+    def __init__(self, opt, vocab):
+        if 'word' in opt.loss_version:
+            WordSentSmoothCriterion.__init__(self, opt)
+        else:
+            SentSmoothCriterion.__init__(self, opt)
+        self.vocab = vocab
+        self.bleu_order = int(self.version[-1])
+        self.bleu_scorer = opt.bleu_version
+        assert self.bleu_scorer in ['coco', 'soft'], "Unknown bleu scorer %s" % self.bleu_scorer
+
+    def get_scores(self, preds, target):
+        if self.bleu_scorer == 'coco':
+            bleu_scorer = BleuScorer(n=self.bleu_order)
+            coco = True
+        else:
+            coco = False
+            scores = []
+        # Go to sentence space to compute scores:
+        hypo = decode_sequence(self.vocab, preds)  # candidate
+        refs = decode_sequence(self.vocab, target.data)  # references
+        num_img = target.size(0) // self.seq_per_img
+        for e, h in enumerate(hypo):
+            ix_start =  e // self.seq_per_img * self.seq_per_img
+            ix_end = ix_start + 5  # self.seq_per_img
+            if coco:
+                bleu_scorer += (h, refs[ix_start : ix_end])
+            else:
+                scores.append(sentence_bleu(h, ' '.join(refs[ix_start: ix_end]),
+                                            order=self.bleu_order))
+        if coco:
+            (score, scores) = bleu_scorer.compute_score()
+            scores = scores[-1]
+        self.logger.debug("Bleu scores: %s" %  str(scores))
+        return scores
+
+
+class InfersentRewardCriterion(SentSmoothCriterion, WordSentSmoothCriterion):
+    def __init__(self, opt, vocab):
+        if 'word' in opt.loss_version:
+            WordSentSmoothCriterion.__init__(self, opt)
+        else:
+            SentSmoothCriterion.__init__(self, opt)
+        self.vocab = vocab
+        self.logger.info('loading the infersent pretrained model')
+        glove_path = '../infersent/dataset/glove/glove.840b.300d.txt'
+        self.infersent = torch.load('../infersent/infersent.allnli.pickle',
+                                    map_location=lambda storage, loc: storage)
+        self.infersent.set_glove_path(glove_path)
+        self.infersent.build_vocab_k_words(k=100000)
+        # freeze infersent params:
+        for p in self.infersent.parameters():
+            p.requires_grad = false
+
+    def get_scores(self, preds, target):
+        hypo = decode_sequence(self.vocab, preds)  # candidate
+        refs = decode_sequence(self.vocab, target.data)  # references
+        num_img = target.size(0) // self.seq_per_img
+        scores = []
+        lr = len(refs)
+        codes = self.infersent.encode(refs + hypo)
+        refs = codes[:lr]
+        hypo = codes[lr:]
+        for e, h in enumerate(hypo):
+            ix_start =  e // self.seq_per_img * self.seq_per_img
+            ix_end = ix_start + 5  # self.seq_per_img
+            scores.append(group_similarity(h, refs[ix_start : ix_end]))
+        self.logger.debug("infersent similairities: %s" %  str(scores))
+        return scores
+
+
+class HammingRewardCriterion(SentSmoothCriterion, WordSentSmoothCriterion):
+    def __init__(self, opt):
+        if 'word' in opt.loss_version:
+            WordSentSmoothCriterion.__init__(self, opt)
+        else:
+            SentSmoothCriterion.__init__(self, opt)
+
+    def get_scores(self, preds, target):
+        refs =  target.cpu().data.numpy()
+        num_img = target.size(0) // self.seq_per_img
+        # Hamming distances
+        scores = np.array([- hamming(u, v) for u, v in zip(preds.numpy(), refs)])
+        self.logger.debug("Negative hamming distances: %s" %  str(scores))
+        return scores
+
+
+class HammingRewardSampler(nn.Module):
+    """
+    Sampling the sentences wtr the reward distribution
+    instead of the captionig model itself
+    """
+    def __init__(self, opt):
+        super(HammingRewardSampler, self).__init__()
+        self.logger = opt.logger
+        # the final loss is (1-alpha) ML + alpha * RewardLoss
+        self.alpha = opt.alpha
+        assert self.alpha > 0, 'set alpha to a nonzero value, otherwise use the default loss'
+        self.tau = opt.tau_sent
+        self.scale_loss = opt.scale_loss
+
+    def forward(self, input, target, mask, scores=None):
+        # truncate
+        N = input.size(0)
+        seq_length = input.size(1)
+        target = target[:, :seq_length]
+        mask = mask[:, :seq_length]
+        if self.scale_loss:
+            row_scores = scores.repeat(1, seq_length)
+            mask = torch.mul(mask, row_scores)
+        ml_output = get_ml_loss(input, target, mask)
+        # Sample a distance then sample a prediction wrt the reward
+        V = 30
+        distrib = [binom(seq_length, e) *
+                   ((V-1) * math.exp(-1/self.tau))**(e-seq_length)
+                   for e in range(seq_length+1)]
+        select = np.random.choice(a=np.arange(seq_length+1),
+                                  p=distrib/sum(distrib))
+        score = math.exp(-select / self.tau)
+        self.logger.debug("exp-neg Hamming distances (d=%d): %.2e" %
+                          (select, score))
+        scores = np.ones((N, seq_length), dtype="float32") * score
+        smooth_target = Variable(torch.from_numpy(scores).view(-1, 1)).cuda().float()
+        refs = target.cpu().data.numpy()
+        # Format preds by changing d=select tokens at random
+        preds = refs
+        change_index = np.random.randint(seq_length, size=(N, select))
+        rows = np.arange(N).reshape(-1, 1).repeat(select, axis=1)
+        select_index = np.random.randint(self.vocab_size, size=(N, select))
+        preds[rows, change_index] = select_index
+        preds = Variable(torch.from_numpy(preds)).cuda()
+        preds = to_contiguous(preds).view(-1, 1)
+        output = - input.gather(1, preds) * mask * smooth_target
+        if torch.sum(smooth_target * mask).data[0] > 0:
+            output = torch.sum(output) / torch.sum(smooth_target * mask)
+        else:
+            self.logger.warn("Smooth targets weights sum to 0")
+            output = torch.sum(output)
+        return ml_output, self.alpha * output + (1 - self.alpha) * ml_output
 
 
 class MultiLanguageModelCriterion(nn.Module):
@@ -538,105 +480,65 @@ class MultiLanguageModelCriterion(nn.Module):
         return real_output, output
 
 
-
-class ImportanceLanguageModelCriterion(nn.Module):
+class DataAugmentedCriterion(nn.Module):
+    """
+    Treat the augmented captions separately
+    """
     def __init__(self, opt):
-        super(ImportanceLanguageModelCriterion, self).__init__()
+        super(DataAugmentedCriterion, self).__init__()
         self.opt = opt
-        self.alpha = opt.raml_alpha
-
-    def forward(self, input, target, mask, sampling_ratios):
-        # truncate to the same size
-        ratios = sampling_ratios
-        sampling_ratios = sampling_ratios.repeat(1, input.size(1))
-        # self.opt.logger.debug('Importance scores shaped:', sampling_ratios)
-        target = target[:, :input.size(1)]
-        mask = mask[:, :input.size(1)]
-        # print('Updated mask:', mask_)
-        input = to_contiguous(input).view(-1, input.size(2))
-        target = to_contiguous(target).view(-1, 1)
-        mask = to_contiguous(mask).view(-1, 1)
-        real_output = - input.gather(1, target) * mask
-        real_output = torch.sum(real_output) / torch.sum(mask)
-        output = - input.gather(1, target) * mask * sampling_ratios
-        if torch.sum(mask).data[0] > 0 and torch.sum(ratios).data[0] > 0:
-            # self.opt.logger.debug('output without avg %s' % str(torch.sum(output).data))
-            output = torch.sum(output) / torch.sum(mask) / torch.sum(ratios)
-            self.opt.logger.warn('Avergaging over the sampling scores and the seq length')
-        else:
-            self.opt.logger.warn("Smooth targets weights sum to 0")
-            output = torch.sum(output)
-            print('WARNING: Output loss without averaging:', output.data[0])
-            output = real_output
-
-        return real_output, self.alpha * output + (1 - self.alpha) * real_output
-
-
-class ImportanceLanguageModelCriterion_v2(nn.Module):
-    def __init__(self, opt, Dist):
-        super(ImportanceLanguageModelCriterion_v2, self).__init__()
-        self.opt = opt
-        self.alpha = opt.raml_alpha
+        self.alpha = opt.alpha
         self.seq_per_img = opt.seq_per_img
-        self.word_level = opt.add_word_level
-        self.tau = opt.raml_tau
-        if self.word_level:
-            self.Dist = Dist
+        # The GT loss
+        if opt.gt_loss_version == 'word':
+            self.crit_gt = WordSmoothCriterion(opt)
+            # pure smoothed loss
+            self.crit_gt.alpha = 1
+        else:
+            # The usual ML
+            self.crit_gt = LanguageModelCriterion(opt)
+            # Ensure loss scaling with the imprtance sampling ratios
+            self.crit_gt.scale_loss = 0
 
-    def forward(self, input, target, mask, sampling_ratios):
+        # The augmented loss
+        if opt.augmented_loss_version == 'word':
+            self.crit_augmented = WordSmoothCriterion(opt)
+            # pure smoothed loss
+            self.crit_augmented.alpha = 1
+        else:
+            # The usual ML
+            self.crit_augmented = LanguageModelCriterion(opt)
+            # Ensure loss scaling with the imprtance sampling ratios
+            self.crit_augmented.scale_loss = 1
+
+    def forward(self, input, target, mask, scores):
         seq_length = input.size(1)
         batch_size = input.size(0)
+        # truncate
         target = target[:, :seq_length]
         mask = mask[:, :seq_length]
+        # Separate gold from augmented
         num_img = batch_size // self.seq_per_img
         input_per_image = input.chunk(num_img)
         mask_per_image = mask.chunk(num_img)
         target_per_image = target.chunk(num_img)
-        ratios_per_image = sampling_ratios.chunk(num_img)
+        scores_per_image = scores.chunk(num_img)
+
         input_gt = torch.cat([t[:5] for t in input_per_image], dim=0)
         target_gt = torch.cat([t[:5] for t in target_per_image], dim=0)
-        mask_gt = torch.cat([t[:5] for t in mask_per_image],dim=0)
+        mask_gt = torch.cat([t[:5] for t in mask_per_image], dim=0)
 
         input_gen = torch.cat([t[5:] for t in input_per_image], dim=0)
         target_gen = torch.cat([t[5:] for t in target_per_image], dim=0)
         mask_gen = torch.cat([t[5:] for t in mask_per_image], dim=0)
-        ratios_gen = torch.cat([t[5:] for t in ratios_per_image], dim=0)
-        # print('Ratios GEN:', ratios_gen)
+        scores_gen = torch.cat([t[5:] for t in scores_per_image], dim=0)
 
         # For the first 5 captions per image (gt) compute LM
-        input_gt = to_contiguous(input_gt).view(-1, input_gt.size(2))
-        target_gt = to_contiguous(target_gt).view(-1, 1)
-        mask_gt = to_contiguous(mask_gt).view(-1, 1)
-        output_gt = - input_gt.gather(1, target_gt) * mask_gt
-        output_gt = torch.sum(output_gt) / torch.sum(mask_gt)
+        _, output_gt = self.crit_gt(input_gt, target_gt, mask_gt)
 
         # For the rest of the captions: importance sampling
-
-        # truncate to the same size
-        sampling_ratios = ratios_gen.repeat(1, input_gen.size(1))
-        input_gen = to_contiguous(input_gen).view(-1, input_gen.size(2))
-        target_gen = to_contiguous(target_gen).view(-1, 1)
-        mask_gen = to_contiguous(mask_gen).view(-1, 1)
-        if self.word_level:
-            dist = self.Dist[target_gen.squeeze().data]
-            smooth_target = torch.exp(torch.mul(torch.add(dist, -1.), 1/self.tau))
-            mask_wl = mask_gen.repeat(1, dist.size(1))
-            sampling_ratios_wl = sampling_ratios.view(-1,1).repeat(1, dist.size(1))
-            output_wl = - input_gen * smooth_target * mask_wl * sampling_ratios_wl
-            if torch.sum(smooth_target * mask_wl * sampling_ratios_wl).data[0] > 0:
-                output_gen = torch.sum(output_wl) / torch.sum(smooth_target * mask_wl * sampling_ratios_wl)
-            else:
-                self.logger.warn("Smooth targets weights sum to 0")
-                output_gen = torch.sum(output_wl)
-        else:
-            output_gen = - input_gen.gather(1, target_gen) * mask_gen * sampling_ratios
-            if torch.sum(mask_gen).data[0] > 0 and torch.sum(ratios_gen).data[0] > 0:
-                # self.opt.logger.debug('output without avg %s' % str(torch.sum(output).data))
-                output_gen = torch.sum(output_gen) / torch.sum(mask_gen) / torch.sum(ratios_gen)
-                self.opt.logger.warn('Avergaging over the sampling scores and the seq length')
-            else:
-                self.opt.logger.warn("Smooth targets weights sum to 0")
-                output_gen = torch.sum(output_gen)
+        _, output_gen = self.crit_augmented(input_gen, target_gen, mask_gen, scores_gen)
+        # TODO check if must combine with ml augmented as well
         return output_gt, self.alpha * output_gen + (1 - self.alpha) * output_gt
 
 

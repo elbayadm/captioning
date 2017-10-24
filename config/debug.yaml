@@ -2,16 +2,14 @@
 # -------------------------
 modelname : debug
 cnn_model : resnet50
-caption_model : show_attend_tell
+caption_model : show_tell
 save_checkpoint_every : 4000
 fc_feat_size : 2048
 att_feat_size : 196
-attend_mode : product
 num_regions : 512
 rnn_size : 512
 batch_size : 10
-input_json : data/coco/cocotalk.json
-input_h5 : data/coco/cocotalk.h5
+input_data : data/coco/cocotalk
 restart : 1
 val_images_use : 10
 finetune_cnn_after : -1
@@ -19,3 +17,10 @@ learning_rate : 5e-4
 learning_rate_decay_start : 5
 learning_rate_decay_rate : 0.6
 learning_rate_decay_every: 3
+
+# Loss:
+ sample_cap: 1
+ loss_version : word-hamming
+ bleu_version: coco
+ tau_sent : 0.7
+ tau_word : 0.005

@@ -44,51 +44,58 @@ def create_logger(log_file=None, debug=True):
 def parse_opt():
     parser = configargparse.ArgParser()
     parser.add('-c', '--config', is_config_file=True, help='Config file path')
-    # Data input settings
+    parser.add('--modelname', type=str,
+               default='model1', help='directory to store checkpointed models')
+
+    parser.add('--caption_model', type=str,
+               default="show_tell", help='show_tell, show_attend_tell, attention, test_att, show_attend_tell_new')
+
+    # Running settings
+    # Gpu id if required (LIG servers)
     parser.add('--gpu_id', type=int,
                default=0)
-    parser.add('--input_json', type=str,
-               default='data/coco/cocotalk.json',
-               help='path to the json file containing additional info and vocab')
-    parser.add('--input_h5', type=str,
-               default='data/coco/cocotalk.h5',
-               help='path to the h5file containing the preprocessed dataset')
-    parser.add('--use_feature_maps', type=int,
-               default=1, help='use feature maps as context vectors otherwise (0) run with SSD')
-    parser.add('--smoothing_version', type=int,
-               default=1, help="between v=1, zeroing similarities below a margin or v=2 applying an rbf kernel")
+    # USeful with inria clusters
+    parser.add('--restart', type=int,
+               default=1, help='0: to override the existing model or 1: to pick up the training')
+    # When restarting or finetuning
+    parser.add('--start_from_best', type=int, default=0,
+               help="Whether to start from the best saved model (1) or the from the last checkpoint (0)")
+    # Model to finetune (if restart, the same variable is used to refer to the model itself)
+    parser.add('--start_from', type=str,
+               default=None, help="The directory of the initialization model, must contain model.pth (resp model-best.pth) \
+               the optimizer and the pickled infos")
+    # Data parameters:
+    parser.add('--input_data', type=str,
+               default='data/coco/cocotalk',
+               help='data filename, extension h5 & json will be needed')
+    parser.add('--train_only', type=int,
+               default=1, help='if true then use 80k, else use 110k')
+    parser.add('--upsampling_size', type=int,
+               default=300, help='upsampling size for MIL')
+    parser.add('--batch_size', type=int,
+               default=25, help='minibatch size')
+    parser.add('--seq_per_img', type=int,
+               default=5, help='number of captions to sample for each image during training')
+    parser.add('--fliplr', type=int, default=0,
+               help="Whether or not to add flipped image when generating the batch")
 
+    # CNN model parameters:
     parser.add('--cnn_model', type=str,
                default='resnet50', help='CNN branch')
     parser.add('--cnn_fc_feat', type=str,
                default='fc7', help='CNN branch')
     parser.add('--cnn_att_feat', type=str,
                default='pool5', help='CNN branch')
-    parser.add('--attend_mode', type=str,
-               default='concat', help='Concat, product: how to combine the hidden state with the region embedding to predict the weighing scales')
     parser.add('--cnn_weight', type=str,
                default='', help='path to CNN tf model. Note this MUST be a resnet right now.')
     parser.add('--pretrained_cnn', type=bool,
                default=True, help='Wheter or not to load cnn weights pretrained on imagenet')
-    parser.add('--restart', type=int,
-               default=1, help='0: to override the existing model or 1: to pick up the training')
-    parser.add('--start_from_best', type=int, default=0,
-               help="Whether to start from the best saved model (1) or the from the last checkpoint (0)")
 
-    parser.add('--start_from', type=str,
-               default=None,
-               help="""continue training from saved model at this path. Path must contain files saved by previous training process:
-                        'infos.pkl'         : configuration;
-                        'checkpoint'        : paths to model file(s) (created by tf).
-                                              Note: this file contains absolute paths, be careful when moving files around;
-                        'model.ckpt-*'      : file(s) with model definition (created by tf)
-                    """)
-    # Model settings
-    parser.add('--caption_model', type=str,
-               default="show_tell", help='show_tell, show_attend_tell, attention, test_att, show_attend_tell_new')
-    parser.add('--lm_model', type=str,
-               default="rnn", help='rnn, rnn_vae')
-
+    # Decoder parameters:
+    parser.add('--fc_feat_size', type=int,
+               default=2048, help='2048 for resnet, 4096 for vgg')
+    parser.add('--norm_feat', type=int,
+               default=1, help='whether or not to normalize (N2) the last cnn feature prior to the lienar layers')
     parser.add('--rnn_size', type=int,
                default=512, help='size of the rnn in number of hidden nodes in each layer')
     parser.add('--rnn_bias', type=int,
@@ -102,94 +109,87 @@ def parse_opt():
                default=512, help='the encoding size of each token in the vocabulary, and the image.')
     parser.add('--use_glove', type=int,
                default=0, help='whether or not to use glove embeddings.')
-    parser.add('--scale_loss', type=float,
-               default=0, help='if neq 0, be less confident in the added captions (used to scale down the loss)')
-
-    # RAML Loss params:
-    parser.add('--bootstrap_loss', type=int,
-               default=0, help='use bootstrap/importance sampling loss.')
-    parser.add('--bootstrap_version', type=str,
-               default="cider", help='Version of Bootstrap loss')
-    parser.add('--add_word_level', type=int,
-               default=0, help='Version of Bootstrap loss')
-
-    parser.add('--raml_loss', type=int,
-               default=0, help='use smooth loss via similar words.')
-    parser.add('--similarity_matrix', type=str,
-               default='data/Glove/cocotalk_similarities_v2.pkl', help='path to the pre-computed similarity matrix between the vocab words')
-    parser.add('--raml_version', type=str,
-               default="exp", help='Version of RAML loss between (clip) and (exp)')
-    parser.add('--raml_tau_bis', type=float,
-               default=0.8, help='Temperature for the rbf kernel')
-    parser.add('--raml_tau', type=float,
-               default=0.8, help='Temperature for the rbf kernel')
-    parser.add('--raml_tau_sample', type=float,
-               default=0.8, help='Temperature for the rbf kernel')
-    parser.add('--raml_margin', type=float,
-               default=0.9, help='clipping margin for the similarities')
-    parser.add('--raml_isolate', type=int,
-                default=0, help='Whether to treat the gt separately or not')
-    parser.add('--raml_alpha', type=float,
-               default=0.9, help='Weight accorded to the gt is isolated')
-    parser.add('--raml_alpha_increase_every', type=int,
-               default=2, help='step width')
-    parser.add('--raml_alpha_increase_factor', type=float,
-               default=0.1, help='increase factor when step')
-    parser.add('--raml_alpha_speed', type=float,
-               default=20000, help='alpha decreasing speed')
-    parser.add('--raml_alpha_strategy', type=str,
-               default="constant", help='Increase strategy')
-    parser.add('--raml_normalize', type=float,
-               default=0, help='Apply tempered softmax (exp version)')
-    #--------------------//RAML
-    parser.add('--upsampling_size', type=int,
-               default=300, help='upsampling size for MIL')
-    parser.add('--combine_caps_losses', type=int,
-               default=0, help='combine the loss of the captions relative to a single image.')
-    parser.add('--num_regions', type=int,
-               default=512, help='the hidden size of the attention MLP; only useful in show_attend_tell; 0 if not using hidden layer')
-    parser.add('--fc_feat_size', type=int,
-               default=2048, help='2048 for resnet, 4096 for vgg')
-    parser.add('--z_size', type=int,
-               default=100, help='VAE/CVAE latent variable size')
-    parser.add('--z_interm_size', type=int,
-               default=1000, help='intermediary layer between the input and the latent')
-    parser.add('--vae_nonlin', type=str,
-               default="sigmoid", help="Non-linearity applied to the input of the cvae")
-    parser.add('--vae_weight', type=float,
-               default=0.1, help="weight of the vae loss (recon + kld)")
-    parser.add('--kld_weight', type=float,
-               default=0, help="weight of the kld loss")
-    parser.add('--att_feat_size', type=int,
-               default=2048, help='2048 for resnet, 512 for vgg')
-    parser.add('--norm_feat', type=int,
-               default=1, help='whether or not to normalize (N2) the last cnn feature prior to the lienar layers')
-
-    # Optimization: General
-    parser.add('--max_epochs', type=int,
-               default=-1, help='number of epochs')
-    parser.add('--batch_size', type=int,
-               default=25, help='minibatch size')
-    parser.add('--grad_clip', type=float,
-               default=0.1, help='clip gradients at this value')
     parser.add('--drop_x_lm', type=float,
                default=0.5, help='strength of dropout in the Language Model RNN input')
     parser.add('--drop_prob_lm', type=float,
                default=0.5, help='strength of dropout in the Language Model RNN')
+
+    # Special for atention
+    parser.add('--attend_mode', type=str,
+               default='concat', help='Concat, product: how to combine the hidden state with the region embedding to predict the weighing scales')
+    parser.add('--num_regions', type=int,
+               default=512, help='the hidden size of the attention MLP; only useful in show_attend_tell; 0 if not using hidden layer')
+    parser.add('--att_feat_size', type=int,
+               default=2048, help='2048 for resnet, 512 for vgg')
+
+    # Loss parameters:
+    parser.add('--scale_loss', type=float,
+               default=0, help='if neq 0, each sentence loss will be scaled by a score')
+    ## Importance sampling:
+    parser.add('--bootstrap', type=int,
+               default=0, help='use bootstrap/importance sampling loss.')
+    parser.add('--bootstrap_score', type=str,
+               default="cider", help='Version of Bootstrap loss')
+
+    parser.add('--gt_loss_version', type=str,
+               default="ml", help='Separate loss for the gold caps')
+    parser.add('--augmented_loss_version', type=str,
+               default="ml", help='Separate loss for the augmented caps')
+
+    ## Smoothed loss
+    parser.add('--sample_cap', type=int,
+               default=0, help='use smooth loss with captining model sampling (sentence level) or word level smoothing')
+    parser.add('--similarity_matrix', type=str,
+               default='data/Glove/cocotalk_similarities_v2.pkl', help='path to the pre-computed similarity matrix between the vocab words')
+    parser.add('--loss_version', type=str,
+               default="word", help='Version of loss smoothing')
+    parser.add('--bleu_version', type=str,
+               default="soft", help='Version of bleu scorer to use: coco or soft')
+    parser.add('--tau_word', type=float,
+               default=0.005, help='Temperature for the rbf kernel applied to the words similarities')
+    parser.add('--tau_sent', type=float,
+               default=0.8, help='Temperature for the rbf kernel applied to the sentences scores')
+    parser.add('--clip_sim', type=int,
+               default=0, help='whether or not to clip the similarities')
+    parser.add('--limited_vocab_sim', type=int,
+               default=0, help='whether or not to clip the similarities')
+
+    parser.add('--margin', type=float,
+               default=0.9, help='clipping margin for the similarities')
+    parser.add('--alpha', type=float,
+               default=0.9, help='Scalar used to weight the losses')
+    ### Alpha scheme:
+    parser.add('--alpha_increase_every', type=int,
+               default=2, help='step width')
+    parser.add('--alpha_increase_factor', type=float,
+               default=0.1, help='increase factor when step')
+    parser.add('--alpha_speed', type=float,
+               default=20000, help='alpha decreasing speed')
+    parser.add('--alpha_strategy', type=str,
+               default="constant", help='Increase strategy')
+
+    # Optimization: General
+    parser.add('--max_epochs', type=int,
+               default=-1, help='number of epochs')
+    parser.add('--grad_clip', type=float,
+               default=0.1, help='clip gradients at this value')
     parser.add('--finetune_cnn_after', type=int,
                default=-1, help='After what epoch do we start finetuning the CNN? (-1 = disable; never finetune, 0 = finetune from start)')
     parser.add('--finetune_cnn_only', type=int,
                default=0, help="if 1, finetune the cnn only.")
-    parser.add('--seq_per_img', type=int,
-               default=5, help='number of captions to sample for each image during training. Done for efficiency since CNN forward pass is expensive. E.g. coco has 5 sents/image')
-    parser.add('--beam_size', type=int,
-               default=1, help='used when sample_max = 1, indicates number of beams in beam search. Usually 2 or 3 works well. More is not better. Set this to 1 for faster runtime but a bit worse performance.')
-    parser.add('--fliplr', type=int, default=0,
-               help="Whether or not to add flipped image when generating the batch")
-
-    #Optimization: for the Language Model
+    ## RNN optimizer
     parser.add('--optim', type=str,
                default='adam', help='what update to use? rmsprop|sgd|sgdmom|adagrad|adam')
+    parser.add('--optim_alpha', type=float,
+               default=0.8, help='alpha for adam')
+    parser.add('--optim_beta', type=float,
+               default=0.999, help='beta used for adam')
+    parser.add('--optim_epsilon', type=float,
+               default=1e-8, help='epsilon that goes into denominator for smoothing')
+    parser.add('--weight_decay', type=float,
+               default=0, help='main optimizer weight decay')
+
+    ## LR and its scheme
     parser.add('--learning_rate', type=float,
                default=4e-4, help='learning rate')
     parser.add('--learning_rate_decay_start', type=int,
@@ -202,85 +202,74 @@ def parse_opt():
                default=3, help='every how many iterations thereafter to drop LR?(in epoch)')
     parser.add('--learning_rate_decay_rate', type=float,
                default=0.8, help='every how many iterations thereafter to drop LR?(in epoch)')
-    parser.add('--optim_alpha', type=float,
-               default=0.8, help='alpha for adam')
-    parser.add('--optim_beta', type=float,
-               default=0.999, help='beta used for adam')
-    parser.add('--optim_epsilon', type=float,
-               default=1e-8, help='epsilon that goes into denominator for smoothing')
-    parser.add('--weight_decay', type=float,
-               default=0, help='main optimizer weight decay')
-    #Optimization: for the CNN
+
+    ## CNN optimizer
     parser.add('--cnn_optim', type=str,
                default='adam', help='optimization to use for CNN')
     parser.add('--cnn_optim_alpha', type=float,
                default=0.8, help='alpha for momentum of CNN')
     parser.add('--cnn_optim_beta', type=float,
                default=0.999, help='beta for momentum of CNN')
-    parser.add('--cnn_learning_rate', type=float,
-               default=0.1, help='learning rate for the CNN = factor * learning_rate')
     parser.add('--cnn_weight_decay', type=float,
                default=0, help='L2 weight decay just for the CNN')
-    parser.add('--scheduled_sampling_strategy', type=str,
-               default="step", help='the decay schedule')
-    parser.add('--match_pairs', type=int,
-               default=0, help='match senetences pairs')
 
+    ## CNN LR
+    parser.add('--cnn_learning_rate', type=float,
+               default=0.1, help='learning rate for the CNN = factor * learning_rate')
+
+
+    # Scheduled sampling parameters:
     parser.add('--scheduled_sampling_start', type=int,
                default=-1, help='at what iteration to start decay gt probability')
     parser.add('--scheduled_sampling_vocab', type=int,
                default=0, help='if 1 limits sampling to the gt vocab')
-
     parser.add('--scheduled_sampling_speed', type=int,
                default=100, help='ss speed')
-
     parser.add('--scheduled_sampling_increase_every', type=int,
                default=5, help='every how many iterations thereafter to gt probability')
     parser.add('--scheduled_sampling_increase_prob', type=float,
                default=0.05, help='How much to update the prob')
     parser.add('--scheduled_sampling_max_prob', type=float,
                default=0.25, help='Maximum scheduled sampling prob.')
+    parser.add('--scheduled_sampling_strategy', type=str,
+               default="step", help='the decay schedule')
+    parser.add('--match_pairs', type=int, #FIXME
+               default=0, help='match senetences pairs')
 
-
-    # Evaluation/Checkpointing
-    parser.add('--val_images_use', type=int,
-               default=-1, help='how many images to use when periodically evaluating the validation loss? (-1 = all)')
-    parser.add('--save_checkpoint_every', type=int,
-               default=4000, help='how often to save a model checkpoint (in iterations)?')
-    parser.add('--modelname', type=str,
-               default='model1', help='directory to store checkpointed models')
-    parser.add('--language_eval', type=int,
-               default=1, help='Evaluate language as well (1 = yes, 0 = no)? BLEU/CIDEr/METEOR/ROUGE_L? requires coco-caption code from Github.')
+    # Evaluation and Checkpointing
     parser.add('--forbid_unk', type=int,
                default=1, help='Do not generate UNK tokens when evaluating')
-
+    parser.add('--beam_size', type=int,
+               default=1, help='used when sample_max = 1, indicates number of beams in beam search')
+    parser.add('--val_images_use', type=int,
+               default=-1, help='how many images to use when evaluating (-1 = all)')
+    parser.add('--save_checkpoint_every', type=int,
+               default=4000, help='how often to save a model checkpoint (in iterations)?')
+    parser.add('--language_eval', type=int,
+               default=1, help='Evaluate performance scores (CIDEr, Bleu...)')
     parser.add('--losses_log_every', type=int,
-               default=25, help='How often do we snapshot losses, for inclusion in the progress dump? (0 = disable)')
+               default=25, help='How often do we snapshot')
     parser.add('--load_best_score', type=int,
                default=1, help='Do we load previous best score when resuming training.')
+    # UNTESTED #TODO
+    # Use loss combining among the captions of the same image
+    parser.add('--combine_caps_losses', type=int,
+               default=0, help='combine the loss of the captions relative to a single image.')
 
-    # misc
-    parser.add('--id', type=str,
-               default='', help='an id identifying this run/job. used in cross-val and appended when writing progress files')
-    parser.add('--train_only', type=int,
-               default=1, help='if true then use 80k, else use 110k')
+    # VAE model
+    parser.add('--z_size', type=int,
+               default=100, help='VAE/CVAE latent variable size')
+    parser.add('--z_interm_size', type=int,
+               default=1000, help='intermediary layer between the input and the latent')
+    parser.add('--vae_nonlin', type=str,
+               default="sigmoid", help="Non-linearity applied to the input of the cvae")
+    parser.add('--vae_weight', type=float,
+               default=0.1, help="weight of the vae loss (recon + kld)")
+    parser.add('--kld_weight', type=float,
+               default=0, help="weight of the kld loss")
 
     args = parser.parse_args()
 
-    # Check if args are valid
-    assert args.rnn_size > 0, "rnn_size should be greater than 0"
-    assert args.num_layers > 0, "num_layers should be greater than 0"
-    assert args.input_encoding_size > 0, "input_encoding_size should be greater than 0"
-    assert args.batch_size > 0, "batch_size should be greater than 0"
-    assert args.drop_prob_lm >= 0 and args.drop_prob_lm < 1, "drop_prob_lm should be between 0 and 1"
-    assert args.seq_per_img > 0, "seq_per_img should be greater than 0"
-    assert args.beam_size > 0, "beam_size should be greater than 0"
-    assert args.save_checkpoint_every > 0, "save_checkpoint_every should be greater than 0"
-    assert args.losses_log_every > 0, "losses_log_every should be greater than 0"
-    assert args.language_eval == 0 or args.language_eval == 1, "language_eval should be 0 or 1"
-    assert args.load_best_score == 0 or args.load_best_score == 1, "load_best_score should be 0 or 1"
-    assert args.train_only == 0 or args.train_only == 1, "train_only should be 0 or 1"
-    assert args.norm_feat == 0 or args.norm_feat == 1, "norm_feat should be 0 or 1"
     # mkdir the model save directory
     args.eventname = 'events/' + args.modelname
     args.modelname = 'save/' + args.modelname
@@ -289,74 +278,76 @@ def parse_opt():
         os.makedirs(args.eventname)
     if not os.path.exists(args.modelname):
         os.makedirs(args.modelname)
+    # Create the logger
     args.logger = create_logger('%s/train.log' % args.modelname)
     return args
 
 
+# FIXME
 def parse_eval_opt():
     # Input arguments and options
-    parser = argparse.ArgumentParser()
+    parser = configargparse.ArgParser()
     # Input paths
-    parser.add_argument('--model_path', type=str, default='',
+    parser.add('--model_path', type=str, default='',
                         help='path to model to evaluate')
-    parser.add_argument('--ensemblename', type=str, default='',
+    parser.add('--ensemblename', type=str, default='',
                         help='Enseble name if evaluating a finetuned ensemble')
-    parser.add_argument('--cnn_model_path', type=str, default='',
+    parser.add('--cnn_model_path', type=str, default='',
                         help='path to cnn model to evaluate')
-    parser.add_argument('--infos_path', type=str, default='',
+    parser.add('--infos_path', type=str, default='',
                         help='path to infos to evaluate')
-    parser.add_argument('--verbose', type=int, default=0,
+    parser.add('--verbose', type=int, default=0,
                         help='code verbosity')
     # Basic options
-    parser.add_argument('--batch_size', type=int, default=0,
+    parser.add('--batch_size', type=int, default=0,
                         help='if > 0 then overrule, otherwise load from checkpoint.')
-    parser.add_argument('--num_images', type=int, default=-1,
+    parser.add('--num_images', type=int, default=-1,
                         help='how many images to use when periodically evaluating the loss? (-1 = all)')
-    parser.add_argument('--language_eval', type=int, default=1,
+    parser.add('--language_eval', type=int, default=1,
                         help='Evaluate language as well (1 = yes, 0 = no)? BLEU/CIDEr/METEOR/ROUGE_L? requires coco-caption code from Github.')
-    parser.add_argument('--dump_images', type=int, default=0,
+    parser.add('--dump_images', type=int, default=0,
                         help='Dump images into vis/imgs folder for vis? (1=yes,0=no)')
-    parser.add_argument('--dump_json', type=int, default=1,
+    parser.add('--dump_json', type=int, default=1,
                         help='Dump json with predictions into vis folder? (1=yes,0=no)')
-    parser.add_argument('--output_json', type=str,
+    parser.add('--output_json', type=str,
                         help='json path')
-    parser.add_argument('--dump_path', type=int, default=0,
+    parser.add('--dump_path', type=int, default=0,
                         help='Write image paths along with predictions into vis json? (1=yes,0=no)')
     # Sampling options
-    parser.add_argument('--sample_max', type=int, default=1,
+    parser.add('--sample_max', type=int, default=1,
                         help='1 = sample argmax words. 0 = sample from distributions.')
-    parser.add_argument('--forbid_unk', type=int, default=1,
+    parser.add('--forbid_unk', type=int, default=1,
                         help='Forbid unk token generations.')
 
-    parser.add_argument('--beam_size', type=int, default=1,
+    parser.add('--beam_size', type=int, default=1,
                         help='used when sample_max = 1, indicates number of beams in beam search. Usually 2 or 3 works well. More is not better. Set this to 1 for faster runtime but a bit worse performance.')
-    parser.add_argument('--temperature', type=float, default=0.5,
+    parser.add('--temperature', type=float, default=0.5,
                         help='temperature when sampling from distributions (i.e. when sample_max = 0). Lower = "safer" predictions.')
     # For evaluation on a folder of images:
-    parser.add_argument('--image_folder', type=str, default='',
+    parser.add('--image_folder', type=str, default='',
                         help='If this is nonempty then will predict on the images in this folder path')
-    parser.add_argument('--image_list', type=str,
+    parser.add('--image_list', type=str,
                         help='List of image from folder')
-    parser.add_argument('--max_images', type=int, default=-1,
+    parser.add('--max_images', type=int, default=-1,
                         help='If not -1 limit the number of evaluated images')
 
-    parser.add_argument('--image_root', type=str, default='data/coco/images',
+    parser.add('--image_root', type=str, default='data/coco/images',
                         help='In case the image paths have to be preprended with a root path to an image folder')
     # For evaluation on MSCOCO images from some split:
-    parser.add_argument('--input_h5', type=str, default='',
+    parser.add('--input_h5', type=str, default='',
                         help='path to the h5file containing the preprocessed dataset')
-    parser.add_argument('--input_json', type=str, default='',
+    parser.add('--input_json', type=str, default='',
                         help='path to the json file containing additional info and vocab. empty = fetch from model checkpoint.')
-    parser.add_argument('--split', type=str, default='test',
+    parser.add('--split', type=str, default='test',
                         help='if running on MSCOCO images, which split to use: val|test|train')
-    parser.add_argument('--coco_json', type=str, default='',
+    parser.add('--coco_json', type=str, default='',
                         help='if nonempty then use this file in DataLoaderRaw (see docs there). Used only in MSCOCO test evaluation, where we have a specific json file of only test set images.')
     # misc
-    parser.add_argument('--id', type=str, default='evalscript',
+    parser.add('--id', type=str, default='evalscript',
                         help='an id identifying this run/job. used only if language_eval = 1 for appending to intermediate files')
-    parser.add_argument('--fliplr', type=int, default=0,
+    parser.add('--fliplr', type=int, default=0,
                         help='add flipped image')
-    parser.add_argument('--model', nargs="+",
+    parser.add('--model', nargs="+",
                         help='Model(s) to evaluate')
 
 
@@ -371,7 +362,7 @@ def parse_ens_opt():
     parser = configargparse.ArgParser()
     parser.add('-c', '--config', is_config_file=True, help='Config file path')
     # Data input settings
-    parser.add_argument('--model', nargs="+", action="append",
+    parser.add('--model', nargs="+", action="append",
                         help='Model(s) to evaluate')
 
     parser.add('--input_json', type=str,
@@ -427,15 +418,15 @@ def parse_ens_opt():
                default=0.9, help='clipping margin for the similarities')
     parser.add('--raml_isolate', type=int,
                 default=0, help='Whether to treat the gt separately or not')
-    parser.add('--raml_alpha', type=float,
+    parser.add('--alpha', type=float,
                default=0.9, help='Weight accorded to the gt is isolated')
-    parser.add('--raml_alpha_increase_every', type=int,
+    parser.add('--alpha_increase_every', type=int,
                default=2, help='step width')
-    parser.add('--raml_alpha_increase_factor', type=float,
+    parser.add('--alpha_increase_factor', type=float,
                default=0.1, help='increase factor when step')
-    parser.add('--raml_alpha_speed', type=float,
+    parser.add('--alpha_speed', type=float,
                default=20000, help='alpha decreasing speed')
-    parser.add('--raml_alpha_strategy', type=str,
+    parser.add('--alpha_strategy', type=str,
                default="constant", help='Increase strategy')
     parser.add('--raml_normalize', type=float,
                default=0, help='Apply tempered softmax (exp version)')

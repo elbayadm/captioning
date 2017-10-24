@@ -24,14 +24,14 @@ class textDataLoader(object):
         self.opt = opt
         self.batch_size = self.opt.batch_size
         # load the json file which contains additional information about the dataset
-        self.opt.logger.warn('DataLoader loading json file: %s' % opt.input_json)
-        self.info = json.load(open(self.opt.input_json))
+        self.opt.logger.warn('DataLoader loading json file: %s' % opt.input_data + '.json')
+        self.info = json.load(open(self.opt.input_data + '.json'))
         self.ix_to_word = self.info['ix_to_word']
         self.vocab_size = len(self.ix_to_word)
         self.opt.logger.warn('vocab size is %d ' % self.vocab_size)
         # open the hdf5 file
-        self.opt.logger.warn('DataLoader loading h5 file: %s' % opt.input_h5)
-        self.h5_file = h5py.File(self.opt.input_h5)
+        self.opt.logger.warn('DataLoader loading h5 file: %s' % opt.input_data + '.h5')
+        self.h5_file = h5py.File(self.opt.input_data + '.h5')
         # load in the sequence data
         seq_size = self.h5_file['labels'].shape
         self.seq_length = seq_size[1]
@@ -117,14 +117,14 @@ class DataLoader(object):
         #  self.load_syn = opt.use_synonyms
 
         # load the json file which contains additional information about the dataset
-        self.opt.logger.warn('DataLoader loading json file: %s' % opt.input_json)
-        self.info = json.load(open(self.opt.input_json))
+        self.opt.logger.warn('DataLoader loading json file: %s' % opt.input_data + '.json')
+        self.info = json.load(open(self.opt.input_data + '.json'))
         self.ix_to_word = self.info['ix_to_word']
         self.vocab_size = len(self.ix_to_word)
         self.opt.logger.warn('vocab size is %d ' % self.vocab_size)
         # open the hdf5 file
-        self.opt.logger.warn('DataLoader loading h5 file: %s' % opt.input_h5)
-        self.h5_file = h5py.File(self.opt.input_h5)
+        self.opt.logger.warn('DataLoader loading h5 file: %s' % opt.input_data + '.h5')
+        self.h5_file = h5py.File(self.opt.input_data + '.h5')
 
 
         # extract image size from dataset
@@ -247,9 +247,9 @@ class DataLoader(object):
                         infer[q] = self.h5_file['infersent'][ixl]
 
                     except:
-                        if self.opt.less_confident < 1 and self.opt.less_confident:
+                        if self.opt.scale_loss < 1 and self.opt.scale_loss:
                             if ixl - ix1 > 4:
-                                scores[q] = self.opt.less_confident
+                                scores[q] = self.opt.scale_loss
             else:
                 #  ixl = random.randint(ix1, ix2 - self.seq_per_img + 1)
                 ixl = ix1
@@ -266,8 +266,8 @@ class DataLoader(object):
                     bleus = np.ones([seq_per_img,], dtype='float32')
                     infer = np.ones([seq_per_img,], dtype='float32')
 
-                    if self.opt.less_confident < 1 and self.opt.less_confident:
-                        scores[5:] *= self.opt.less_confident
+                    if self.opt.scale_loss < 1 and self.opt.scale_loss:
+                        scores[5:] *= self.opt.scale_loss
                 #  print "Seq:", seq
                 #  if self.load_syn:
                 #      seq_syn = self.h5_file['labels_syn'][ixl: ixl + self.seq_per_img, :self.seq_length]

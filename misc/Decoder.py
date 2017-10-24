@@ -44,89 +44,77 @@ class DecoderModel(nn.Module):
                              % str(list(saved.keys())))
             self.load_state_dict(saved)
 
-    def define_loss(self, loader_vocab):
+    def define_loss(self, vocab):
         opt = self.opt
-        if opt.raml_loss:
-            # D = np.eye(opt.vocab_size + 1, dtype="float32")
-            # D = np.random.uniform(size=(opt.vocab_size + 1,
-                                        # opt.vocab_size + 1)).astype(np.float32)
-            # D = pickle.load(open('data/Glove/cocotalk_similarities_v2.pkl', 'rb'),
-                            # encoding='iso-8859-1')
-            D = pickle.load(open(opt.similarity_matrix, 'rb'), encoding='iso-8859-1')
-
-            D = D.astype(np.float32)
-            D = Variable(torch.from_numpy(D)).cuda()
-            crit = loss.SmoothLanguageModelCriterion(Dist=D,
-                                                      loader_vocab=loader_vocab,
-                                                      opt=opt)
-        elif opt.bootstrap_loss == 1:
-            # Using importance sampling loss:
-            crit = loss.ImportanceLanguageModelCriterion(opt)
-        elif opt.bootstrap_loss == 2:
-            # Using importance sampling loss:
-            if opt.add_word_level:
-                D = pickle.load(open(opt.similarity_matrix, 'rb'), encoding='iso-8859-1')
-                D = D.astype(np.float32)
-                D = Variable(torch.from_numpy(D)).cuda()
-            else:
-                D = None
-            crit = loss.ImportanceLanguageModelCriterion_v2(opt, Dist=D)
+        if opt.sample_cap:
+            # Sampling from the captioning model itself
+            if 'cider' in opt.loss_version:
+                crit = loss.CiderRewardCriterion(opt, vocab)
+            elif 'hamming' in opt.loss_version:
+                crit = loss.HammingRewardCriterion(opt)
+            elif 'infersent' in opt.loss_version:
+                crit = loss.InfersentRewardCriterion(opt, vocab)
+            elif 'bleu' in opt.loss_version:
+                crit = loss.BleuRewardCriterion(opt, vocab)
+            elif 'word' in opt.loss_version:
+                crit = loss.WordSmoothCriterion(opt)
+        elif opt.bootstrap:
+            crit = loss.DataAugmentedCriterion(opt)
         elif opt.combine_caps_losses:
             crit = loss.MultiLanguageModelCriterion(opt.seq_per_img)
         else:
+            # The defualt ML
             opt.logger.warn('Using baseline loss criterion')
             crit = loss.LanguageModelCriterion(opt)
         self.crit = crit
 
     def step(self, data, att_feats, fc_feats):
         opt = self.opt
-        if opt.bootstrap_loss:
-            if opt.bootstrap_version in ["cider", "cider-exp"]:
+        if opt.bootstrap:
+            if opt.bootstrap_score in ["cider", "cider-exp"]:
                 tmp = [data['labels'], data['masks'], data['scores'], data['cider']]
                 tmp = [Variable(torch.from_numpy(_), requires_grad=False).cuda() for _ in tmp]
                 labels, masks, scores, s_scores= tmp
 
-            elif opt.bootstrap_version in ["bleu4", "bleu4-exp"]:
+            elif opt.bootstrap_score in ["bleu4", "bleu4-exp"]:
                 tmp = [data['labels'], data['masks'], data['scores'], data['bleu']]
                 tmp = [Variable(torch.from_numpy(_), requires_grad=False).cuda() for _ in tmp]
                 labels, masks, scores, s_scores = tmp
-            elif opt.bootstrap_version in ["infersent", "infersent-exp"]:
+
+            elif opt.bootstrap_score in ["infersent", "infersent-exp"]:
                 tmp = [data['labels'], data['masks'], data['scores'], data['infersent']]
                 tmp = [Variable(torch.from_numpy(_), requires_grad=False).cuda() for _ in tmp]
                 labels, masks, scores, s_scores = tmp
             else:
-                raise ValueError('Unknown bootstrap distribution %s' % opt.bootstrap_version)
-            if "exp" in opt.bootstrap_version:
+                raise ValueError('Unknown bootstrap distribution %s' % opt.bootstrap_score)
+            # Exponentiate the scores
+            if "exp" in opt.bootstrap_score:
                 print('Original rewards:', torch.mean(s_scores))
                 s_scores = torch.exp(torch.div(s_scores, opt.raml_tau))
                 print('Tempering the reward:', torch.mean(s_scores))
-            r_scores = torch.div(s_scores, torch.exp(scores))
-            opt.logger.debug('Mean importance scores: %.3e' % torch.mean(r_scores).data[0])
+            scores = torch.div(s_scores, torch.exp(scores))
+            opt.logger.debug('Mean importance scores: %.3e' % torch.mean(scores).data[0])
         else:
             tmp = [data['labels'], data['masks'], data['scores']]
             tmp = [Variable(torch.from_numpy(_), requires_grad=False).cuda() for _ in tmp]
             labels, masks, scores = tmp
 
+        # if opt.caption_model == "show_tell_vae":
+                # preds, recon_loss, kld_loss = self.forward(fc_feats, att_feats, labels)
+                # real_loss, loss = self.crit(preds, labels[:, 1:], masks[:, 1:])
+                # loss += opt.vae_weight * (recon_loss + opt.kld_weight * kld_loss)
+                # #FIXME add the scaling as parameter
 
-        if opt.caption_model == "show_tell_vae":
-                preds, recon_loss, kld_loss = self.forward(fc_feats, att_feats, labels)
-                real_loss, loss = self.crit(preds, labels[:, 1:], masks[:, 1:])
-                loss += opt.vae_weight * (recon_loss + opt.kld_weight * kld_loss)
-                #FIXME add the scaling as parameter
-
-        elif opt.caption_model == 'show_tell_raml':
+        # FIXME Deprecated
+        if opt.caption_model == 'show_tell_raml':
             probs, reward = self.forward(fc_feats, att_feats, labels)
             raml_scores = reward * Variable(torch.ones(scores.size()))
             # raml_scores = Variable(torch.ones(scores.size()))
             print('Raml reward:', reward)
-            real_loss, loss = self.crit(probs, labels[:, 1:], masks[:, 1:], raml_scores)
+            ml_loss, loss = self.crit(probs, labels[:, 1:], masks[:, 1:], raml_scores)
         else:
-            if opt.bootstrap_loss:
-                real_loss, loss = self.crit(self.forward(fc_feats, att_feats, labels),
-                                            labels[:, 1:], masks[:, 1:], r_scores)
-            else:
-                real_loss, loss = self.crit(self.forward(fc_feats, att_feats, labels),
-                                            labels[:, 1:], masks[:, 1:], scores)
-        return real_loss, loss
+            ml_loss, loss = self.crit(self.forward(fc_feats, att_feats, labels),
+                                        labels[:, 1:], masks[:, 1:], scores)
+        return ml_loss, loss
 
 

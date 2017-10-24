@@ -22,9 +22,9 @@ class ShowTellModel(DecoderModel):
                                                        self.num_layers,
                                                        bias=(opt.rnn_bias == 1),
                                                        dropout=self.drop_prob_lm)
-        self.embed = nn.Embedding(self.vocab_size + 1, self.input_encoding_size)
+        self.embed = nn.Embedding(self.vocab_size, self.input_encoding_size)
         self.drop_x_lm = nn.Dropout(p=opt.drop_x_lm)
-        self.logit = nn.Linear(self.rnn_size, self.vocab_size + 1)
+        self.logit = nn.Linear(self.rnn_size, self.vocab_size)
         self.init_weights()
         opt.logger.warn('Show & Tell : %s' % str(self._modules))
 
@@ -92,7 +92,7 @@ class ShowTellModel(DecoderModel):
         forbid_unk = opt.get('forbid_unk', 1)
 
 
-        assert beam_size <= self.vocab_size + 1, 'lets assume this for now, otherwise this corner case causes a few headaches down the road. can be dealt with in future if needed'
+        assert beam_size <= self.vocab_size, 'lets assume this for now, otherwise this corner case causes a few headaches down the road. can be dealt with in future if needed'
         seq = torch.LongTensor(self.seq_length, batch_size).zero_()
         seqLogprobs = torch.FloatTensor(self.seq_length, batch_size)
         # lets process every image independently for now, for simplicity

@@ -43,7 +43,7 @@ def train(opt):
     from tensorflow.contrib.tensorboard.plugins import projector
 
     loader = DataLoader(opt)
-    opt.vocab_size = loader.vocab_size
+    opt.vocab_size = loader.vocab_size + 1
     opt.seq_length = loader.seq_length
     opt.lr_wait = 0
 
@@ -54,21 +54,15 @@ def train(opt):
     loader.iterators = infos.get('iterators', loader.iterators)
     if opt.load_best_score == 1:
         best_val_score = infos.get('best_val_score', None)
-    # FIXME - temporary
-    if opt.use_feature_maps:
-        opt.logger.warn('using single CNN branch with feature maps as regions embeddings')
-        # Build CNN model for single branch use
-        if opt.cnn_model.startswith('resnet'):
-            cnn_model = cnn.ResNetModel(opt)
-        elif opt.cnn_model.startswith('vgg'):
-            cnn_model = cnn.VggNetModel(opt)
-        else:
-            opt.logger.error('Unknown model %s' % opt.cnn_model)
-            sys.exit(1)
+    opt.logger.warn('using single CNN branch with feature maps as regions embeddings')
+    # Build CNN model for single branch use
+    if opt.cnn_model.startswith('resnet'):
+        cnn_model = cnn.ResNetModel(opt)
+    elif opt.cnn_model.startswith('vgg'):
+        cnn_model = cnn.VggNetModel(opt)
     else:
-        # Deprecated
-        opt.logger.warn('using SSD')
-        # // Deprecated
+        opt.logger.error('Unknown model %s' % opt.cnn_model)
+        sys.exit(1)
     cnn_model.cuda()
     # Build the captioning model
     opt.logger.error('-----------------------------SETUP')
@@ -86,7 +80,7 @@ def train(opt):
     lg.log_optimizer(opt, optimizer)
     # Main loop
     # To save before training:
-    iteration -= 1
+    # iteration -= 1
     val_losses = []
     while True:
         if update_lr_flag:
@@ -101,11 +95,11 @@ def train(opt):
                     opt.ss_prob = min(opt.scheduled_sampling_increase_prob  * frac, opt.scheduled_sampling_max_prob)
                     model.ss_prob = opt.ss_prob
                     opt.logger.warn('ss_prob= %.2e' % model.ss_prob )
-            if opt.raml_loss and opt.raml_alpha_strategy == "step":
+            if opt.sample_cap and opt.alpha_strategy == "step":
                 # Update ncrit's alpha:
                 opt.logger.warn('Updating the loss scaling param alpha')
-                frac = epoch // opt.raml_alpha_increase_every
-                new_alpha = min(opt.raml_alpha_increase_factor  * frac, 1)
+                frac = epoch // opt.alpha_increase_every
+                new_alpha = min(opt.alpha_increase_factor  * frac, 1)
                 model.crit.alpha = new_alpha
                 opt.logger.warn('New alpha %.3e' % new_alpha)
             update_lr_flag = False
@@ -116,14 +110,14 @@ def train(opt):
                 opt.ss_prob = 1 - opt.scheduled_sampling_speed / (opt.scheduled_sampling_speed + exp(iteration / opt.scheduled_sampling_speed))
                 model.ss_prob = opt.ss_prob
                 opt.logger.warn("ss_prob =  %.3e" % model.ss_prob)
-        if opt.raml_loss and opt.raml_alpha_strategy == "sigmoid":
+        if opt.sample_cap and opt.alpha_strategy == "sigmoid":
             # Update crit's alpha:
             opt.logger.warn('Updating the loss scaling param alpha')
-            new_alpha = 1 - opt.raml_alpha_speed / (opt.raml_alpha_speed + exp(iteration / opt.raml_alpha_speed))
+            new_alpha = 1 - opt.alpha_speed / (opt.alpha_speed + exp(iteration / opt.alpha_speed))
             new_alpha = min(new_alpha, 1)
             model.crit.alpha = new_alpha
             opt.logger.warn('New alpha %.3e' % new_alpha)
-        # if opt.raml_loss:
+        # if opt.sample_cap:
             # opt.logger.error('Sanity check alpha = %.3e' % model.crit.alpha)
 
         # Load data from train split (0)
@@ -174,7 +168,7 @@ def train(opt):
         if (iteration % opt.save_checkpoint_every == 0):
             # eval model
             eval_kwargs = {'split': 'val',
-                           'dataset': opt.input_json}
+                           'dataset': opt.input_data + '.json'}
             eval_kwargs.update(vars(opt))
             (real_val_loss, val_loss,
              predictions, lang_stats, unseen_grams) = eval_utils.eval_split(cnn_model, model,
