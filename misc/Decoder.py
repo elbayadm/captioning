@@ -71,27 +71,15 @@ class DecoderModel(nn.Module):
     def step(self, data, att_feats, fc_feats):
         opt = self.opt
         if opt.bootstrap:
-            if opt.bootstrap_score in ["cider", "cider-exp"]:
-                tmp = [data['labels'], data['masks'], data['scores'], data['cider']]
-                tmp = [Variable(torch.from_numpy(_), requires_grad=False).cuda() for _ in tmp]
-                labels, masks, scores, s_scores= tmp
-
-            elif opt.bootstrap_score in ["bleu4", "bleu4-exp"]:
-                tmp = [data['labels'], data['masks'], data['scores'], data['bleu']]
-                tmp = [Variable(torch.from_numpy(_), requires_grad=False).cuda() for _ in tmp]
-                labels, masks, scores, s_scores = tmp
-
-            elif opt.bootstrap_score in ["infersent", "infersent-exp"]:
-                tmp = [data['labels'], data['masks'], data['scores'], data['infersent']]
-                tmp = [Variable(torch.from_numpy(_), requires_grad=False).cuda() for _ in tmp]
-                labels, masks, scores, s_scores = tmp
-            else:
-                raise ValueError('Unknown bootstrap distribution %s' % opt.bootstrap_score)
+            assert opt.bootstrap_score in ['cider', 'bleu2', 'bleu3', 'bleu4', 'infersent']
+            tmp = [data['labels'], data['masks'], data['scores'], data[opt.bootstrap_score]]
+            tmp = [Variable(torch.from_numpy(_), requires_grad=False).cuda() for _ in tmp]
+            labels, masks, scores, s_scores = tmp
             # Exponentiate the scores
-            if "exp" in opt.bootstrap_score:
-                print('Original rewards:', torch.mean(s_scores))
-                s_scores = torch.exp(torch.div(s_scores, opt.raml_tau))
-                print('Tempering the reward:', torch.mean(s_scores))
+            if opt.tau_sent:
+                print('Original mean reward:', torch.mean(s_scores).data[0])
+                s_scores = torch.exp(torch.div(s_scores, opt.tau_sent))
+                print('Tempering the reward (new mean):', torch.mean(s_scores).data[0])
             scores = torch.div(s_scores, torch.exp(scores))
             opt.logger.debug('Mean importance scores: %.3e' % torch.mean(scores).data[0])
         else:

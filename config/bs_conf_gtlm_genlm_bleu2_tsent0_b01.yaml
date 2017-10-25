@@ -1,6 +1,6 @@
 # Generic
 # -------------------------
-modelname : debug
+modelname : bs_conf_gtlm_genlm_bleu2_tsent0_b01
 restart : 1
 
 caption_model : show_tell
@@ -21,8 +21,7 @@ learning_rate_decay_every: 3
 # Loss:
 bootstrap : 1
 gt_loss_version : ml
-augmented_loss_version : word
-bootstrap_score: bleu3
-tau_sent: 1
-alpha : 0.3
-
+augmented_loss_version : ml
+bootstrap_score: bleu2
+tau_sent: 0
+beta: 0.1

@@ -3,6 +3,7 @@ tmp
 data
 events
 save
+archive
 obsolete
 textLM
 tmpcaps
@@ -16,6 +17,4 @@ vis
 misc/rpn
 misc/ssd
 captions
-coco-caption/pycocoevalcap/spice/lib
-coco-caption/pycocoevalcap/spice/cache
-coco-caption/pycocoevalcap/spice/tmp
+coco-caption

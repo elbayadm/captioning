@@ -1,6 +1,6 @@
 # Generic
 # -------------------------
-modelname : debug
+modelname : bs_conf_gtlm_genword_cider_tsent10_tword0005_a03_b01
 restart : 1
 
 caption_model : show_tell
@@ -22,7 +22,8 @@ learning_rate_decay_every: 3
 bootstrap : 1
 gt_loss_version : ml
 augmented_loss_version : word
-bootstrap_score: bleu3
+bootstrap_score: cider
 tau_sent: 1
+beta : 0.1
 alpha : 0.3
 

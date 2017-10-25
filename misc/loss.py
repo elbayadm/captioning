@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 import os
 import os.path as osp
 import sys
@@ -32,6 +29,7 @@ class LanguageModelCriterion(nn.Module):
         super().__init__()
         self.logger = opt.logger
         self.scale_loss = opt.scale_loss
+        self.logger.warn('Initiating ML loss')
 
     def forward(self, input, target, mask, scores=None):
         """
@@ -45,7 +43,8 @@ class LanguageModelCriterion(nn.Module):
         target = target[:, :seq_length]
         mask = mask[:, :seq_length]
         if self.scale_loss:
-            row_scores = scores.repeat(1, seq_length)
+            row_scores = scores.unsqueeze(1).repeat(1, seq_length)
+            # print('mask:', mask.size(), 'row_scores:', row_scores.size())
             mask = torch.mul(mask, row_scores)
         input = to_contiguous(input).view(-1, input.size(2))
         target = to_contiguous(target).view(-1, 1)
@@ -121,10 +120,13 @@ class WordSmoothCriterion(nn.Module):
         ml_output = get_ml_loss(input, target, mask)
         # Get the similarities of the words in the batch (Vb, V)
         sim = self.Sim_Matrix[to_contiguous(target).view(-1, 1).squeeze().data]
+        # print('raw sim:', sim)
         if self.clip_sim:
             # keep only the similarities larger than the margin
+            # self.logger.warn('Clipping the sim')
             sim = sim * sim.ge(self.margin).float()
         if self.limited:
+            # self.logger.warn('Limitig smoothing to the gt vocab')
             indices_vocab = get_indices_vocab(target, self.seq_per_img)
             sim = sim.gather(1, indices_vocab)
             input = input.gather(1, indices_vocab)
@@ -134,6 +136,7 @@ class WordSmoothCriterion(nn.Module):
         else:
             # Do not exponentiate
             smooth_target = torch.add(sim, -1.)
+        # print('smooth_target:', smooth_target)
         # Format
         mask = to_contiguous(mask).view(-1, 1)
         mask = mask.repeat(1, sim.size(1))
@@ -487,13 +490,12 @@ class DataAugmentedCriterion(nn.Module):
     def __init__(self, opt):
         super(DataAugmentedCriterion, self).__init__()
         self.opt = opt
-        self.alpha = opt.alpha
+        self.beta = opt.beta
         self.seq_per_img = opt.seq_per_img
+        assert self.seq_per_img > 5, 'Captions per image is seq than 5'
         # The GT loss
         if opt.gt_loss_version == 'word':
             self.crit_gt = WordSmoothCriterion(opt)
-            # pure smoothed loss
-            self.crit_gt.alpha = 1
         else:
             # The usual ML
             self.crit_gt = LanguageModelCriterion(opt)
@@ -503,8 +505,6 @@ class DataAugmentedCriterion(nn.Module):
         # The augmented loss
         if opt.augmented_loss_version == 'word':
             self.crit_augmented = WordSmoothCriterion(opt)
-            # pure smoothed loss
-            self.crit_augmented.alpha = 1
         else:
             # The usual ML
             self.crit_augmented = LanguageModelCriterion(opt)
@@ -532,6 +532,8 @@ class DataAugmentedCriterion(nn.Module):
         target_gen = torch.cat([t[5:] for t in target_per_image], dim=0)
         mask_gen = torch.cat([t[5:] for t in mask_per_image], dim=0)
         scores_gen = torch.cat([t[5:] for t in scores_per_image], dim=0)
+        # print('Splitted data:', input_gt.size(), target_gt.size(), mask_gt.size(),
+              # 'gen:', input_gen.size(), target_gen.size(), mask_gen.size(), scores_gen.size())
 
         # For the first 5 captions per image (gt) compute LM
         _, output_gt = self.crit_gt(input_gt, target_gt, mask_gt)
@@ -539,7 +541,7 @@ class DataAugmentedCriterion(nn.Module):
         # For the rest of the captions: importance sampling
         _, output_gen = self.crit_augmented(input_gen, target_gen, mask_gen, scores_gen)
         # TODO check if must combine with ml augmented as well
-        return output_gt, self.alpha * output_gen + (1 - self.alpha) * output_gt
+        return output_gt, self.beta * output_gen + (1 - self.beta) * output_gt
 
 
 class PairsLanguageModelCriterion(nn.Module):

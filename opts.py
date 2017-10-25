@@ -148,16 +148,19 @@ def parse_opt():
     parser.add('--tau_word', type=float,
                default=0.005, help='Temperature for the rbf kernel applied to the words similarities')
     parser.add('--tau_sent', type=float,
-               default=0.8, help='Temperature for the rbf kernel applied to the sentences scores')
+               default=0, help='Temperature for the rbf kernel applied to the sentences scores')
     parser.add('--clip_sim', type=int,
                default=0, help='whether or not to clip the similarities')
     parser.add('--limited_vocab_sim', type=int,
                default=0, help='whether or not to clip the similarities')
 
     parser.add('--margin', type=float,
-               default=0.9, help='clipping margin for the similarities')
+               default=0.95, help='clipping margin for the similarities')
     parser.add('--alpha', type=float,
-               default=0.9, help='Scalar used to weight the losses')
+               default=0.3, help='Scalar used to weight the losses')
+    parser.add('--beta', type=float,
+               default=0.1, help='Scalar used to weight the losses')
+
     ### Alpha scheme:
     parser.add('--alpha_increase_every', type=int,
                default=2, help='step width')
