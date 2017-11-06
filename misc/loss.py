@@ -336,7 +336,7 @@ class CiderRewardCriterion(SentSmoothCriterion, WordSentSmoothCriterion):
         if 'word' in self.version:
             return WordSentSmoothCriterion.forward(self, input, target, mask, scores)
         else:
-            return SentSmoothCriterion.forward(input, target, mask, scores)
+            return SentSmoothCriterion.forward(self, input, target, mask, scores)
 
 class BleuRewardCriterion(SentSmoothCriterion, WordSentSmoothCriterion):
     def __init__(self, opt, vocab):
@@ -378,7 +378,7 @@ class BleuRewardCriterion(SentSmoothCriterion, WordSentSmoothCriterion):
         if 'word' in self.version:
             return WordSentSmoothCriterion.forward(self, input, target, mask, scores)
         else:
-            return SentSmoothCriterion.forward(input, target, mask, scores)
+            return SentSmoothCriterion.forward(self, input, target, mask, scores)
 
 
 class InfersentRewardCriterion(SentSmoothCriterion, WordSentSmoothCriterion):
@@ -418,7 +418,7 @@ class InfersentRewardCriterion(SentSmoothCriterion, WordSentSmoothCriterion):
         if 'word' in self.version:
             return WordSentSmoothCriterion.forward(self, input, target, mask, scores)
         else:
-            return SentSmoothCriterion.forward(input, target, mask, scores)
+            return SentSmoothCriterion.forward(self, input, target, mask, scores)
 
 
 class HammingRewardCriterion(SentSmoothCriterion, WordSentSmoothCriterion):
@@ -439,7 +439,7 @@ class HammingRewardCriterion(SentSmoothCriterion, WordSentSmoothCriterion):
         if 'word' in self.version:
             return WordSentSmoothCriterion.forward(self, input, target, mask, scores)
         else:
-            return SentSmoothCriterion.forward(input, target, mask, scores)
+            return SentSmoothCriterion.forward(self, input, target, mask, scores)
 
 
 class HammingRewardSampler(nn.Module):
