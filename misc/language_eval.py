@@ -146,7 +146,7 @@ def language_eval(dataset, preds, get_creativity=True):
         out[metric] = score
 
     caps = [p['caption'] for p in preds_filt]
-    out['vcab_use'] = vocab_use(caps)
+    out['vocab_use'] = vocab_use(caps)
     unseen = None
     if get_creativity:
         cr = captions_creativity(caps, 5)
