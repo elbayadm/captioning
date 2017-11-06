@@ -4,6 +4,20 @@ import torch
 import tensorflow as tf
 import os.path as osp
 
+_OKGREEN = '\033[92m'
+_WARNING = '\033[93m'
+_FAIL = '\033[91m'
+_ENDC = '\033[0m'
+
+
+def print_sampled(id, sent, score=None, warn=False):
+    transition = ' >> ' if not score else " >> %.3f >> " % score
+    color = _WARNING if warn else _OKGREEN
+    if isinstance(id, int):
+        id = "%06d" % id
+    print(color, id, transition, sent, _ENDC)
+
+
 def log_epoch(writer, iteration, opt,
               losses, grad_norm,
               ss_prob):

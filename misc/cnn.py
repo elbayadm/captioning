@@ -89,8 +89,10 @@ class ResNetModel(models.ResNet):
         # TODO: add norm2 to the fc_feat.
         return att_feats, x
 
-    def forward_caps(self, x, seq_per_img):
+    def forward_caps(self, x, seq_per_img, return_unique=False):
         att_feats, fc_feats = self.forward(x)
+        att_feats_unique = att_feats
+        fc_feats_unique = fc_feats
         # Duplicate for caps per image
         att_feats = att_feats.unsqueeze(1).expand(*((att_feats.size(0),
                                                      seq_per_img,) +
@@ -99,6 +101,8 @@ class ResNetModel(models.ResNet):
         fc_feats = fc_feats.unsqueeze(1).expand(*((fc_feats.size(0), seq_per_img,) +
                                                 fc_feats.size()[1:])).contiguous().view(*((fc_feats.size(0) *
                                                                                            seq_per_img,) + fc_feats.size()[1:]))
+        if return_unique:
+            return att_feats, fc_feats, att_feats_unique, fc_feats_unique
         return att_feats, fc_feats
 
 

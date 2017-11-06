@@ -15,6 +15,11 @@ import torch.nn as nn
 from torch.autograd import Variable
 
 
+def short_path(path):
+    basename, filename = os.path.split(path)
+    return os.path.join(os.path.basename(basename), filename)
+
+
 def repackage(h):
     """Wraps hidden states in new Variables, to detach them from their history."""
     if type(h) == Variable:

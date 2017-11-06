@@ -92,6 +92,7 @@ class WordSmoothCriterion(nn.Module):
         self.logger = opt.logger
         self.seq_per_img = opt.seq_per_img
         self.scale_loss = opt.scale_loss
+        self.smooth_remove_equal = opt.smooth_remove_equal
         self.clip_sim = opt.clip_sim
         if self.clip_sim:
             self.margin = opt.margin
@@ -136,6 +137,8 @@ class WordSmoothCriterion(nn.Module):
         else:
             # Do not exponentiate
             smooth_target = torch.add(sim, -1.)
+        if self.smooth_remove_equal:
+            smooth_target = smooth_target * sim.lt(1.0).float()
         # print('smooth_target:', smooth_target)
         # Format
         mask = to_contiguous(mask).view(-1, 1)
