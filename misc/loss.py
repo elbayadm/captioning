@@ -181,6 +181,7 @@ class SentSmoothCriterion(nn.Module):
 
     def forward(self, input, target, mask, scores=None):
         # truncate
+        print('Forwarding sent mode')
         seq_length = input.size(1)
         target = target[:, :seq_length]
         mask = mask[:, :seq_length]
@@ -289,7 +290,6 @@ class WordSentSmoothCriterion(nn.Module):
             smooth_target_wl = torch.exp(torch.mul(torch.add(sim, -1.), 1/self.tau_word))
         else:
             smooth_target_wl = torch.add(sim, -1.)
-
         scalars = smooth_target_wl.data.cpu().numpy()[:]
         stats["word_mean"] = np.mean(scalars)
         stats["word_std"] = np.std(scalars)
@@ -310,8 +310,10 @@ class WordSentSmoothCriterion(nn.Module):
 class CiderRewardCriterion(SentSmoothCriterion, WordSentSmoothCriterion):
     def __init__(self, opt, vocab):
         if 'word' in opt.loss_version:
+            print('Init WordSent')
             WordSentSmoothCriterion.__init__(self, opt)
         else:
+            print('init Sent')
             SentSmoothCriterion.__init__(self, opt)
         self.vocab = vocab
 
@@ -323,18 +325,18 @@ class CiderRewardCriterion(SentSmoothCriterion, WordSentSmoothCriterion):
         refs = decode_sequence(self.vocab, target.data)  # references
         num_img = target.size(0) // self.seq_per_img
         for e, h in enumerate(hypo):
-            ix_start =  e // self.seq_per_img * self.seq_per_img
+            ix_start = e // self.seq_per_img * self.seq_per_img
             ix_end = ix_start + 5  # self.seq_per_img
             cider_scorer += (h, refs[ix_start : ix_end])
         (score, scores) = cider_scorer.compute_score()
         self.logger.debug("CIDEr score: %s" %  str(scores))
         return scores
 
-    # def forward(self, input, target, mask, scores=None):
-        # print('In:', input.size(), 'traget:', target.size(),
-              # 'mask:', mask.size(), "scores:", scores)
-        # return SentSmoothCriterion.forward(input, target, mask, scores)
-
+    def forward(self, input, target, mask, scores=None):
+        if 'word' in self.version:
+            return WordSentSmoothCriterion.forward(self, input, target, mask, scores)
+        else:
+            return SentSmoothCriterion.forward(input, target, mask, scores)
 
 class BleuRewardCriterion(SentSmoothCriterion, WordSentSmoothCriterion):
     def __init__(self, opt, vocab):
@@ -372,6 +374,12 @@ class BleuRewardCriterion(SentSmoothCriterion, WordSentSmoothCriterion):
         self.logger.debug("Bleu scores: %s" %  str(scores))
         return scores
 
+    def forward(self, input, target, mask, scores=None):
+        if 'word' in self.version:
+            return WordSentSmoothCriterion.forward(self, input, target, mask, scores)
+        else:
+            return SentSmoothCriterion.forward(input, target, mask, scores)
+
 
 class InfersentRewardCriterion(SentSmoothCriterion, WordSentSmoothCriterion):
     def __init__(self, opt, vocab):
@@ -406,6 +414,12 @@ class InfersentRewardCriterion(SentSmoothCriterion, WordSentSmoothCriterion):
         self.logger.debug("infersent similairities: %s" %  str(scores))
         return scores
 
+    def forward(self, input, target, mask, scores=None):
+        if 'word' in self.version:
+            return WordSentSmoothCriterion.forward(self, input, target, mask, scores)
+        else:
+            return SentSmoothCriterion.forward(input, target, mask, scores)
+
 
 class HammingRewardCriterion(SentSmoothCriterion, WordSentSmoothCriterion):
     def __init__(self, opt):
@@ -415,12 +429,17 @@ class HammingRewardCriterion(SentSmoothCriterion, WordSentSmoothCriterion):
             SentSmoothCriterion.__init__(self, opt)
 
     def get_scores(self, preds, target):
-        refs =  target.cpu().data.numpy()
-        num_img = target.size(0) // self.seq_per_img
+        refs = target.cpu().data.numpy()
         # Hamming distances
         scores = np.array([- hamming(u, v) for u, v in zip(preds.numpy(), refs)])
         self.logger.debug("Negative hamming distances: %s" %  str(scores))
         return scores
+
+    def forward(self, input, target, mask, scores=None):
+        if 'word' in self.version:
+            return WordSentSmoothCriterion.forward(self, input, target, mask, scores)
+        else:
+            return SentSmoothCriterion.forward(input, target, mask, scores)
 
 
 class HammingRewardSampler(nn.Module):
@@ -556,12 +575,19 @@ class DataAugmentedCriterion(nn.Module):
               # 'gen:', input_gen.size(), target_gen.size(), mask_gen.size(), scores_gen.size())
 
         # For the first 5 captions per image (gt) compute LM
-        _, output_gt = self.crit_gt(input_gt, target_gt, mask_gt)
+        _, output_gt, stats_gt = self.crit_gt(input_gt, target_gt, mask_gt)
 
         # For the rest of the captions: importance sampling
-        _, output_gen = self.crit_augmented(input_gen, target_gen, mask_gen, scores_gen)
+        _, output_gen, stats_gen = self.crit_augmented(input_gen, target_gen, mask_gen, scores_gen)
         # TODO check if must combine with ml augmented as well
-        return output_gt, self.beta * output_gen + (1 - self.beta) * output_gt
+        stats = {}
+        if stats_gen:
+            for k in stats_gen:
+                stats['gen_'+k] = stats_gen[k]
+        if stats_gt:
+            for k in stats_gt:
+                stats['gt_'+k] = stats_gt[k]
+        return output_gt, self.beta * output_gen + (1 - self.beta) * output_gt, stats
 
 
 class PairsLanguageModelCriterion(nn.Module):

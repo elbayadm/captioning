@@ -29,7 +29,7 @@ if __name__ == "__main__":
         infos['opt'].logger = None
     ignore = ["batch_size", "beam_size", "start_from",
               "start_from_best", "language_eval", "logger",
-              "val_images_use"]
+              "val_images_use", 'input_data']
     for k in list(vars(infos['opt']).keys()):
         if k not in ignore:
             if k in vars(opt):
@@ -40,6 +40,9 @@ if __name__ == "__main__":
 
     opt.fliplr = opt.fliplr_eval
     opt.language_creativity = 0
+    opt.seq_per_img = 5
+    opt.bootstrap = 0
+    opt.sample_cap = 0
     vocab = infos['vocab'] # ix -> word mapping
     # Build CNN model for single branch use
     if opt.cnn_model.startswith('resnet'):
