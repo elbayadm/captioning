@@ -60,8 +60,8 @@ class DecoderModel(nn.Module):
                 crit = loss.WordSmoothCriterion(opt)
         elif opt.bootstrap:
             crit = loss.DataAugmentedCriterion(opt)
-        elif opt.combine_caps_losses:
-            crit = loss.MultiLanguageModelCriterion(opt.seq_per_img)
+        # elif opt.combine_caps_losses:
+            # crit = loss.MultiLanguageModelCriterion(opt.seq_per_img)
         else:
             # The defualt ML
             opt.logger.warn('Using baseline loss criterion')
