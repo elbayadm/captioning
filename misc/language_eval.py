@@ -5,6 +5,7 @@ from collections import Counter
 import random
 import string
 import json
+import glob
 
 
 def captions_creativity(caps, minfreq):
