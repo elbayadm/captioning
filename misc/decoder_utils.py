@@ -110,7 +110,7 @@ def recover_infos(opt):
     history['loss'] = infos.get('loss_history', {})
     history['lr'] = infos.get('lr_history', {})
     history['ss_prob'] = infos.get('ss_prob_history', {})
-
+    history['scores_stats'] = infos.get('scores_stats', {})
     return iteration, epoch, opt, infos, history
 
 

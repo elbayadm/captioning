@@ -80,7 +80,7 @@ def train(opt):
     lg.log_optimizer(opt, optimizer)
     # Main loop
     # To save before training:
-    # iteration -= 1
+    iteration -= 1
     val_losses = []
     while True:
         if update_lr_flag:
@@ -127,7 +127,7 @@ def train(opt):
         images = data['images']
         images = Variable(torch.from_numpy(images), requires_grad=False).cuda()
         att_feats, fc_feats = cnn_model.forward_caps(images, opt.seq_per_img)
-        real_loss, loss = model.step(data, att_feats, fc_feats)
+        ml_loss, loss, stats = model.step(data, att_feats, fc_feats)
         optimizer.zero_grad()
         # // Move
         loss.backward()
@@ -137,7 +137,7 @@ def train(opt):
         train_loss = loss.data[0]
         if np.isnan(train_loss):
             sys.exit('Loss is nan')
-        train_real_loss = real_loss.data[0]
+        train_ml_loss = ml_loss.data[0]
         try:
             train_kld_loss = kld_loss.data[0]
             train_recon_loss = recon_loss.data[0]
@@ -147,7 +147,7 @@ def train(opt):
         torch.cuda.synchronize()
         end = time.time()
         losses = {'train_loss': train_loss,
-                  'train_real_loss': train_real_loss}
+                  'train_ml_loss': train_ml_loss}
 
         lg.stderr_epoch(epoch, iteration, opt, losses, grad_norm, end-start)
         # Update the iteration and epoch
@@ -158,11 +158,12 @@ def train(opt):
         # Write the training loss summary
         if (iteration % opt.losses_log_every == 0):
             lg.log_epoch(tf_summary_writer, iteration, opt,
-                         losses, grad_norm,
+                         losses, stats, grad_norm,
                          model.ss_prob)
             history['loss'][iteration] = losses['train_loss']
             history['lr'][iteration] = opt.current_lr
             history['ss_prob'][iteration] = model.ss_prob
+            history['scores_stats'][iteration] = stats
 
         # make evaluation on validation set, and save model
         if (iteration % opt.save_checkpoint_every == 0):
@@ -170,14 +171,17 @@ def train(opt):
             eval_kwargs = {'split': 'val',
                            'dataset': opt.input_data + '.json'}
             eval_kwargs.update(vars(opt))
-            (real_val_loss, val_loss,
-             predictions, lang_stats, unseen_grams) = eval_utils.eval_split(cnn_model, model,
-                                                                            model.crit, loader,
-                                                                            eval_kwargs)
-
+            print("eval kwargs: ", eval_kwargs)
+            (val_ml_loss, val_loss,
+             predictions, lang_stats) = eval_utils.eval_split(cnn_model,
+                                                              model,
+                                                              model.crit,
+                                                              loader,
+                                                              opt.logger,
+                                                              eval_kwargs)
             # Write validation result into summary
-            lg.add_summary_value(tf_summary_writer, 'validation loss', val_loss, iteration)
-            lg.add_summary_value(tf_summary_writer, 'real validation loss', real_val_loss, iteration)
+            lg.add_summary_value(tf_summary_writer, 'validation_loss', val_loss, iteration)
+            lg.add_summary_value(tf_summary_writer, 'validation_ML_loss', val_ml_loss, iteration)
 
             for k, v in lang_stats.items():
                 lg.add_summary_value(tf_summary_writer, k, v, iteration)

@@ -51,7 +51,8 @@ class LanguageModelCriterion(nn.Module):
         mask = to_contiguous(mask).view(-1, 1)
         output = - input.gather(1, target) * mask
         output = torch.sum(output) / torch.sum(mask)
-        return output, output
+        stats = None
+        return output, output, stats
 
 
 def get_ml_loss(input, target, mask):
@@ -139,6 +140,11 @@ class WordSmoothCriterion(nn.Module):
             smooth_target = torch.add(sim, -1.)
         if self.smooth_remove_equal:
             smooth_target = smooth_target * sim.lt(1.0).float()
+        # Store some stats about the sentences scores:
+        scalars = smooth_target.data.cpu().numpy()[:]
+        stats = {"word_mean": np.mean(scalars),
+                 "word_std": np.std(scalars)}
+
         # print('smooth_target:', smooth_target)
         # Format
         mask = to_contiguous(mask).view(-1, 1)
@@ -153,7 +159,7 @@ class WordSmoothCriterion(nn.Module):
             self.logger.warn("Smooth targets weights sum to 0")
             output = torch.sum(output)
 
-        return ml_output, self.alpha * output + (1 - self.alpha) * ml_output
+        return ml_output, self.alpha * output + (1 - self.alpha) * ml_output, stats
 
 
 class SentSmoothCriterion(nn.Module):
@@ -194,6 +200,9 @@ class SentSmoothCriterion(nn.Module):
                 sent_scores += 1
         # sent_scores from (N, 1) to (N, seq_length)
         self.logger.warn('Scores after processing: %s' % str(sent_scores))
+        # Store some stats about the sentences scores:
+        stats = {"sent_mean": np.mean(sent_scores),
+                 "sent_std": np.std(sent_scores)}
         sent_scores = np.repeat(sent_scores, seq_length)
         smooth_target = Variable(torch.from_numpy(sent_scores).view(-1, 1)).cuda().float()
         # substitute target with the prediction (aka sampling wrt p_\theta)
@@ -209,7 +218,7 @@ class SentSmoothCriterion(nn.Module):
             self.logger.warn("Smooth targets weights sum to 0")
             output = torch.sum(output)
 
-        return ml_output, self.alpha * output + (1 - self.alpha) * ml_output
+        return ml_output, self.alpha * output + (1 - self.alpha) * ml_output, stats
 
 
 class WordSentSmoothCriterion(nn.Module):
@@ -265,6 +274,10 @@ class WordSentSmoothCriterion(nn.Module):
 
         # sent_scores from (N, 1) to (N, seq_length)
         self.logger.warn('Scores after processing: %s' % str(sent_scores))
+        # Store some stats about the sentences scores:
+        stats = {"sent_mean": np.mean(sent_scores),
+                 "sent_std": np.std(sent_scores)}
+
         sent_scores = np.repeat(sent_scores, seq_length)
         smooth_target = Variable(torch.from_numpy(sent_scores).view(-1, 1)).cuda().float()
 
@@ -277,6 +290,10 @@ class WordSentSmoothCriterion(nn.Module):
         else:
             smooth_target_wl = torch.add(sim, -1.)
 
+        scalars = smooth_target_wl.data.cpu().numpy()[:]
+        stats["word_mean"] = np.mean(scalars)
+        stats["word_std"] = np.std(scalars)
+
         mask_wl = mask.repeat(1, sim.size(1))
         # format the sentence scores
         smooth_target = smooth_target.repeat(1, sim.size(1))
@@ -287,7 +304,7 @@ class WordSentSmoothCriterion(nn.Module):
         else:
             self.logger.warn("Smooth targets weights sum to 0")
             output = torch.sum(output_wl)
-        return ml_output, self.alpha * output + (1 - self.alpha) * ml_output
+        return ml_output, self.alpha * output + (1 - self.alpha) * ml_output, stats
 
 
 class CiderRewardCriterion(SentSmoothCriterion, WordSentSmoothCriterion):

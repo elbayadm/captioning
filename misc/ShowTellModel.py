@@ -87,12 +87,9 @@ class ShowTellModel(DecoderModel):
         return torch.cat([_.unsqueeze(1) for _ in outputs[1:]], 1).contiguous()
 
     def sample_beam(self, fc_feats, att_feats, opt={}):
-        beam_size = opt.get('beam_size', 10)
+        beam_size = opt.get('beam_size', 3)
         batch_size = fc_feats.size(0)
         forbid_unk = opt.get('forbid_unk', 1)
-
-
-        assert beam_size <= self.vocab_size, 'lets assume this for now, otherwise this corner case causes a few headaches down the road. can be dealt with in future if needed'
         seq = torch.LongTensor(self.seq_length, batch_size).zero_()
         seqLogprobs = torch.FloatTensor(self.seq_length, batch_size)
         # lets process every image independently for now, for simplicity
@@ -100,10 +97,9 @@ class ShowTellModel(DecoderModel):
         self.done_beams = [[] for _ in range(batch_size)]
         for k in range(batch_size):
             state = self.init_hidden(beam_size)
-
             beam_seq = torch.LongTensor(self.seq_length, beam_size).zero_()
             beam_seq_logprobs = torch.FloatTensor(self.seq_length, beam_size).zero_()
-            beam_logprobs_sum = torch.zeros(beam_size) # running sum of logprobs for each beam
+            beam_logprobs_sum = torch.zeros(beam_size)  # running sum of logprobs for each beam
             for t in range(self.seq_length + 2):
                 if t == 0:
                     xt = self.img_embed(fc_feats[k:k+1]).expand(beam_size, self.input_encoding_size)
@@ -115,8 +111,8 @@ class ShowTellModel(DecoderModel):
                     for every previous beam we now many new possibilities to branch out
                     we need to resort our beams to maintain the loop invariant of keeping
                     the top beam_size most likely sequences."""
-                    logprobsf = logprobs.float() # lets go to CPU for more efficiency in indexing operations
-                    ys,ix = torch.sort(logprobsf,1,True) # sorted array of logprobs along each previous beam (last true = descending)
+                    logprobsf = logprobs.float()  # lets go to CPU for more efficiency in indexing operations
+                    ys, ix = torch.sort(logprobsf, 1, True)  # sorted array of logprobs along each previous beam (last true = descending)
                     candidates = []
                     cols = min(beam_size, ys.size(1))
                     rows = beam_size
@@ -125,7 +121,7 @@ class ShowTellModel(DecoderModel):
                     for c in range(cols):
                         for q in range(rows):
                             # compute logprob of expanding beam q with word in (sorted) position c
-                            local_logprob = ys[q,c]
+                            local_logprob = ys[q, c]
                             candidate_logprob = beam_logprobs_sum[q] + local_logprob
                             candidates.append({'c':ix.data[q,c], 'q':q, 'p':candidate_logprob.data[0], 'r':local_logprob.data[0]})
                     candidates = sorted(candidates, key=lambda x: -x['p'])
@@ -182,14 +178,11 @@ class ShowTellModel(DecoderModel):
 
     def sample(self, fc_feats, att_feats, opt={}):
         sample_max = opt.get('sample_max', 1)
-        # print('Sample max:', sample_max)
         beam_size = opt.get('beam_size', 1)
-        # print('Beam size:', beam_size)
         temperature = opt.get('temperature', 1.0)
         forbid_unk = opt.get('forbid_unk', 1)
         if beam_size > 1:
             return self.sample_beam(fc_feats, att_feats, opt)
-
         batch_size = fc_feats.size(0)
         state = self.init_hidden(batch_size)
         seq = []

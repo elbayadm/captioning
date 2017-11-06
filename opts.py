@@ -28,7 +28,7 @@ def add_eval_params(parser):
                help='1 = sample argmax words. 0 = sample from distributions.')
     parser.add('--forbid_unk', type=int, default=1,
                help='Forbid unk token generations.')
-    parser.add('--beam_size', type=int, default=1,
+    parser.add('--beam_size', type=int, default=3,
                help='used when sample_max = 1, indicates number of beams in beam search. Usually 2 or 3 works well. More is not better. Set this to 1 for faster runtime but a bit worse performance.')
     parser.add('--temperature', type=float, default=0.5,
                help='temperature when sampling from distributions (i.e. when sample_max = 0). Lower = "safer" predictions.')

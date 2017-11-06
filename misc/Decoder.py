@@ -93,6 +93,7 @@ class DecoderModel(nn.Module):
                 # loss += opt.vae_weight * (recon_loss + opt.kld_weight * kld_loss)
                 # #FIXME add the scaling as parameter
 
+        stats = None
         # FIXME Deprecated
         if opt.caption_model == 'show_tell_raml':
             probs, reward = self.forward(fc_feats, att_feats, labels)
@@ -101,8 +102,12 @@ class DecoderModel(nn.Module):
             print('Raml reward:', reward)
             ml_loss, loss = self.crit(probs, labels[:, 1:], masks[:, 1:], raml_scores)
         else:
-            ml_loss, loss = self.crit(self.forward(fc_feats, att_feats, labels),
-                                        labels[:, 1:], masks[:, 1:], scores)
-        return ml_loss, loss
+            ml_loss, loss, stats = self.crit(self.forward(fc_feats,
+                                                          att_feats,
+                                                          labels),
+                                             labels[:, 1:],
+                                             masks[:, 1:],
+                                             scores)
+        return ml_loss, loss, stats
 
 

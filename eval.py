@@ -72,6 +72,8 @@ if __name__ == "__main__":
     print('Seq per img:', loader.seq_per_img)
     print('Flipping the images: ', opt.fliplr)
     print('Beam width: ', opt.beam_size)
+    if opt.beam_size > 1:
+        opt.sample_max = 1
     model.define_loss(loader.get_vocab())
     # opt.n_gen = 10
     # opt.score_ground_truth = True
@@ -79,6 +81,7 @@ if __name__ == "__main__":
                                                        model,
                                                        model.crit,
                                                        loader,
+                                                       opt.logger,
                                                        vars(opt))
     print("Finished evaluation in ", (time.time() - start))
     print('ML loss:', ml_loss)
@@ -86,10 +89,12 @@ if __name__ == "__main__":
     perf['loss'] = loss
     perf['ml_loss'] = ml_loss
     if not opt.output:
-        opt.output = '%s/%s_bw%d_sample%d_flip%d' % (opt.modelname,
-                                                     opt.split,
-                                                     opt.beam_size,
-                                                     opt.sample_max, opt.fliplr)
+        sampling = "sample_max" if opt.sample_max else "sample_temp_%.3f" % opt.temperature
+        opt.output = '%s/%s_bw%d_%s_flip%d' % (opt.modelname,
+                                               opt.split,
+                                               opt.beam_size,
+                                               sampling,
+                                               opt.fliplr)
 
     pickle.dump(perf, open(opt.output + ".res", 'wb'))
     if opt.dump_json:

@@ -19,16 +19,19 @@ def print_sampled(id, sent, score=None, warn=False):
 
 
 def log_epoch(writer, iteration, opt,
-              losses, grad_norm,
+              losses, stats, grad_norm,
               ss_prob):
 
     train_loss = losses['train_loss']
-    train_real_loss = losses['train_real_loss']
+    train_ml_loss = losses['train_ml_loss']
     add_summary_value(writer, 'train_loss', train_loss, iteration)
-    add_summary_value(writer, 'train_real_loss', train_real_loss, iteration)
+    add_summary_value(writer, 'train_ml_loss', train_ml_loss, iteration)
     add_summary_value(writer, 'learning_rate', opt.current_lr, iteration)
     add_summary_value(writer, 'scheduled_sampling_prob', ss_prob, iteration)
     add_summary_value(writer, 'RNN_grad_norm', grad_norm[0], iteration)
+    if stats:
+        for k in stats:
+            add_summary_value(writer, k, stats[k], iteration)
     try:
         add_summary_value(writer, 'CNN_grad_norm', grad_norm[1], iteration)
         add_summary_value(writer, 'CNN_learning_rate', opt.current_cnn_lr, iteration)
@@ -67,6 +70,7 @@ def save_model(model, cnn_model, optimizer, opt,
     infos['loss_history'] = history['loss']
     infos['lr_history'] = history['lr']
     infos['ss_prob_history'] = history['ss_prob']
+    infos['scores_stats'] = history['scores_stats']
     infos['vocab'] = loader.get_vocab()
     with open(osp.join(opt.modelname, 'infos.pkl'), 'wb') as f:
         pickle.dump(infos, f)
@@ -86,9 +90,9 @@ def save_model(model, cnn_model, optimizer, opt,
 
 def stderr_epoch(epoch, iteration, opt, losses, grad_norm, ttt):
     train_loss = losses['train_loss']
-    train_real_loss = losses['train_real_loss']
-    message = "iter {} (epoch {}), train_real_loss = {:.3f}, train_loss = {:.3f}, lr = {:.2e}, grad_norm = {:.3e}"\
-               .format(iteration, epoch, train_real_loss,  train_loss, opt.current_lr, grad_norm[0])
+    train_ml_loss = losses['train_ml_loss']
+    message = "iter {} (epoch {}), train_ml_loss = {:.3f}, train_loss = {:.3f}, lr = {:.2e}, grad_norm = {:.3e}"\
+              .format(iteration, epoch, train_ml_loss,  train_loss, opt.current_lr, grad_norm[0])
 
     try:
         message += ", cnn_lr = {:.2e}, cnn_grad_norm = {:.3e}".format(opt.current_cnn_lr, grad_norm[1])

@@ -109,17 +109,21 @@ def generate_caps(encoder, decoder, crit, loader, eval_kwargs={}):
     return 1
 
 
-def eval_split(cnn_model, model, crit, loader, eval_kwargs={}):
+def eval_split(cnn_model, model, crit, loader, logger, eval_kwargs={}):
     verbose = eval_kwargs.get('verbose', True)
-    val_images_use = eval_kwargs.get('val_images_use', -1)
+
+    dataset = eval_kwargs.get('dataset', 'coco')
     split = eval_kwargs.get('split', 'val')
+    val_images_use = eval_kwargs.get('val_images_use', -1)
+
     lang_eval = eval_kwargs.get('language_eval', 1)
     language_creativity = eval_kwargs.get('language_creativity', 1)
-    dataset = eval_kwargs.get('dataset', 'coco')
+
     beam_size = eval_kwargs.get('beam_size', 1)
-    logger = eval_kwargs.get('logger')
-    caption_model = eval_kwargs.get('caption_model')
-    vocab_size = eval_kwargs.get('vocb_size')
+    sample_max = eval_kwargs.get('sample_max', 1)
+    temperature = eval_kwargs.get('temperature', 0.5)
+    forbid_unk = eval_kwargs.get('forbid_unk', 1)
+
     seq_per_img = eval_kwargs.get('seq_per_img')
     # Make sure to be in the evaluation mode
     cnn_model.eval()
@@ -140,14 +144,17 @@ def eval_split(cnn_model, model, crit, loader, eval_kwargs={}):
         att_feats, fc_feats, att_unique, fc_unique = cnn_model.forward_caps(images,
                                                                             seq_per_img,
                                                                             return_unique=True)
-        ml_loss, loss = model.step(data, att_feats, fc_feats)
+        ml_loss, loss, stats = model.step(data, att_feats, fc_feats)
+        print('Scores : ', stats)
         ml_loss_sum += ml_loss.data[0]
         loss_sum += loss.data[0]
         loss_evals = loss_evals + 1
         # TODO Only leave one feature for each image, in case duplicate sample
         seq, probs = model.sample(fc_unique, att_unique,
                                   {'beam_size': beam_size,
-                                   "vocab_size": vocab_size})
+                                   "forbid_unk": forbid_unk,
+                                   "sample_max": sample_max,
+                                   "temperature": temperature})
         sent_scores = probs.cpu().numpy().sum(axis=1)
         sents = utils.decode_sequence(loader.get_vocab(), seq)
         for k, sent in enumerate(sents):
@@ -179,7 +186,6 @@ def eval_split(cnn_model, model, crit, loader, eval_kwargs={}):
             logger.warn('Evaluated the required samples (%s)' % n)
             break
     lang_stats = None
-    unseen_grams = None
     if lang_eval:
         lang_stats, _ = language_eval(dataset, predictions,
                                       language_creativity)
