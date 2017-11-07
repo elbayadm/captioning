@@ -128,13 +128,14 @@ def set_optimizer(opt, epoch, model, cnn_model):
     else:
         raise ValueError('Unknown optimizer % s' % ref)
     # TODO; add sclaed lr for every chunk of cnn layers
-    if isinstance(model, list):
-        params = [{'params': m.parameters(), 'lr': opt.learning_rate}
-                       for m in model]
-    else:
-        active_params = filter(lambda p: p.requires_grad, model.parameters())
-        params = [{'params': active_params, 'lr': opt.learning_rate}]
+    # if isinstance(model, list):
+        # params = [{'params': m.parameters(), 'lr': opt.learning_rate}
+                       # for m in model]
+    # else:
+        # active_params = filter(lambda p: p.requires_grad, model.parameters())
+        # params = [{'params': active_params, 'lr': opt.learning_rate}]
 
+    params = model.parameters()
     if opt.finetune_cnn_after != -1 and epoch >= opt.finetune_cnn_after:
         if isinstance(cnn_model, list):
             cnn_params = [{'params': module.parameters(),
