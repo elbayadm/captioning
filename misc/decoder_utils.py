@@ -147,6 +147,8 @@ def set_optimizer(opt, epoch, model, cnn_model):
                            'lr': opt.cnn_learning_rate * opt.learning_rate}
                           for module in cnn_model.to_finetune]
         params += cnn_params
+    else:
+        cnn_model.eval()
     optimizer = optim_func(params,
                            lr=opt.learning_rate, weight_decay=opt.weight_decay)
 
