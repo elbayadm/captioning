@@ -74,6 +74,7 @@ def train(opt):
     update_lr_flag = True
     # Assure in training mode
     model.train()
+    cnn_model.eval()
     model.define_loss(loader.get_vocab())
     optimizer = du.set_optimizer(opt, epoch,
                                  model, cnn_model)

@@ -189,6 +189,8 @@ def eval_split(cnn_model, model, crit, loader, logger, eval_kwargs={}):
     if lang_eval:
         lang_stats, _ = language_eval(dataset, predictions,
                                       language_creativity)
+    # Back to training:
+    model.train()
     return ml_loss_sum/loss_evals, loss_sum/loss_evals, predictions, lang_stats
 
 
