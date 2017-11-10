@@ -325,6 +325,71 @@ class SentSmoothCriterion(nn.Module):
         return ml_output, self.alpha * output + (1 - self.alpha) * ml_output, stats
 
 
+class SentSmoothCriterion2(nn.Module):
+    """
+    Apply sentence level loss smoothing
+    """
+    def __init__(self, opt):
+        nn.Module.__init__(self)
+        self.logger = opt.logger
+        self.seq_per_img = opt.seq_per_img
+        self.version = opt.loss_version
+        # TODO assert type is defined
+        # the final loss is (1-alpha) ML + alpha * RewardLoss
+        self.alpha = opt.alpha
+        assert self.alpha > 0, 'set alpha to a nonzero value, otherwise use the default loss'
+        # tau set to zero means no exponentiation
+        self.tau_sent = opt.tau_sent
+        self.scale_loss = opt.scale_loss
+
+    def forward(self, input, target, mask, scores=None):
+        # truncate
+        print('Forwarding sent mode')
+        batch_size = input.size(0)
+        seq_length = input.size(1)
+        target = target[:, :seq_length]
+        mask = mask[:, :seq_length]
+        if self.scale_loss:
+            row_scores = scores.repeat(1, seq_length)
+            mask = torch.mul(mask, row_scores)
+        ml_output = get_ml_loss(input, target, mask)
+        preds = torch.max(input, dim=2)[1].squeeze().cpu().data
+        sent_scores = self.get_scores(preds, target)
+        # Process scores:
+        if self.tau_sent:
+            sent_scores = np.exp(np.array(sent_scores) / self.tau_sent)
+        else:
+            sent_scores = np.array(sent_scores)
+            if not np.sum(sent_scores):
+                self.logger.warn('Adding +1 to the zero scores')
+                sent_scores += 1
+        self.logger.warn('Scores after processing: %s' % str(sent_scores))
+        # Store some stats about the sentences scores:
+        stats = {"sent_mean": np.mean(sent_scores),
+                 "sent_std": np.std(sent_scores)}
+        # sent_scores from (N, 1) to (N, seq_length)
+        # sent_scores = np.repeat(sent_scores, seq_length)
+        # smooth_target = Variable(torch.from_numpy(sent_scores).view(-1, 1)).cuda().float()
+        # substitute target with the prediction (aka sampling wrt p_\theta)
+        preds = Variable(preds[:, :seq_length]).cuda()
+        # Flatten
+        preds = to_contiguous(preds).view(-1, 1)
+        input = to_contiguous(input).view(-1, input.size(2))
+        flat_mask = to_contiguous(mask).view(-1, 1)
+        logprob = input.gather(1, preds) * flat_mask
+        logprob = logprob.view(batch_size, seq_length)
+        logprob = torch.sum(logprob, dim=1).unsqueeze(1) / seq_length
+        # print('Logprobs', logprob.size(), logprob)
+        importance = Variable(torch.from_numpy(sent_scores).view(-1, 1)).cuda().float()
+        # print('importance:', importance.size())
+        importance = importance / torch.exp(logprob)
+        # print('Importance:', importance)
+        output = torch.sum(importance * torch.log(importance)) / batch_size
+        print("Pure RAML:", output.data[0])
+        return ml_output, self.alpha * output + (1 - self.alpha) * ml_output, stats
+
+
+
 class WordSentSmoothCriterion(nn.Module):
     """
     Combine a word level smothing with sentence scores
@@ -410,14 +475,14 @@ class WordSentSmoothCriterion(nn.Module):
         return ml_output, self.alpha * output + (1 - self.alpha) * ml_output, stats
 
 
-class CiderRewardCriterion(SentSmoothCriterion, WordSentSmoothCriterion):
+class CiderRewardCriterion(SentSmoothCriterion2, WordSentSmoothCriterion):
     def __init__(self, opt, vocab):
         if 'word' in opt.loss_version:
             print('Init WordSent')
             WordSentSmoothCriterion.__init__(self, opt)
         else:
             print('init Sent')
-            SentSmoothCriterion.__init__(self, opt)
+            SentSmoothCriterion2.__init__(self, opt)
         self.vocab = vocab
 
     def get_scores(self, preds, target):
@@ -439,7 +504,7 @@ class CiderRewardCriterion(SentSmoothCriterion, WordSentSmoothCriterion):
         if 'word' in self.version:
             return WordSentSmoothCriterion.forward(self, input, target, mask, scores)
         else:
-            return SentSmoothCriterion.forward(self, input, target, mask, scores)
+            return SentSmoothCriterion2.forward(self, input, target, mask, scores)
 
 class BleuRewardCriterion(SentSmoothCriterion, WordSentSmoothCriterion):
     def __init__(self, opt, vocab):
