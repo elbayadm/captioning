@@ -20,6 +20,12 @@ from pycocoevalcap.bleu.bleu_scorer import BleuScorer
 from misc.utils import to_contiguous, decode_sequence, sentence_bleu, group_similarity
 
 
+def rows_entropy(distrib):
+    """
+    return the entropy of each row in the given distributions
+    """
+    return torch.sum(distrib * torch.log(distrib), dim=1)
+
 def normalize_reward(distrib):
     """
     Normalize so that each row sum to one
@@ -184,6 +190,7 @@ class WordSmoothCriterion2(nn.Module):
         self.scale_loss = opt.scale_loss
         self.smooth_remove_equal = opt.smooth_remove_equal
         self.clip_sim = opt.clip_sim
+        self.add_entropy = opt.word_add_entropy
         if self.clip_sim:
             self.margin = opt.margin
             self.logger.warn('Clipping similarities below %.2f' % self.margin)
@@ -229,6 +236,8 @@ class WordSmoothCriterion2(nn.Module):
             smooth_target = torch.add(sim, -1.)
         # Normalize the word reward distribution:
         smooth_target = normalize_reward(smooth_target)
+
+
         # Store some stats about the sentences scores:
         scalars = smooth_target.data.cpu().numpy()[:]
         stats = {"word_mean": np.mean(scalars),
@@ -240,9 +249,15 @@ class WordSmoothCriterion2(nn.Module):
         input = to_contiguous(input).view(-1, input.size(2))
         # print('in:', input.size(), 'mask:', mask.size(), 'smooth:', smooth_target.size())
         output = - input * mask.repeat(1, sim.size(1)) * smooth_target
+
         if torch.sum(mask).data[0] > 0:
             output = torch.sum(output) / torch.sum(mask)
             print('Pure RAMl:', output.data[0])
+            if self.add_entropy:
+                H = rows_entropy(smooth_target).unsqueeze(1)
+                entropy = torch.sum(H * mask) / torch.sum(mask)
+                print('Entropy:', entropy.data[0])
+                output += entropy
         else:
             self.logger.warn("Smooth targets weights sum to 0")
             output = torch.sum(output)

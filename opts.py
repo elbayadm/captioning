@@ -74,6 +74,8 @@ def add_loss_params(parser):
     parser.add('--smooth_remove_equal', type=int, default=0)
     parser.add('--tau_word', type=float,
                default=0.005, help='Temperature for the rbf kernel applied to the words similarities')
+    parser.add('--word_add_entropy', type=int,
+               default=0, help='Add entropy to the word smooth loss')
     parser.add('--tau_sent', type=float,
                default=0, help='Temperature for the rbf kernel applied to the sentences scores')
     parser.add('--clip_sim', type=int,
