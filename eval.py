@@ -28,6 +28,7 @@ if __name__ == "__main__":
         infos = pickle.load(f, encoding="iso-8859-1")
         infos['opt'].logger = None
     ignore = ["batch_size", "beam_size", "start_from",
+              'cnn_start_from', 'infos_start_from',
               "start_from_best", "language_eval", "logger",
               "val_images_use", 'input_data']
     for k in list(vars(infos['opt']).keys()):

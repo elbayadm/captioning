@@ -20,6 +20,17 @@ from pycocoevalcap.bleu.bleu_scorer import BleuScorer
 from misc.utils import to_contiguous, decode_sequence, sentence_bleu, group_similarity
 
 
+def normalize_reward(distrib):
+    """
+    Normalize so that each row sum to one
+    """
+    sums = torch.sum(distrib, dim=1)
+    print('Sums:', sums)
+    out =  distrib / sums.expand_as(distrib)
+    print(out)
+    return out
+
+
 class LanguageModelCriterion(nn.Module):
     """
     The defaul cross entropy loss with the option
@@ -140,6 +151,88 @@ class WordSmoothCriterion(nn.Module):
             smooth_target = torch.add(sim, -1.)
         if self.smooth_remove_equal:
             smooth_target = smooth_target * sim.lt(1.0).float()
+        # Store some stats about the sentences scores:
+        scalars = smooth_target.data.cpu().numpy()[:]
+        stats = {"word_mean": np.mean(scalars),
+                 "word_std": np.std(scalars)}
+
+        # print('smooth_target:', smooth_target)
+        # Format
+        mask = to_contiguous(mask).view(-1, 1)
+        mask = mask.repeat(1, sim.size(1))
+        input = to_contiguous(input).view(-1, input.size(2))
+        # print('in:', input.size(), 'mask:', mask.size(), 'smooth:', smooth_target.size())
+        output = - input * mask * smooth_target
+
+        if torch.sum(smooth_target * mask).data[0] > 0:
+            output = torch.sum(output) / torch.sum(smooth_target * mask)
+        else:
+            self.logger.warn("Smooth targets weights sum to 0")
+            output = torch.sum(output)
+
+        return ml_output, self.alpha * output + (1 - self.alpha) * ml_output, stats
+
+
+class WordSmoothCriterion2(nn.Module):
+    """
+    Apply word level loss smoothing given a similarity matrix
+    the two versions are:
+        full : to take into account the whole vocab
+        limited: to consider only the ground truth vocab
+    """
+    def __init__(self, opt):
+        super().__init__()
+        self.logger = opt.logger
+        self.seq_per_img = opt.seq_per_img
+        self.scale_loss = opt.scale_loss
+        self.smooth_remove_equal = opt.smooth_remove_equal
+        self.clip_sim = opt.clip_sim
+        if self.clip_sim:
+            self.margin = opt.margin
+            self.logger.warn('Clipping similarities below %.2f' % self.margin)
+        self.limited = opt.limited_vocab_sim
+        # the final loss is (1-alpha) ML + alpha * RewardLoss
+        self.alpha = opt.alpha
+        assert self.alpha > 0, 'set alpha to a nonzero value, otherwise use the default loss'
+        self.tau_word = opt.tau_word
+        # Load the similarity matrix:
+        M = pickle.load(open(opt.similarity_matrix, 'rb'), encoding='iso-8859-1')
+        M = M.astype(np.float32)
+        n, d = M.shape
+        assert n == d and n == opt.vocab_size, 'Similarity matrix has incompatible shape'
+        M = Variable(torch.from_numpy(M)).cuda()
+        self.Sim_Matrix = M
+
+    def forward(self, input, target, mask, scores=None):
+        # truncate to the same size
+        seq_length = input.size(1)
+        target = target[:, :seq_length]
+        mask = mask[:, :seq_length]
+        if self.scale_loss:
+            row_scores = scores.repeat(1, seq_length)
+            mask = torch.mul(mask, row_scores)
+        ml_output = get_ml_loss(input, target, mask)
+        # Get the similarities of the words in the batch (Vb, V)
+        sim = self.Sim_Matrix[to_contiguous(target).view(-1, 1).squeeze().data]
+        # print('raw sim:', sim)
+        if self.clip_sim:
+            # keep only the similarities larger than the margin
+            # self.logger.warn('Clipping the sim')
+            sim = sim * sim.ge(self.margin).float()
+        if self.limited:
+            # self.logger.warn('Limitig smoothing to the gt vocab')
+            indices_vocab = get_indices_vocab(target, self.seq_per_img)
+            sim = sim.gather(1, indices_vocab)
+            input = input.gather(1, indices_vocab)
+
+        if self.tau_word:
+            smooth_target = torch.exp(torch.mul(torch.add(sim, -1.), 1/self.tau_word))
+        else:
+            # Do not exponentiate
+            smooth_target = torch.add(sim, -1.)
+        # Normalize the word reward distribution:
+        smooth_target = normalize_reward(smooth_target)
+        print("normalize_reward:", smooth_target)
         # Store some stats about the sentences scores:
         scalars = smooth_target.data.cpu().numpy()[:]
         stats = {"word_mean": np.mean(scalars),

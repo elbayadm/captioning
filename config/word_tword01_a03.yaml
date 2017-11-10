@@ -1,6 +1,6 @@
 # Generic
 # -------------------------
-modelname : debug
+modelname : word_tword01_a03
 restart : 1
 
 caption_model : show_tell
@@ -19,6 +19,6 @@ learning_rate_decay_every: 3
 
 # Loss:
 sample_cap: 1
-loss_version : word2
+loss_version : word
 tau_word : 0.1
 alpha : 0.3

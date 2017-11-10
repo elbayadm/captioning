@@ -56,8 +56,11 @@ class DecoderModel(nn.Module):
                 crit = loss.InfersentRewardCriterion(opt, vocab)
             elif 'bleu' in opt.loss_version:
                 crit = loss.BleuRewardCriterion(opt, vocab)
-            elif 'word' in opt.loss_version:
+            elif opt.loss_version == "word":
                 crit = loss.WordSmoothCriterion(opt)
+            elif opt.loss_version == "word2":
+                crit = loss.WordSmoothCriterion2(opt)
+
         elif opt.bootstrap:
             crit = loss.DataAugmentedCriterion(opt)
         # elif opt.combine_caps_losses:
