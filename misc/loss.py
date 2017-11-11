@@ -589,12 +589,12 @@ class InfersentRewardCriterion(SentSmoothCriterion, WordSentSmoothCriterion):
             return SentSmoothCriterion.forward(self, input, target, mask, scores)
 
 
-class HammingRewardCriterion(SentSmoothCriterion, WordSentSmoothCriterion):
+class HammingRewardCriterion(SentSmoothCriterion2, WordSentSmoothCriterion):
     def __init__(self, opt):
         if 'word' in opt.loss_version:
             WordSentSmoothCriterion.__init__(self, opt)
         else:
-            SentSmoothCriterion.__init__(self, opt)
+            SentSmoothCriterion2.__init__(self, opt)
 
     def get_scores(self, preds, target):
         refs = target.cpu().data.numpy()
@@ -607,7 +607,7 @@ class HammingRewardCriterion(SentSmoothCriterion, WordSentSmoothCriterion):
         if 'word' in self.version:
             return WordSentSmoothCriterion.forward(self, input, target, mask, scores)
         else:
-            return SentSmoothCriterion.forward(self, input, target, mask, scores)
+            return SentSmoothCriterion2.forward(self, input, target, mask, scores)
 
 
 class HammingRewardSampler(nn.Module):
