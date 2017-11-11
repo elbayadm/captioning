@@ -132,7 +132,7 @@ def add_optim_params(parser):
                default=1, help='0: to override the existing model or 1: to pick up the training')
 
     parser.add('--max_epochs', type=int,
-               default=-1, help='number of epochs')
+               default=22, help='number of epochs')
     parser.add('--grad_clip', type=float,
                default=0.1, help='clip gradients at this value')
     parser.add('--finetune_cnn_after', type=int,

@@ -189,6 +189,7 @@ def train(opt):
                 lg.add_summary_value(tf_summary_writer, k, v, iteration)
             tf_summary_writer.flush()
             history['val_perf'][iteration] = {'loss': val_loss,
+                                              'ml_loss': val_ml_loss,
                                               'lang_stats': lang_stats,
                                               'predictions': predictions}
             val_losses.insert(0, val_loss)
