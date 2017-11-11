@@ -60,11 +60,18 @@ class DecoderModel(nn.Module):
                 crit = loss.WordSmoothCriterion(opt)
             elif opt.loss_version == "word2":
                 crit = loss.WordSmoothCriterion2(opt)
+            else:
+                raise ValueError('Loss function %s in sample_cap mode unknown' % (opt.loss_version))
 
         elif opt.bootstrap:
             crit = loss.DataAugmentedCriterion(opt)
         # elif opt.combine_caps_losses:
             # crit = loss.MultiLanguageModelCriterion(opt.seq_per_img)
+        elif opt.sample_reward:
+            if 'hamming' in opt.loss_version:
+                crit = loss.HammingRewardSampler(opt)
+            else:
+                raise ValueError('Loss function %s in sample_reward mode unknown' % (opt.loss_version))
         else:
             # The defualt ML
             opt.logger.warn('Using baseline loss criterion')

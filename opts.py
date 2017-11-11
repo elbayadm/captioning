@@ -65,6 +65,9 @@ def add_loss_params(parser):
     ## Smoothed loss
     parser.add('--sample_cap', type=int,
                default=0, help='use smooth loss with captining model sampling (sentence level) or word level smoothing')
+    parser.add('--sample_reward', type=int,
+               default=0, help='use smooth loss with reward sampling')
+
     parser.add('--similarity_matrix', type=str,
                default='data/Glove/cocotalk_similarities_v2.pkl', help='path to the pre-computed similarity matrix between the vocab words')
     parser.add('--loss_version', type=str,

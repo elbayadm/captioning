@@ -8,6 +8,8 @@ from scipy.special import binom
 import numpy as np
 from scipy.spatial.distance import hamming
 from collections import Counter
+from scipy.misc import comb
+
 import torch
 import torch.nn as nn
 import torch.utils.model_zoo as model_zoo
@@ -18,6 +20,14 @@ sys.path.append("coco-caption")
 from pycocoevalcap.cider.cider_scorer import CiderScorer
 from pycocoevalcap.bleu.bleu_scorer import BleuScorer
 from misc.utils import to_contiguous, decode_sequence, sentence_bleu, group_similarity
+
+
+def hamming_distrib(m, v, tau):
+    x = [np.log(comb(m, d, exact=False)) + d * np.log(v) - d/tau * np.log(v) - d/tau for d in range(m + 1)]
+    x = np.array(x)
+    p = np.exp(x)
+    p /= np.sum(p)
+    return p
 
 
 def rows_entropy(distrib):
@@ -623,6 +633,7 @@ class HammingRewardSampler(nn.Module):
         assert self.alpha > 0, 'set alpha to a nonzero value, otherwise use the default loss'
         self.tau = opt.tau_sent
         self.scale_loss = opt.scale_loss
+        self.vocab_size = opt.vocab_size
 
     def forward(self, input, target, mask, scores=None):
         # truncate
@@ -634,16 +645,17 @@ class HammingRewardSampler(nn.Module):
             row_scores = scores.repeat(1, seq_length)
             mask = torch.mul(mask, row_scores)
         ml_output = get_ml_loss(input, target, mask)
-        # Sample a distance then sample a prediction wrt the reward
-        V = 30
-        distrib = [binom(seq_length, e) *
-                   ((V-1) * math.exp(-1/self.tau))**(e-seq_length)
-                   for e in range(seq_length+1)]
-        select = np.random.choice(a=np.arange(seq_length+1),
-                                  p=distrib/sum(distrib))
+
+        distrib = hamming_distrib(seq_length, self.vocab_size, self.tau)
+        print('Sampling distrib:', distrib)
+        select = np.random.choice(a=np.arange(seq_length + 1),
+                                  p=distrib)
         score = math.exp(-select / self.tau)
         self.logger.debug("exp-neg Hamming distances (d=%d): %.2e" %
                           (select, score))
+        stats = {"sent_mean": score,
+                 "sent_std": 0}
+
         scores = np.ones((N, seq_length), dtype="float32") * score
         smooth_target = Variable(torch.from_numpy(scores).view(-1, 1)).cuda().float()
         refs = target.cpu().data.numpy()
@@ -654,14 +666,17 @@ class HammingRewardSampler(nn.Module):
         select_index = np.random.randint(self.vocab_size, size=(N, select))
         preds[rows, change_index] = select_index
         preds = Variable(torch.from_numpy(preds)).cuda()
+        # Flatten
         preds = to_contiguous(preds).view(-1, 1)
+        input = to_contiguous(input).view(-1, input.size(2))
+        mask = to_contiguous(mask).view(-1, 1)
         output = - input.gather(1, preds) * mask * smooth_target
         if torch.sum(smooth_target * mask).data[0] > 0:
             output = torch.sum(output) / torch.sum(smooth_target * mask)
         else:
             self.logger.warn("Smooth targets weights sum to 0")
             output = torch.sum(output)
-        return ml_output, self.alpha * output + (1 - self.alpha) * ml_output
+        return ml_output, self.alpha * output + (1 - self.alpha) * ml_output, stats
 
 
 class MultiLanguageModelCriterion(nn.Module):
