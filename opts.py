@@ -72,6 +72,8 @@ def add_loss_params(parser):
                default='data/Glove/cocotalk_similarities_v2.pkl', help='path to the pre-computed similarity matrix between the vocab words')
     parser.add('--loss_version', type=str,
                default="word", help='Version of loss smoothing')
+    parser.add('--sentence_loss_version', type=int,
+               default=1, help='Version of sentence loss smoothing')
     parser.add('--bleu_version', type=str,
                default="soft", help='Version of bleu scorer to use: coco or soft')
     parser.add('--smooth_remove_equal', type=int, default=0)

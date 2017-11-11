@@ -294,7 +294,6 @@ class SentSmoothCriterion(nn.Module):
 
     def forward(self, input, target, mask, scores=None):
         # truncate
-        print('Forwarding sent mode')
         seq_length = input.size(1)
         target = target[:, :seq_length]
         mask = mask[:, :seq_length]
@@ -326,8 +325,10 @@ class SentSmoothCriterion(nn.Module):
         input = to_contiguous(input).view(-1, input.size(2))
         mask = to_contiguous(mask).view(-1, 1)
         output = - input.gather(1, preds) * mask * smooth_target
-        if torch.sum(smooth_target * mask).data[0] > 0:
-            output = torch.sum(output) / torch.sum(smooth_target * mask)
+        if torch.sum(mask).data[0] > 0:
+            # Previously dividing by sum(smooth * mask)
+            # output = torch.sum(output) / torch.sum(smooth_target * mask)
+            output = torch.sum(output) / torch.sum(mask)
         else:
             self.logger.warn("Smooth targets weights sum to 0")
             output = torch.sum(output)
@@ -354,7 +355,6 @@ class SentSmoothCriterion2(nn.Module):
 
     def forward(self, input, target, mask, scores=None):
         # truncate
-        print('Forwarding sent mode')
         batch_size = input.size(0)
         seq_length = input.size(1)
         target = target[:, :seq_length]
@@ -394,7 +394,10 @@ class SentSmoothCriterion2(nn.Module):
         # print('importance:', importance.size())
         importance = importance / torch.exp(logprob)
         # print('Importance:', importance)
-        output = torch.sum(importance * torch.log(importance)) / batch_size
+        if self.sentence_version == 2:
+            output = torch.sum(importance * torch.log(importance)) / batch_size
+        elif self.sentence_version == 3:
+            output = - torch.sum(importance * logprob) / batch_size
         print("Pure RAML:", output.data[0])
         return ml_output, self.alpha * output + (1 - self.alpha) * ml_output, stats
 
@@ -485,14 +488,33 @@ class WordSentSmoothCriterion(nn.Module):
         return ml_output, self.alpha * output + (1 - self.alpha) * ml_output, stats
 
 
-class CiderRewardCriterion(SentSmoothCriterion2, WordSentSmoothCriterion):
-    def __init__(self, opt, vocab):
+class RewardCriterion(SentSmoothCriterion2,
+                      SentSmoothCriterion,
+                      WordSentSmoothCriterion):
+    def __init__(self, opt):
         if 'word' in opt.loss_version:
-            print('Init WordSent')
             WordSentSmoothCriterion.__init__(self, opt)
         else:
-            print('init Sent')
-            SentSmoothCriterion2.__init__(self, opt)
+            if opt.sentence_loss_version == 1:
+                SentSmoothCriterion.__init__(self, opt)
+            else:
+                SentSmoothCriterion2.__init__(self, opt)
+
+        self.sentence_version = opt.sentence_loss_version
+
+    def forward(self, input, target, mask, scores=None):
+        if 'word' in self.version:
+            return WordSentSmoothCriterion.forward(self, input, target, mask, scores)
+        else:
+            if self.sentence_version == 1:
+                return SentSmoothCriterion.forward(self, input, target, mask, scores)
+            else:
+                return SentSmoothCriterion2.forward(self, input, target, mask, scores)
+
+
+class CiderRewardCriterion(RewardCriterion):
+    def __init__(self, opt, vocab):
+        RewardCriterion.__init__(self, opt)
         self.vocab = vocab
 
     def get_scores(self, preds, target):
@@ -510,18 +532,10 @@ class CiderRewardCriterion(SentSmoothCriterion2, WordSentSmoothCriterion):
         self.logger.debug("CIDEr score: %s" %  str(scores))
         return scores
 
-    def forward(self, input, target, mask, scores=None):
-        if 'word' in self.version:
-            return WordSentSmoothCriterion.forward(self, input, target, mask, scores)
-        else:
-            return SentSmoothCriterion2.forward(self, input, target, mask, scores)
 
-class BleuRewardCriterion(SentSmoothCriterion, WordSentSmoothCriterion):
+class BleuRewardCriterion(RewardCriterion):
     def __init__(self, opt, vocab):
-        if 'word' in opt.loss_version:
-            WordSentSmoothCriterion.__init__(self, opt)
-        else:
-            SentSmoothCriterion.__init__(self, opt)
+        RewardCriterion.__init__(self, opt)
         self.vocab = vocab
         self.bleu_order = int(self.version[-1])
         self.bleu_scorer = opt.bleu_version
@@ -552,19 +566,10 @@ class BleuRewardCriterion(SentSmoothCriterion, WordSentSmoothCriterion):
         self.logger.debug("Bleu scores: %s" %  str(scores))
         return scores
 
-    def forward(self, input, target, mask, scores=None):
-        if 'word' in self.version:
-            return WordSentSmoothCriterion.forward(self, input, target, mask, scores)
-        else:
-            return SentSmoothCriterion.forward(self, input, target, mask, scores)
 
-
-class InfersentRewardCriterion(SentSmoothCriterion, WordSentSmoothCriterion):
+class InfersentRewardCriterion(RewardCriterion):
     def __init__(self, opt, vocab):
-        if 'word' in opt.loss_version:
-            WordSentSmoothCriterion.__init__(self, opt)
-        else:
-            SentSmoothCriterion.__init__(self, opt)
+        RewardCriterion.__init__(self, opt)
         self.vocab = vocab
         self.logger.info('loading the infersent pretrained model')
         glove_path = '../infersent/dataset/glove/glove.840b.300d.txt'
@@ -592,19 +597,10 @@ class InfersentRewardCriterion(SentSmoothCriterion, WordSentSmoothCriterion):
         self.logger.debug("infersent similairities: %s" %  str(scores))
         return scores
 
-    def forward(self, input, target, mask, scores=None):
-        if 'word' in self.version:
-            return WordSentSmoothCriterion.forward(self, input, target, mask, scores)
-        else:
-            return SentSmoothCriterion.forward(self, input, target, mask, scores)
 
-
-class HammingRewardCriterion(SentSmoothCriterion2, WordSentSmoothCriterion):
+class HammingRewardCriterion(RewardCriterion):
     def __init__(self, opt):
-        if 'word' in opt.loss_version:
-            WordSentSmoothCriterion.__init__(self, opt)
-        else:
-            SentSmoothCriterion2.__init__(self, opt)
+        RewardCriterion.__init__(self, opt)
 
     def get_scores(self, preds, target):
         refs = target.cpu().data.numpy()
@@ -613,11 +609,6 @@ class HammingRewardCriterion(SentSmoothCriterion2, WordSentSmoothCriterion):
         self.logger.debug("Negative hamming distances: %s" %  str(scores))
         return scores
 
-    def forward(self, input, target, mask, scores=None):
-        if 'word' in self.version:
-            return WordSentSmoothCriterion.forward(self, input, target, mask, scores)
-        else:
-            return SentSmoothCriterion2.forward(self, input, target, mask, scores)
 
 
 class HammingRewardSampler(nn.Module):
