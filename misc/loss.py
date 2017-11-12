@@ -284,6 +284,7 @@ class SentSmoothCriterion(nn.Module):
         self.logger = opt.logger
         self.seq_per_img = opt.seq_per_img
         self.version = opt.loss_version
+        self.clip_scores = opt.clip_scores
         # TODO assert type is defined
         # the final loss is (1-alpha) ML + alpha * RewardLoss
         self.alpha = opt.alpha
@@ -291,6 +292,7 @@ class SentSmoothCriterion(nn.Module):
         # tau set to zero means no exponentiation
         self.tau_sent = opt.tau_sent
         self.scale_loss = opt.scale_loss
+        self.normalize_batch = opt.sentence_normalize_batch
 
     def forward(self, input, target, mask, scores=None):
         # truncate
@@ -303,19 +305,22 @@ class SentSmoothCriterion(nn.Module):
         ml_output = get_ml_loss(input, target, mask)
         preds = torch.max(input, dim=2)[1].squeeze().cpu().data
         sent_scores = self.get_scores(preds, target)
+        # scale scores:
+        sent_scores = np.array(sent_scores)
+        if self.clip_scores:
+            sent_scores = np.clip(sent_scores, 0, 1) - 1
         # Process scores:
         if self.tau_sent:
-            sent_scores = np.exp(np.array(sent_scores) / self.tau_sent)
-        else:
-            sent_scores = np.array(sent_scores)
-            if not np.sum(sent_scores):
-                self.logger.warn('Adding +1 to the zero scores')
-                sent_scores += 1
+            sent_scores = np.exp(sent_scores / self.tau_sent)
+        if not np.sum(sent_scores):
+            self.logger.warn('Adding +1 to the zero scores')
+            sent_scores += 1
         # sent_scores from (N, 1) to (N, seq_length)
         self.logger.warn('Scores after processing: %s' % str(sent_scores))
         # Store some stats about the sentences scores:
         stats = {"sent_mean": np.mean(sent_scores),
                  "sent_std": np.std(sent_scores)}
+
         sent_scores = np.repeat(sent_scores, seq_length)
         smooth_target = Variable(torch.from_numpy(sent_scores).view(-1, 1)).cuda().float()
         # substitute target with the prediction (aka sampling wrt p_\theta)
@@ -325,14 +330,16 @@ class SentSmoothCriterion(nn.Module):
         input = to_contiguous(input).view(-1, input.size(2))
         mask = to_contiguous(mask).view(-1, 1)
         output = - input.gather(1, preds) * mask * smooth_target
-        if torch.sum(mask).data[0] > 0:
-            # Previously dividing by sum(smooth * mask)
-            # output = torch.sum(output) / torch.sum(smooth_target * mask)
-            output = torch.sum(output) / torch.sum(mask)
+        if self.normalize_batch:
+            weights = smooth_target * mask
         else:
-            self.logger.warn("Smooth targets weights sum to 0")
-            output = torch.sum(output)
-
+            # Only cider_tsent09_a03_nonorm
+            weights = mask
+        if torch.sum(weights).data[0] > 0:
+            output = torch.sum(output) / torch.sum(weights)
+        else:
+            self.logger.warn('Weights sum to zero')
+            output = sum(output)
         return ml_output, self.alpha * output + (1 - self.alpha) * ml_output, stats
 
 
@@ -516,6 +523,14 @@ class CiderRewardCriterion(RewardCriterion):
     def __init__(self, opt, vocab):
         RewardCriterion.__init__(self, opt)
         self.vocab = vocab
+        DF = pickle.load(open(opt.cider_df, 'rb'),  encoding="iso-8859-1")
+        if isinstance(DF, dict):
+            self.DF = DF['freq']
+            self.DF_len = DF['length']
+        else:
+            self.DF = DF
+            self.DF_len = 40504
+
 
     def get_scores(self, preds, target):
         # The reward loss:
@@ -528,7 +543,8 @@ class CiderRewardCriterion(RewardCriterion):
             ix_start = e // self.seq_per_img * self.seq_per_img
             ix_end = ix_start + 5  # self.seq_per_img
             cider_scorer += (h, refs[ix_start : ix_end])
-        (score, scores) = cider_scorer.compute_score()
+        (score, scores) = cider_scorer.compute_score(df_mode=self.DF,
+                                                     df_len=self.DF_len)
         self.logger.debug("CIDEr score: %s" %  str(scores))
         return scores
 

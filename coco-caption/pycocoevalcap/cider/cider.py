@@ -15,9 +15,11 @@ class Cider:
     Main Class to compute the CIDEr metric
 
     """
-    def __init__(self, test=None, refs=None, n=4, sigma=6.0):
+    def __init__(self, test=None, refs=None, n=4, sigma=6.0, df="corpus"):
         # set cider to sum over 1 to 4-grams
         self._n = n
+        # Maha
+        self._df = df
         # set the standard deviation parameter for gaussian penalty
         self._sigma = sigma
 
@@ -46,7 +48,8 @@ class Cider:
 
             cider_scorer += (hypo[0], ref)
 
-        (score, scores) = cider_scorer.compute_score()
+        # Maha (additional parameter)
+        (score, scores) = cider_scorer.compute_score(self._df)
 
         return score, scores
 

@@ -1,6 +1,6 @@
 # Generic
 # -------------------------
-modelname : cider_tsent09_a03
+modelname : cider_tsent09_a03_valdf
 restart : 1
 
 caption_model : show_tell

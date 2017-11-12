@@ -67,12 +67,17 @@ def add_loss_params(parser):
                default=0, help='use smooth loss with captining model sampling (sentence level) or word level smoothing')
     parser.add('--sample_reward', type=int,
                default=0, help='use smooth loss with reward sampling')
-
+    parser.add('--cider_df', type=str,
+               default='data/coco-train-df.p', help='path to dataset n-grams frequency')
+    parser.add('--clip_scores', type=int,
+               default=0, help='Clip and scale the sentence scores')
     parser.add('--similarity_matrix', type=str,
                default='data/Glove/cocotalk_similarities_v2.pkl', help='path to the pre-computed similarity matrix between the vocab words')
     parser.add('--loss_version', type=str,
                default="word", help='Version of loss smoothing')
     parser.add('--sentence_loss_version', type=int,
+               default=1, help='Version of sentence loss smoothing')
+    parser.add('--sentence_normalize_batch', type=int,
                default=1, help='Version of sentence loss smoothing')
     parser.add('--bleu_version', type=str,
                default="soft", help='Version of bleu scorer to use: coco or soft')

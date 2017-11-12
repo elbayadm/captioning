@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 # Tsung-Yi Lin <tl483@cornell.edu>
 # Ramakrishna Vedantam <vrama91@vt.edu>
-
+import os
 import copy
 from collections import defaultdict
 import numpy as np
 import pdb
 import math
+import pickle
+
 
 def precook(s, n=4, out=False):
     """
@@ -158,8 +160,12 @@ class CiderScorer(object):
                 val[n] *= np.e**(-(delta**2)/(2*self.sigma**2))
             return val
 
-        # compute log reference length
-        self.ref_len = np.log(float(len(self.crefs)))
+        # # compute log reference length
+        # if df_mode == "corpus":
+            # self.ref_len = np.log(float(len(self.crefs)))
+        # else:
+            # # if coco option selected, use length of coco-val set
+            # self.ref_len = np.log(float(40504))
 
         scores = []
         for test, refs in zip(self.ctest, self.crefs):
@@ -180,11 +186,20 @@ class CiderScorer(object):
             scores.append(score_avg)
         return scores
 
-    def compute_score(self, option=None, verbose=0):
+    def compute_score(self, df_mode="corpus", df_len=None, option=None, verbose=0):
         # compute idf
-        self.compute_doc_freq()
-        # assert to check document frequency
-        assert(len(self.ctest) >= max(self.document_frequency.values()))
+        if df_mode == "corpus":
+            self.compute_doc_freq()
+            self.ref_len = np.log(float(len(self.crefs)))
+
+            # assert to check document frequency
+            assert(len(self.ctest) >= max(self.document_frequency.values()))
+            # import json for now and write the corresponding files
+        else:
+            assert isinstance(df_mode, defaultdict), "given document freq should be defaultdict"
+            self.document_frequency = df_mode
+            self.ref_len = np.log(float(df_len))
+
         # compute cider score
         score = self.compute_cider()
         # debug
