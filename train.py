@@ -206,7 +206,8 @@ def train(opt):
                           iteration, epoch, loader, best_val_score,
                           history, best_flag)
         # Stop if reaching max epochs
-        if epoch >= opt.max_epochs and opt.max_epochs != -1:
+        if epoch > opt.max_epochs and opt.max_epochs != -1:
+            opt.logger.info('Max epochs reched')
             break
 
 if __name__ == "__main__":
