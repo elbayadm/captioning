@@ -352,6 +352,7 @@ class SentSmoothCriterion2(nn.Module):
         self.logger = opt.logger
         self.seq_per_img = opt.seq_per_img
         self.version = opt.loss_version
+        self.clip_scores = opt.clip_scores
         # TODO assert type is defined
         # the final loss is (1-alpha) ML + alpha * RewardLoss
         self.alpha = opt.alpha
@@ -372,15 +373,20 @@ class SentSmoothCriterion2(nn.Module):
         ml_output = get_ml_loss(input, target, mask)
         preds = torch.max(input, dim=2)[1].squeeze().cpu().data
         sent_scores = self.get_scores(preds, target)
+
+        # scale scores:
+        sent_scores = np.array(sent_scores)
+        if self.clip_scores:
+            sent_scores = np.clip(sent_scores, 0, 1) - 1
         # Process scores:
         if self.tau_sent:
-            sent_scores = np.exp(np.array(sent_scores) / self.tau_sent)
-        else:
-            sent_scores = np.array(sent_scores)
-            if not np.sum(sent_scores):
-                self.logger.warn('Adding +1 to the zero scores')
-                sent_scores += 1
+            sent_scores = np.exp(sent_scores / self.tau_sent)
+        if not np.sum(sent_scores):
+            self.logger.warn('Adding +1 to the zero scores')
+            sent_scores += 1
+        # sent_scores from (N, 1) to (N, seq_length)
         self.logger.warn('Scores after processing: %s' % str(sent_scores))
+
         # Store some stats about the sentences scores:
         stats = {"sent_mean": np.mean(sent_scores),
                  "sent_std": np.std(sent_scores)}
