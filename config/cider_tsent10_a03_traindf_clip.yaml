@@ -1,6 +1,6 @@
 # Generic
 # -------------------------
-modelname : cider_tsent0_a03_traindf_clip
+modelname : cider_tsent10_a03_traindf_clip
 restart : 1
 
 caption_model : show_tell
@@ -21,5 +21,5 @@ learning_rate_decay_every: 3
 sample_cap: 1
 loss_version : cider
 clip_scores : 1
-tau_sent : 0
+tau_sent : 1.0
 alpha : 0.3
