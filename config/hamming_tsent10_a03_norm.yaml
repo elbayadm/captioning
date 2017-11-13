@@ -1,6 +1,6 @@
 # Generic
 # -------------------------
-modelname : debug
+modelname : hamming_tsent10_a03_norm
 restart : 1
 
 caption_model : show_tell

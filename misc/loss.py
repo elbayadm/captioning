@@ -30,6 +30,11 @@ def hamming_distrib(m, v, tau):
     return p
 
 
+def hamming_Z(m, v, tau):
+    pd = hamming_distrib(m, v, tau)
+    popul = v ** m
+    return np.sum(pd * popul * np.exp(-np.arange(m+1)/tau))
+
 def rows_entropy(distrib):
     """
     return the entropy of each row in the given distributions
@@ -318,18 +323,6 @@ class SentSmoothCriterion(nn.Module):
         ml_output = get_ml_loss(input, target, mask)
         preds = torch.max(input, dim=2)[1].squeeze().cpu().data
         sent_scores = self.get_scores(preds, target)
-        # scale scores:
-        sent_scores = np.array(sent_scores)
-        if self.clip_scores:
-            sent_scores = np.clip(sent_scores, 0, 1) - 1
-        # Process scores:
-        if self.tau_sent:
-            sent_scores = np.exp(sent_scores / self.tau_sent)
-        if not np.sum(sent_scores):
-            self.logger.warn('Adding +1 to the zero scores')
-            sent_scores += 1
-        # sent_scores from (N, 1) to (N, seq_length)
-        self.logger.warn('Scores after processing: %s' % str(sent_scores))
         # Store some stats about the sentences scores:
         stats = {"sent_mean": np.mean(sent_scores),
                  "sent_std": np.std(sent_scores)}
@@ -389,18 +382,6 @@ class SentSmoothCriterion2(nn.Module):
 
         # scale scores:
         sent_scores = np.array(sent_scores)
-        if self.clip_scores:
-            sent_scores = np.clip(sent_scores, 0, 1) - 1
-        # Process scores:
-        if self.tau_sent:
-            sent_scores = np.exp(sent_scores / self.tau_sent)
-        if not np.sum(sent_scores):
-            self.logger.warn('Adding +1 to the zero scores')
-            sent_scores += 1
-        # sent_scores from (N, 1) to (N, seq_length)
-        self.logger.warn('Scores after processing: %s' % str(sent_scores))
-
-        # Store some stats about the sentences scores:
         stats = {"sent_mean": np.mean(sent_scores),
                  "sent_std": np.std(sent_scores)}
         # sent_scores from (N, 1) to (N, seq_length)
@@ -471,17 +452,6 @@ class WordSentSmoothCriterion(nn.Module):
         # Sentence level
         preds = torch.max(input, dim=2)[1].squeeze().cpu().data
         sent_scores = self.get_scores(preds, target)
-        # Process scores:
-        if self.tau_sent:
-            sent_scores = np.exp(np.array(sent_scores) / self.tau_sent)
-        else:
-            sent_scores = np.array(sent_scores)
-            if not np.sum(sent_scores):
-                self.logger.warn('Adding +1 to the zero scores')
-                sent_scores += 1
-
-        # sent_scores from (N, 1) to (N, seq_length)
-        self.logger.warn('Scores after processing: %s' % str(sent_scores))
         # Store some stats about the sentences scores:
         stats = {"sent_mean": np.mean(sent_scores),
                  "sent_std": np.std(sent_scores)}
@@ -573,6 +543,17 @@ class CiderRewardCriterion(RewardCriterion):
         (score, scores) = cider_scorer.compute_score(df_mode=self.DF,
                                                      df_len=self.DF_len)
         self.logger.debug("CIDEr score: %s" %  str(scores))
+        # scale scores:
+        scores = np.array(scores)
+        if self.clip_scores:
+            scores = np.clip(scores, 0, 1) - 1
+        # Process scores:
+        if self.tau_sent:
+            scores = np.exp(scores / self.tau_sent)
+        if not np.sum(scores):
+            self.logger.warn('Adding +1 to the zero scores')
+            scores += 1
+        self.logger.warn('Scores after processing: %s' % str(scores))
         return scores
 
 
@@ -607,6 +588,18 @@ class BleuRewardCriterion(RewardCriterion):
             (score, scores) = bleu_scorer.compute_score()
             scores = scores[-1]
         self.logger.debug("Bleu scores: %s" %  str(scores))
+        # scale scores:
+        scores = np.array(scores)
+        if self.clip_scores:
+            scores = np.clip(scores, 0, 1) - 1
+        # Process scores:
+        if self.tau_sent:
+            scores = np.exp(scores / self.tau_sent)
+        if not np.sum(scores):
+            self.logger.warn('Adding +1 to the zero scores')
+            scores += 1
+        self.logger.warn('Scores after processing: %s' % str(scores))
+
         return scores
 
 
@@ -638,20 +631,46 @@ class InfersentRewardCriterion(RewardCriterion):
             ix_end = ix_start + 5  # self.seq_per_img
             scores.append(group_similarity(h, refs[ix_start : ix_end]))
         self.logger.debug("infersent similairities: %s" %  str(scores))
+        # scale scores:
+        scores = np.array(scores)
+        if self.clip_scores:
+            scores = np.clip(scores, 0, 1) - 1
+        # Process scores:
+        if self.tau_sent:
+            scores = np.exp(scores / self.tau_sent)
+        if not np.sum(scores):
+            self.logger.warn('Adding +1 to the zero scores')
+            scores += 1
+        self.logger.warn('Scores after processing: %s' % str(scores))
+
         return scores
 
 
 class HammingRewardCriterion(RewardCriterion):
     def __init__(self, opt):
         RewardCriterion.__init__(self, opt)
+        self.vocab_size = opt.vocab_size
+        assert self.tau_sent > 0, "Hamming requires exponentiation"
 
     def get_scores(self, preds, target):
+        seq_length = target.size(1)
+        print('seq legnth:', seq_length)
         refs = target.cpu().data.numpy()
         # Hamming distances
         scores = np.array([- hamming(u, v) for u, v in zip(preds.numpy(), refs)])
-        self.logger.debug("Negative hamming distances: %s" %  str(scores))
-        return scores
+        # turn r into a reward distribution:
 
+        self.logger.debug("Negative hamming distances: %s" %  str(scores))
+        # scale scores:
+        scores = np.array(scores)
+        # Process scores:
+        scores = np.exp(scores / self.tau_sent)
+        # Normalizing:
+        Z = hamming_Z(seq_length, self.vocab_size, self.tau_sent)
+        scores /= Z
+        self.logger.warn('Scores after processing: %s' % str(scores))
+
+        return scores
 
 
 class HammingRewardSampler(nn.Module):
