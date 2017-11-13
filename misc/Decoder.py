@@ -2,7 +2,7 @@ import os.path as osp
 from six.moves import cPickle as pickle
 import torch
 import torch.nn as nn
-from torch.autograd import Variable
+from torch.autograd import Variable, gradcheck
 import numpy as np
 import misc.loss as loss
 
@@ -112,12 +112,15 @@ class DecoderModel(nn.Module):
             print('Raml reward:', reward)
             ml_loss, loss = self.crit(probs, labels[:, 1:], masks[:, 1:], raml_scores)
         else:
-            ml_loss, loss, stats = self.crit(self.forward(fc_feats,
-                                                          att_feats,
-                                                          labels),
+            logprobs = self.forward(fc_feats, att_feats, labels)
+            ml_loss, loss, stats = self.crit(logprobs,
                                              labels[:, 1:],
                                              masks[:, 1:],
                                              scores)
+        print('Grad check:', gradcheck(self.crit, [logprobs,
+                                                   labels[:, 1:],
+                                                   masks[:, 1:],
+                                                   scores]))
         return ml_loss, loss, stats
 
 

@@ -262,11 +262,11 @@ class WordSmoothCriterion2(nn.Module):
 
         if torch.sum(mask).data[0] > 0:
             output = torch.sum(output) / torch.sum(mask)
-            print('Pure RAMl:', output.data[0])
+            # print('Pure RAMl:', output.data[0])
             if self.add_entropy:
                 H = rows_entropy(smooth_target).unsqueeze(1)
                 entropy = torch.sum(H * mask) / torch.sum(mask)
-                print('Entropy:', entropy.data[0])
+                # print('Entropy:', entropy.data[0])
                 output += entropy
         else:
             self.logger.warn("Smooth targets weights sum to 0")

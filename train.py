@@ -42,6 +42,8 @@ def train(opt):
     from tensorflow.python.framework import dtypes
     from tensorflow.contrib.tensorboard.plugins import projector
 
+    # reproducibility:
+    torch.manual_seed(1)
     loader = DataLoader(opt)
     opt.vocab_size = loader.vocab_size + 1
     opt.seq_length = loader.seq_length

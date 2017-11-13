@@ -1,12 +1,12 @@
 # Generic
 # -------------------------
-modelname : debug
+modelname : word2_tword02_a09_seed1
 restart : 1
 
 caption_model : show_tell
 cnn_model : resnet50
 
-batch_size : 1
+batch_size : 10
 input_data : data/coco/cocotalk
 val_images_use : -1
 save_checkpoint_every : 4000
@@ -21,8 +21,5 @@ learning_rate_decay_every: 3
 sample_cap: 1
 loss_version : word2
 tau_word : 0.2
-word_add_entropy : 1
+word_add_entropy : 0
 alpha : 0.9
-rnn_size : 10
-input_encoding_size:  10
-
