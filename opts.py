@@ -77,7 +77,7 @@ def add_loss_params(parser):
                default="word", help='Version of loss smoothing')
     parser.add('--sentence_loss_version', type=int,
                default=1, help='Version of sentence loss smoothing')
-    parser.add('--sentence_normalize_batch', type=int,
+    parser.add('--normalize_batch', type=int,
                default=1, help='Version of sentence loss smoothing')
     parser.add('--bleu_version', type=str,
                default="soft", help='Version of bleu scorer to use: coco or soft')

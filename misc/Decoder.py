@@ -48,7 +48,9 @@ class DecoderModel(nn.Module):
         opt = self.opt
         if opt.sample_cap:
             # Sampling from the captioning model itself
-            if 'cider' in opt.loss_version:
+            if 'dummy' in opt.loss_version:
+                crit = loss.AllIsGoodCriterion(opt, vocab)
+            elif 'cider' in opt.loss_version:
                 crit = loss.CiderRewardCriterion(opt, vocab)
             elif 'hamming' in opt.loss_version:
                 crit = loss.HammingRewardCriterion(opt)

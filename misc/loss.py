@@ -53,6 +53,7 @@ class LanguageModelCriterion(nn.Module):
         super().__init__()
         self.logger = opt.logger
         self.scale_loss = opt.scale_loss
+        self.normalize_batch = opt.normalize_batch
         self.logger.warn('Initiating ML loss')
 
     def forward(self, input, target, mask, scores=None):
@@ -74,12 +75,14 @@ class LanguageModelCriterion(nn.Module):
         target = to_contiguous(target).view(-1, 1)
         mask = to_contiguous(mask).view(-1, 1)
         output = - input.gather(1, target) * mask
-        output = torch.sum(output) / torch.sum(mask)
+        output = torch.sum(output)
+        if self.normalize_batch:
+            output /= torch.sum(mask)
         stats = None
         return output, output, stats
 
 
-def get_ml_loss(input, target, mask):
+def get_ml_loss(input, target, mask, norm=True):
     """
     Compute the usual ML loss
     """
@@ -87,7 +90,9 @@ def get_ml_loss(input, target, mask):
     target = to_contiguous(target).view(-1, 1)
     mask = to_contiguous(mask).view(-1, 1)
     ml_output = - input.gather(1, target) * mask
-    ml_output = torch.sum(ml_output) / torch.sum(mask)
+    ml_output = torch.sum(ml_output)
+    if norm:
+        output /= torch.sum(mask)
     return ml_output
 
 def get_indices_vocab(target, seq_per_img):
@@ -201,6 +206,7 @@ class WordSmoothCriterion2(nn.Module):
         self.smooth_remove_equal = opt.smooth_remove_equal
         self.clip_sim = opt.clip_sim
         self.add_entropy = opt.word_add_entropy
+        self.normalize_batch = opt.normalize_batch
         if self.clip_sim:
             self.margin = opt.margin
             self.logger.warn('Clipping similarities below %.2f' % self.margin)
@@ -225,7 +231,8 @@ class WordSmoothCriterion2(nn.Module):
         if self.scale_loss:
             row_scores = scores.repeat(1, seq_length)
             mask = torch.mul(mask, row_scores)
-        ml_output = get_ml_loss(input, target, mask)
+        ml_output = get_ml_loss(input, target, mask,
+                                norm=self.normalize_batch)
         # Get the similarities of the words in the batch (Vb, V)
         sim = self.Sim_Matrix[to_contiguous(target).view(-1, 1).squeeze().data]
         # print('raw sim:', sim)
@@ -260,17 +267,23 @@ class WordSmoothCriterion2(nn.Module):
         # print('in:', input.size(), 'mask:', mask.size(), 'smooth:', smooth_target.size())
         output = - input * mask.repeat(1, sim.size(1)) * smooth_target
 
-        if torch.sum(mask).data[0] > 0:
-            output = torch.sum(output) / torch.sum(mask)
-            # print('Pure RAMl:', output.data[0])
-            if self.add_entropy:
-                H = rows_entropy(smooth_target).unsqueeze(1)
-                entropy = torch.sum(H * mask) / torch.sum(mask)
-                # print('Entropy:', entropy.data[0])
-                output += entropy
+        if self.normalize_batch:
+            if torch.sum(mask).data[0] > 0:
+                output = torch.sum(output) / torch.sum(mask)
+            else:
+                self.logger.warn("Smooth targets weights sum to 0")
+                output = torch.sum(output)
         else:
-            self.logger.warn("Smooth targets weights sum to 0")
             output = torch.sum(output)
+        print('Pure RAMl:', output.data[0])
+
+        if self.add_entropy:
+            H = rows_entropy(smooth_target).unsqueeze(1)
+            entropy = torch.sum(H * mask)
+            if self.normalize_batch:
+                entropy /= torch.sum(mask)
+            # print('Entropy:', entropy.data[0])
+            output += entropy
 
         return ml_output, self.alpha * output + (1 - self.alpha) * ml_output, stats
 
@@ -292,7 +305,7 @@ class SentSmoothCriterion(nn.Module):
         # tau set to zero means no exponentiation
         self.tau_sent = opt.tau_sent
         self.scale_loss = opt.scale_loss
-        self.normalize_batch = opt.sentence_normalize_batch
+        self.normalize_batch = opt.normalize_batch
 
     def forward(self, input, target, mask, scores=None):
         # truncate
@@ -523,6 +536,14 @@ class RewardCriterion(SentSmoothCriterion2,
                 return SentSmoothCriterion.forward(self, input, target, mask, scores)
             else:
                 return SentSmoothCriterion2.forward(self, input, target, mask, scores)
+
+
+class AllIsGoodCriterion(RewardCriterion):
+    def __init__(self, opt, vocab):
+        RewardCriterion.__init__(self, opt)
+
+    def get_scores(self, preds, target):
+        return np.ones(target.size(0))
 
 
 class CiderRewardCriterion(RewardCriterion):
