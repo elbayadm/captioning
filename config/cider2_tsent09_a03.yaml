@@ -20,5 +20,6 @@ learning_rate_decay_every: 3
 # Loss:
 sample_cap: 1
 loss_version : cider
+sentence_loss_version : 2
 tau_sent : 0.9
 alpha : 0.3

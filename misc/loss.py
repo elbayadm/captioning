@@ -33,7 +33,9 @@ def hamming_distrib(m, v, tau):
 def hamming_Z(m, v, tau):
     pd = hamming_distrib(m, v, tau)
     popul = v ** m
-    return np.sum(pd * popul * np.exp(-np.arange(m+1)/tau))
+    Z = np.sum(pd * popul * np.exp(-np.arange(m+1)/tau))
+    return np.clip(Z, a_max=1e30, a_min=1)
+
 
 def rows_entropy(distrib):
     """
@@ -300,6 +302,7 @@ class SentSmoothCriterion(nn.Module):
     def __init__(self, opt):
         nn.Module.__init__(self)
         self.logger = opt.logger
+        self.logger.warn('Sentence level v1')
         self.seq_per_img = opt.seq_per_img
         self.version = opt.loss_version
         self.clip_scores = opt.clip_scores
@@ -356,6 +359,7 @@ class SentSmoothCriterion2(nn.Module):
     def __init__(self, opt):
         nn.Module.__init__(self)
         self.logger = opt.logger
+        self.logger.warn('Sentence level v2')
         self.seq_per_img = opt.seq_per_img
         self.version = opt.loss_version
         self.clip_scores = opt.clip_scores
@@ -396,10 +400,11 @@ class SentSmoothCriterion2(nn.Module):
         logprob = input.gather(1, preds) * flat_mask
         logprob = logprob.view(batch_size, seq_length)
         logprob = torch.sum(logprob, dim=1).unsqueeze(1) / seq_length
-        # print('Logprobs', logprob.size(), logprob)
+        # print('Logprobs', logprob.size(), logprob.data)
+        # print('sent scores:', sent_scores)
         importance = Variable(torch.from_numpy(sent_scores).view(-1, 1)).cuda().float()
-        # print('importance:', importance.size())
-        importance = importance / torch.exp(logprob)
+        # print('importance:', importance)
+        importance = importance / torch.exp(logprob).float()
         # print('Importance:', importance)
         if self.sentence_version == 2:
             output = torch.sum(importance * torch.log(importance)) / batch_size
@@ -654,7 +659,6 @@ class HammingRewardCriterion(RewardCriterion):
 
     def get_scores(self, preds, target):
         seq_length = target.size(1)
-        print('seq legnth:', seq_length)
         refs = target.cpu().data.numpy()
         # Hamming distances
         scores = np.array([- hamming(u, v) for u, v in zip(preds.numpy(), refs)])
@@ -667,6 +671,7 @@ class HammingRewardCriterion(RewardCriterion):
         scores = np.exp(scores / self.tau_sent)
         # Normalizing:
         Z = hamming_Z(seq_length, self.vocab_size, self.tau_sent)
+        print('Sum of rewards:', Z)
         scores /= Z
         self.logger.warn('Scores after processing: %s' % str(scores))
 
