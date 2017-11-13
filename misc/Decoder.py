@@ -117,10 +117,10 @@ class DecoderModel(nn.Module):
                                              labels[:, 1:],
                                              masks[:, 1:],
                                              scores)
-        print('Grad check:', gradcheck(self.crit, [logprobs,
-                                                   labels[:, 1:],
-                                                   masks[:, 1:],
-                                                   scores]))
+        # print('Grad check:', gradcheck(self.crit, [logprobs,
+                                                   # labels[:, 1:],
+                                                   # masks[:, 1:],
+                                                   # scores]))
         return ml_loss, loss, stats
 
 
