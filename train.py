@@ -207,7 +207,7 @@ def train(opt):
                           history, best_flag)
         # Stop if reaching max epochs
         if epoch > opt.max_epochs and opt.max_epochs != -1:
-            opt.logger.info('Max epochs reched')
+            opt.logger.info('Max epochs reached')
             break
 
 if __name__ == "__main__":
