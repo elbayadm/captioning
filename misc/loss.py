@@ -92,7 +92,7 @@ def get_ml_loss(input, target, mask, norm=True):
     ml_output = - input.gather(1, target) * mask
     ml_output = torch.sum(ml_output)
     if norm:
-        output /= torch.sum(mask)
+        ml_output /= torch.sum(mask)
     return ml_output
 
 def get_indices_vocab(target, seq_per_img):
