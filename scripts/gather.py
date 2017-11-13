@@ -100,6 +100,7 @@ def parse_name(model):
             elif c in ['word', 'word2', 'sample']:
                 continue
             else:
+                # print('Unknown', c)
                 modelname.append(c)
 
     if modelname:
