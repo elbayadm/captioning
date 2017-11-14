@@ -718,7 +718,7 @@ class HammingRewardSampler(nn.Module):
         ml_output = get_ml_loss(input, target, mask)
         # get batch vocab size
         refs = target.cpu().data.numpy()
-        batch_vocab = np.unique(refs)
+        batch_vocab = np.delete(np.unique(refs), 0)
         print('batch vocab:', len(batch_vocab), batch_vocab)
         distrib = hamming_distrib(seq_length, len(batch_vocab), self.tau)
         print('Sampling distrib:', distrib)
