@@ -761,13 +761,13 @@ class HammingRewardSampler(nn.Module):
             logprob = input.gather(1, preds) * mask
             logprob = logprob.view(N, seq_length)
             logprob = torch.sum(logprob, dim=1).unsqueeze(1) / seq_length
-            print('Logprobs', logprob.size(), logprob.data.squeeze(1))
+            # print('Logprobs', logprob.size(), logprob.data.squeeze(1))
             importance = Variable(torch.from_numpy(
                 np.ones((N), dtype="float32") * score
             ).view(-1, 1)).cuda().float()
-            print('importance:', importance.squeeze(1))
+            # print('importance:', importance.squeeze(1))
             importance = importance / torch.exp(logprob).float()
-            print('Importance:', importance.squeeze(1))
+            # print('Importance:', importance.squeeze(1))
             if self.version == 2:
                 output = torch.sum(importance * torch.log(importance)) / N
             elif self.version == 3:
