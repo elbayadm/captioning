@@ -114,11 +114,14 @@ class DecoderModel(nn.Module):
             print('Raml reward:', reward)
             ml_loss, loss = self.crit(probs, labels[:, 1:], masks[:, 1:], raml_scores)
         else:
-            logprobs = self.forward(fc_feats, att_feats, labels)
-            ml_loss, loss, stats = self.crit(logprobs,
-                                             labels[:, 1:],
-                                             masks[:, 1:],
-                                             scores)
+            if self.opt.sample_reward:
+                ml_loss, loss, stats = self.crit(self, fc_feats, att_feats, labels, masks[:, 1:], scores)
+            else:
+                logprobs = self.forward(fc_feats, att_feats, labels)
+                ml_loss, loss, stats = self.crit(logprobs,
+                                                 labels[:, 1:],
+                                                 masks[:, 1:],
+                                                 scores)
         # print('Grad check:', gradcheck(self.crit, [logprobs,
                                                    # labels[:, 1:],
                                                    # masks[:, 1:],

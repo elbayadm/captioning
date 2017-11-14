@@ -707,8 +707,10 @@ class HammingRewardSampler(nn.Module):
         self.vocab_size = opt.vocab_size
         self.version = opt.sentence_loss_version
 
-    def forward(self, input, target, mask, scores=None):
+    def forward(self, model, fc_feats, att_feats, labels, mask, scores=None):
         # truncate
+        input = model.forward(fc_feats, att_feats, labels)
+        target = labels[:, 1:]
         N = input.size(0)
         seq_length = input.size(1)
         target = target[:, :seq_length]
@@ -745,10 +747,11 @@ class HammingRewardSampler(nn.Module):
         select_index = np.random.choice(batch_vocab, size=(N, select))
         # print("Selected:", select_index)
         preds[rows, change_index] = select_index
-        preds = Variable(torch.from_numpy(preds)).cuda()
-
+        preds_matrix = np.hstack((np.zeros((N, 1)), preds))  # padd <BOS>
+        preds_matrix = Variable(torch.from_numpy(preds_matrix)).cuda().type_as(labels)
+        # print('preds', preds_matrix, 'labels:', labels)
         # Flatten
-        preds = to_contiguous(preds).view(-1, 1)
+        preds = to_contiguous(preds_matrix[:, 1:]).view(-1, 1)
         input = to_contiguous(input).view(-1, input.size(2))
         mask = to_contiguous(mask).view(-1, 1)
         if self.version == 1:
@@ -759,7 +762,13 @@ class HammingRewardSampler(nn.Module):
                 self.logger.warn("Smooth targets weights sum to 0")
                 output = torch.sum(output)
         else:
-            logprob = input.gather(1, preds) * mask
+            # in this case log(p(\tilde y|x)) = log(p(\tilde y|x, y*))
+            # logprob = input.gather(1, preds) * mask
+            # Updating input with log(p(_tilde y|x, \tilde y))
+            sample_input = model.forward(fc_feats, att_feats, preds_matrix)
+            sample_input = to_contiguous(sample_input).view(-1, sample_input.size(2))
+
+            logprob = sample_input.gather(1, preds) * mask
             logprob = logprob.view(N, seq_length)
             logprob = torch.sum(logprob, dim=1).unsqueeze(1) # / seq_length
             print('Sentences log(p):', torch.mean(logprob.data.squeeze(1)))
