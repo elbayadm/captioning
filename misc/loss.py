@@ -767,9 +767,9 @@ class HammingRewardSampler(nn.Module):
             print('importance:', importance)
             importance = importance / torch.exp(logprob).float()
             print('Importance:', importance)
-            if self.sentence_version == 2:
+            if self.version == 2:
                 output = torch.sum(importance * torch.log(importance)) / N
-            elif self.sentence_version == 3:
+            elif self.version == 3:
                 output = - torch.sum(importance * logprob) / N
         print("Pure RAML:", output.data[0])
 
