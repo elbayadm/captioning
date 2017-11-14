@@ -31,7 +31,7 @@ def hamming_distrib_soft(m, v, tau):
 
 
 def hamming_distrib(m, v, tau):
-    x = [comb(m, d, exact=False) * (v-1)**d / v**m * math.exp(-d/tau) for d in range(m+1)]
+    x = [comb(m, d, exact=False) * (v-1)**d * math.exp(-d/tau) for d in range(m+1)]
     x = np.array(x)
     Z = np.sum(x)
     return x/Z, Z
@@ -761,20 +761,13 @@ class HammingRewardSampler(nn.Module):
         else:
             logprob = input.gather(1, preds) * mask
             logprob = logprob.view(N, seq_length)
-            logprob = torch.sum(logprob, dim=1).unsqueeze(1) / seq_length
-            print('Logprobs', logprob.size(), logprob.data.squeeze(1))
-            importance = Variable(torch.from_numpy(
+            logprob = torch.sum(logprob, dim=1).unsqueeze(1) # / seq_length
+            print('Sentences log(p):', torch.mean(logprob.data.squeeze(1)))
+            r = Variable(torch.from_numpy(
                 np.ones((N), dtype="float32") * score
             ).view(-1, 1)).cuda().float()
-            print('importance:', importance.squeeze(1))
-            importance = importance / torch.exp(logprob).float()
-            print('Importance:', importance.squeeze(1))
-            if self.version == 2:
-                output = torch.sum(importance * torch.log(importance)) / N
-            elif self.version == 3:
-                output = - torch.sum(importance * logprob) / N
+            output = torch.sum(torch.log(r) - logprob) / N
         print("Pure RAML:", output.data[0])
-
         return ml_output, self.alpha * output + (1 - self.alpha) * ml_output, stats
 
 
