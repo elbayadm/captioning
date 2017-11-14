@@ -33,8 +33,8 @@ def hamming_distrib_soft(m, v, tau):
 def hamming_distrib(m, v, tau):
     x = [comb(m, d, exact=False) * (v-1)**d / v**m * math.exp(-d/tau) for d in range(m+1)]
     x = np.array(x)
-    x /= np.sum(x)
-    return x
+    Z = np.sum(x)
+    return x/Z, Z
 
 
 def hamming_Z(m, v, tau):
@@ -721,14 +721,15 @@ class HammingRewardSampler(nn.Module):
         refs = target.cpu().data.numpy()
         batch_vocab = np.delete(np.unique(refs), 0)
         # print('batch vocab:', len(batch_vocab), batch_vocab)
-        distrib = hamming_distrib(seq_length, len(batch_vocab), self.tau)
-        # print('Sampling distrib:', distrib)
+        distrib, Z = hamming_distrib(seq_length, len(batch_vocab), self.tau)
+        print('Sampling distrib:', distrib, "Z:", Z)
         # Sample a distance i.e. a reward
         select = np.random.choice(a=np.arange(seq_length + 1),
                                   p=distrib)
         # score = math.exp(-select / self.tau)
-        score = distrib[select]
-        self.logger.debug("exp-neg Hamming distances (d=%d): %.2e" %
+        # score = distrib[select]
+        score = math.exp(-select / self.tau) / Z
+        self.logger.debug("reward (d=%d): %.2e" %
                           (select, score))
         stats = {"sent_mean": score,
                  "sent_std": 0}
@@ -761,13 +762,13 @@ class HammingRewardSampler(nn.Module):
             logprob = input.gather(1, preds) * mask
             logprob = logprob.view(N, seq_length)
             logprob = torch.sum(logprob, dim=1).unsqueeze(1) / seq_length
-            # print('Logprobs', logprob.size(), logprob.data.squeeze(1))
+            print('Logprobs', logprob.size(), logprob.data.squeeze(1))
             importance = Variable(torch.from_numpy(
                 np.ones((N), dtype="float32") * score
             ).view(-1, 1)).cuda().float()
-            # print('importance:', importance.squeeze(1))
+            print('importance:', importance.squeeze(1))
             importance = importance / torch.exp(logprob).float()
-            # print('Importance:', importance.squeeze(1))
+            print('Importance:', importance.squeeze(1))
             if self.version == 2:
                 output = torch.sum(importance * torch.log(importance)) / N
             elif self.version == 3:

@@ -18,7 +18,8 @@ learning_rate_decay_rate : 0.6
 learning_rate_decay_every: 3
 
 # Loss:
-sample_cap: 1
+sample_reward: 1
+sentence_loss_version : 2
 loss_version : hamming
-tau_sent : 1.0
+tau_sent : .15
 alpha : 0.3
