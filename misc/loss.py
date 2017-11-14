@@ -726,7 +726,8 @@ class HammingRewardSampler(nn.Module):
         # Sample a distance i.e. a reward
         select = np.random.choice(a=np.arange(seq_length + 1),
                                   p=distrib)
-        score = math.exp(-select / self.tau)
+        # score = math.exp(-select / self.tau)
+        score = distrib[select]
         self.logger.debug("exp-neg Hamming distances (d=%d): %.2e" %
                           (select, score))
         stats = {"sent_mean": score,
@@ -760,13 +761,13 @@ class HammingRewardSampler(nn.Module):
             logprob = input.gather(1, preds) * mask
             logprob = logprob.view(N, seq_length)
             logprob = torch.sum(logprob, dim=1).unsqueeze(1) / seq_length
-            print('Logprobs', logprob.size(), logprob.data)
+            print('Logprobs', logprob.size(), logprob.data.squeeze(1))
             importance = Variable(torch.from_numpy(
                 np.ones((N), dtype="float32") * score
             ).view(-1, 1)).cuda().float()
-            print('importance:', importance)
+            print('importance:', importance.squeeze(1))
             importance = importance / torch.exp(logprob).float()
-            print('Importance:', importance)
+            print('Importance:', importance.squeeze(1))
             if self.version == 2:
                 output = torch.sum(importance * torch.log(importance)) / N
             elif self.version == 3:
