@@ -22,12 +22,19 @@ from pycocoevalcap.bleu.bleu_scorer import BleuScorer
 from misc.utils import to_contiguous, decode_sequence, sentence_bleu, group_similarity
 
 
-def hamming_distrib(m, v, tau):
+def hamming_distrib_soft(m, v, tau):
     x = [np.log(comb(m, d, exact=False)) + d * np.log(v) - d/tau * np.log(v) - d/tau for d in range(m + 1)]
     x = np.array(x)
     p = np.exp(x)
     p /= np.sum(p)
     return p
+
+
+def hamming_distrib(m, v, tau):
+    x = [comb(m, d, exact=False) * (v-1)**d / v**m * math.exp(-d/tau) for d in range(m+1)]
+    x = np.array(x)
+    x /= np.sum(x)
+    return x
 
 
 def hamming_Z(m, v, tau):
@@ -709,9 +716,13 @@ class HammingRewardSampler(nn.Module):
             row_scores = scores.repeat(1, seq_length)
             mask = torch.mul(mask, row_scores)
         ml_output = get_ml_loss(input, target, mask)
-
-        distrib = hamming_distrib(seq_length, self.vocab_size, self.tau)
+        # get batch vocab size
+        refs = target.cpu().data.numpy()
+        batch_vocab = np.unique(refs)
+        print('batch vocab:', len(batch_vocab), batch_vocab)
+        distrib = hamming_distrib(seq_length, len(batch_vocab), self.tau)
         print('Sampling distrib:', distrib)
+        # Sample a distance i.e. a reward
         select = np.random.choice(a=np.arange(seq_length + 1),
                                   p=distrib)
         score = math.exp(-select / self.tau)
@@ -722,12 +733,14 @@ class HammingRewardSampler(nn.Module):
 
         scores = np.ones((N, seq_length), dtype="float32") * score
         smooth_target = Variable(torch.from_numpy(scores).view(-1, 1)).cuda().float()
-        refs = target.cpu().data.numpy()
         # Format preds by changing d=select tokens at random
         preds = refs
+        # choose tokens to replace
         change_index = np.random.randint(seq_length, size=(N, select))
         rows = np.arange(N).reshape(-1, 1).repeat(select, axis=1)
-        select_index = np.random.randint(self.vocab_size, size=(N, select))
+        # select substitutes
+        select_index = np.random.randint(batch_vocab, size=(N, select))
+        print("Selected:", select_index)
         preds[rows, change_index] = select_index
         preds = Variable(torch.from_numpy(preds)).cuda()
         # Flatten
