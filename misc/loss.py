@@ -739,7 +739,7 @@ class HammingRewardSampler(nn.Module):
         change_index = np.random.randint(seq_length, size=(N, select))
         rows = np.arange(N).reshape(-1, 1).repeat(select, axis=1)
         # select substitutes
-        select_index = np.random.randint(batch_vocab, size=(N, select))
+        select_index = np.random.choice(batch_vocab, size=(N, select))
         print("Selected:", select_index)
         preds[rows, change_index] = select_index
         preds = Variable(torch.from_numpy(preds)).cuda()
