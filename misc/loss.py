@@ -33,7 +33,10 @@ def hamming_distrib(m, v, tau):
 def hamming_Z(m, v, tau):
     pd = hamming_distrib(m, v, tau)
     popul = v ** m
+    print('popul:', popul)
+    print('pd:', pd)
     Z = np.sum(pd * popul * np.exp(-np.arange(m+1)/tau))
+    print('Pre-clipping:', Z)
     return np.clip(Z, a_max=1e30, a_min=1)
 
 
@@ -242,6 +245,7 @@ class WordSmoothCriterion2(nn.Module):
                                 norm=self.normalize_batch)
         # Get the similarities of the words in the batch (Vb, V)
         sim = self.Sim_Matrix[to_contiguous(target).view(-1, 1).squeeze().data]
+        print('Target:', target.data.cpu().numpy()[0])
         # print('raw sim:', sim)
         if self.clip_sim:
             # keep only the similarities larger than the margin
@@ -261,9 +265,10 @@ class WordSmoothCriterion2(nn.Module):
         # Normalize the word reward distribution:
         smooth_target = normalize_reward(smooth_target)
 
-
         # Store some stats about the sentences scores:
-        scalars = smooth_target.data.cpu().numpy()[:]
+        scalars = smooth_target.data.cpu().numpy()
+        print("Reward multip:", scalars[0][:10])
+
         stats = {"word_mean": np.mean(scalars),
                  "word_std": np.std(scalars)}
 
@@ -663,18 +668,19 @@ class HammingRewardCriterion(RewardCriterion):
         # Hamming distances
         scores = np.array([- hamming(u, v) for u, v in zip(preds.numpy(), refs)])
         # turn r into a reward distribution:
-
+        # check if hamming distance should be simply count of mismatches.
         self.logger.debug("Negative hamming distances: %s" %  str(scores))
         # scale scores:
         scores = np.array(scores)
         # Process scores:
         scores = np.exp(scores / self.tau_sent)
         # Normalizing:
-        Z = hamming_Z(seq_length, self.vocab_size, self.tau_sent)
+        v = np.unique(target.data.cpu().numpy())
+        # print('vocab indices: (size):', len(v), v)
+        Z = hamming_Z(seq_length // 2, len(v), self.tau_sent)
         print('Sum of rewards:', Z)
         scores /= Z
         self.logger.warn('Scores after processing: %s' % str(scores))
-
         return scores
 
 
