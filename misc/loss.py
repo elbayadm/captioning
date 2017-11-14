@@ -705,6 +705,7 @@ class HammingRewardSampler(nn.Module):
         self.tau = opt.tau_sent
         self.scale_loss = opt.scale_loss
         self.vocab_size = opt.vocab_size
+        self.version = opt.sentence_loss_version
 
     def forward(self, input, target, mask, scores=None):
         # truncate
@@ -719,9 +720,9 @@ class HammingRewardSampler(nn.Module):
         # get batch vocab size
         refs = target.cpu().data.numpy()
         batch_vocab = np.delete(np.unique(refs), 0)
-        print('batch vocab:', len(batch_vocab), batch_vocab)
+        # print('batch vocab:', len(batch_vocab), batch_vocab)
         distrib = hamming_distrib(seq_length, len(batch_vocab), self.tau)
-        print('Sampling distrib:', distrib)
+        # print('Sampling distrib:', distrib)
         # Sample a distance i.e. a reward
         select = np.random.choice(a=np.arange(seq_length + 1),
                                   p=distrib)
@@ -740,19 +741,38 @@ class HammingRewardSampler(nn.Module):
         rows = np.arange(N).reshape(-1, 1).repeat(select, axis=1)
         # select substitutes
         select_index = np.random.choice(batch_vocab, size=(N, select))
-        print("Selected:", select_index)
+        # print("Selected:", select_index)
         preds[rows, change_index] = select_index
         preds = Variable(torch.from_numpy(preds)).cuda()
+
         # Flatten
         preds = to_contiguous(preds).view(-1, 1)
         input = to_contiguous(input).view(-1, input.size(2))
         mask = to_contiguous(mask).view(-1, 1)
-        output = - input.gather(1, preds) * mask * smooth_target
-        if torch.sum(smooth_target * mask).data[0] > 0:
-            output = torch.sum(output) / torch.sum(smooth_target * mask)
+        if self.version == 1:
+            output = - input.gather(1, preds) * mask * smooth_target
+            if torch.sum(smooth_target * mask).data[0] > 0:
+                output = torch.sum(output) / torch.sum(smooth_target * mask)
+            else:
+                self.logger.warn("Smooth targets weights sum to 0")
+                output = torch.sum(output)
         else:
-            self.logger.warn("Smooth targets weights sum to 0")
-            output = torch.sum(output)
+            logprob = input.gather(1, preds) * mask
+            logprob = logprob.view(N, seq_length)
+            logprob = torch.sum(logprob, dim=1).unsqueeze(1) / seq_length
+            print('Logprobs', logprob.size(), logprob.data)
+            importance = Variable(torch.from_numpy(
+                np.ones((N), dtype="float32") * score
+            ).view(-1, 1)).cuda().float()
+            print('importance:', importance)
+            importance = importance / torch.exp(logprob).float()
+            print('Importance:', importance)
+            if self.sentence_version == 2:
+                output = torch.sum(importance * torch.log(importance)) / N
+            elif self.sentence_version == 3:
+                output = - torch.sum(importance * logprob) / N
+        print("Pure RAML:", output.data[0])
+
         return ml_output, self.alpha * output + (1 - self.alpha) * ml_output, stats
 
 

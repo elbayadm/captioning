@@ -1,6 +1,6 @@
 # Generic
 # -------------------------
-modelname : sample2_hamming_tsent015_a03
+modelname : sample3_hamming_tsent015_a03
 restart : 1
 
 caption_model : show_tell
@@ -19,7 +19,7 @@ learning_rate_decay_every: 3
 
 # Loss:
 sample_reward: 1
-sentence_loss_version : 2
+sentence_loss_version : 3
 loss_version : hamming
 tau_sent : .15
 alpha : 0.3
