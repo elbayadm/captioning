@@ -696,7 +696,7 @@ class HammingRewardSampler(nn.Module):
     Sampling the sentences wtr the reward distribution
     instead of the captionig model itself
     """
-    def __init__(self, opt):
+    def __init__(self, opt, vocab):
         super(HammingRewardSampler, self).__init__()
         self.logger = opt.logger
         # the final loss is (1-alpha) ML + alpha * RewardLoss
@@ -706,6 +706,7 @@ class HammingRewardSampler(nn.Module):
         self.scale_loss = opt.scale_loss
         self.vocab_size = opt.vocab_size
         self.version = opt.sentence_loss_version
+        self.vocab = vocab
 
     def forward(self, model, fc_feats, att_feats, labels, mask, scores=None):
         # truncate
@@ -751,6 +752,10 @@ class HammingRewardSampler(nn.Module):
         preds_matrix = Variable(torch.from_numpy(preds_matrix)).cuda().type_as(labels)
         # print('preds', preds_matrix, 'labels:', labels)
         # Flatten
+        # gt_s = decode_sequence(self.vocab, preds_matrix.data[:, 1:])
+        # gt = decode_sequence(self.vocab, labels.data[:, 1:])
+        # for s, ss in zip(gt, gt_s):
+            # print('GT:', s, '\nSA:', ss)
         preds = to_contiguous(preds_matrix[:, 1:]).view(-1, 1)
         input = to_contiguous(input).view(-1, input.size(2))
         mask = to_contiguous(mask).view(-1, 1)
@@ -772,10 +777,12 @@ class HammingRewardSampler(nn.Module):
             logprob = logprob.view(N, seq_length)
             logprob = torch.sum(logprob, dim=1).unsqueeze(1) # / seq_length
             print('Sentences log(p):', torch.mean(logprob.data.squeeze(1)))
-            r = Variable(torch.from_numpy(
-                np.ones((N), dtype="float32") * score
-            ).view(-1, 1)).cuda().float()
-            output = torch.sum(torch.log(r) - logprob) / N
+            # r = Variable(torch.from_numpy(
+                # np.ones((N), dtype="float32") * score
+            # ).view(-1, 1)).cuda().float()
+            # it's a constant, the easy way:
+            output = torch.sum(math.log(score) - logprob) / N
+            # output = torch.sum(torch.log(r) - logprob) / N
         print("Pure RAML:", output.data[0])
         return ml_output, self.alpha * output + (1 - self.alpha) * ml_output, stats
 

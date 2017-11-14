@@ -71,7 +71,7 @@ class DecoderModel(nn.Module):
             # crit = loss.MultiLanguageModelCriterion(opt.seq_per_img)
         elif opt.sample_reward:
             if 'hamming' in opt.loss_version:
-                crit = loss.HammingRewardSampler(opt)
+                crit = loss.HammingRewardSampler(opt, vocab)
             else:
                 raise ValueError('Loss function %s in sample_reward mode unknown' % (opt.loss_version))
         else:
