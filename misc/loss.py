@@ -707,6 +707,8 @@ class HammingRewardSampler(nn.Module):
         self.vocab_size = opt.vocab_size
         self.version = opt.sentence_loss_version
         self.vocab = vocab
+        self.limited = opt.limited_vocab_sub
+
 
     def forward(self, model, fc_feats, att_feats, labels, mask, scores=None):
         # truncate
@@ -722,9 +724,13 @@ class HammingRewardSampler(nn.Module):
         ml_output = get_ml_loss(input, target, mask)
         # get batch vocab size
         refs = target.cpu().data.numpy()
-        batch_vocab = np.delete(np.unique(refs), 0)
+        if self.limited:
+            batch_vocab = np.delete(np.unique(refs), 0)
+            lv = len(batch_vocab)
+        else:
+            lv = self.vocab_size
         # print('batch vocab:', len(batch_vocab), batch_vocab)
-        distrib, Z = hamming_distrib(seq_length, len(batch_vocab), self.tau)
+        distrib, Z = hamming_distrib(seq_length, lv, self.tau)
         print('Sampling distrib:', distrib, "Z:", Z)
         # Sample a distance i.e. a reward
         select = np.random.choice(a=np.arange(seq_length + 1),
@@ -745,7 +751,10 @@ class HammingRewardSampler(nn.Module):
         change_index = np.random.randint(seq_length, size=(N, select))
         rows = np.arange(N).reshape(-1, 1).repeat(select, axis=1)
         # select substitutes
-        select_index = np.random.choice(batch_vocab, size=(N, select))
+        if self.limited:
+            select_index = np.random.choice(batch_vocab, size=(N, select))
+        else:
+            select_index = np.random.randint(low=4, high=self.vocab_size, size=(N, select))
         # print("Selected:", select_index)
         preds[rows, change_index] = select_index
         preds_matrix = np.hstack((np.zeros((N, 1)), preds))  # padd <BOS>
