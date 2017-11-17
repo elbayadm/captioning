@@ -237,8 +237,10 @@ class WordSmoothCriterion2(nn.Module):
         M = M.astype(np.float32)
         n, d = M.shape
         assert n == d and n == opt.vocab_size, 'Similarity matrix has incompatible shape'
+        self.vocab_size = opt.vocab_size
         M = Variable(torch.from_numpy(M)).cuda()
         self.Sim_Matrix = M
+        self.exact = opt.exact_dkl
 
     def forward(self, input, target, mask, scores=None):
         # truncate to the same size
@@ -250,9 +252,9 @@ class WordSmoothCriterion2(nn.Module):
             mask = torch.mul(mask, row_scores)
         ml_output = get_ml_loss(input, target, mask,
                                 norm=self.normalize_batch)
-        # Get the similarities of the words in the batch (Vb, V)
-        sim = self.Sim_Matrix[to_contiguous(target).view(-1, 1).squeeze().data]
-        print('Target:', target.data.cpu().numpy()[0])
+        # Get the similarities of the words in the batch (NxL, V)
+        indices = to_contiguous(target).view(-1, 1).squeeze().data
+        sim = self.Sim_Matrix[indices]
         # print('raw sim:', sim)
         if self.clip_sim:
             # keep only the similarities larger than the margin
@@ -271,6 +273,11 @@ class WordSmoothCriterion2(nn.Module):
             smooth_target = torch.add(sim, -1.)
         # Normalize the word reward distribution:
         smooth_target = normalize_reward(smooth_target)
+
+        if self.exact:
+            delta = Variable(torch.eye(self.vocab_size)[indices.cpu()]).cuda()
+            smooth_target = torch.mul(smooth_target, self.alpha) + torch.mul(delta, (1 - self.alpha))
+            # print("Smooth:", smooth_target)
 
         # Store some stats about the sentences scores:
         scalars = smooth_target.data.cpu().numpy()
@@ -304,7 +311,10 @@ class WordSmoothCriterion2(nn.Module):
             # print('Entropy:', entropy.data[0])
             output += entropy
 
-        return ml_output, self.alpha * output + (1 - self.alpha) * ml_output, stats
+        if self.exact:
+            return ml_output, output, stats
+        else:
+            return ml_output, self.alpha * output + (1 - self.alpha) * ml_output, stats
 
 
 class SentSmoothCriterion(nn.Module):

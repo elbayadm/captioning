@@ -1,6 +1,6 @@
 # Generic
 # -------------------------
-modelname : debug
+modelname : word2_tword02_a09_exactkl
 restart : 1
 
 caption_model : show_tell

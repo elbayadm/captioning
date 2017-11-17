@@ -1,6 +1,6 @@
 # Generic
 # -------------------------
-modelname : debug
+modelname : word2_tword02_a05_exactkl
 restart : 1
 
 caption_model : show_tell
@@ -23,4 +23,4 @@ loss_version : word2
 tau_word : 0.2
 word_add_entropy : 0
 exact_dkl : 1
-alpha : 0.9
+alpha : 0.5

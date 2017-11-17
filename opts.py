@@ -90,6 +90,8 @@ def add_loss_params(parser):
                default=0, help='Temperature for the rbf kernel applied to the sentences scores')
     parser.add('--clip_sim', type=int,
                default=0, help='whether or not to clip the similarities')
+    parser.add('--exact_dkl', type=int,
+               default=0, help='use dkl combination instead of upper bound')
     parser.add('--limited_vocab_sim', type=int,
                default=0, help='whether or not to clip the similarities')
     parser.add('--limited_vocab_sub', type=int,
