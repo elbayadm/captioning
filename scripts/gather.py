@@ -97,7 +97,7 @@ def parse_name(model):
                 modelname.append('$\\tau(s) = %.2f$' % (float(c[5:])/10))
             elif c.startswith('a'):
                 modelname.append('$\\alpha = %.2f$' % (float(c[1:])/10))
-            elif c in ['word', 'word2', 'sample']:
+            elif c in ['word', 'word2', 'sample', 'sample2']:
                 continue
             else:
                 # print('Unknown', c)
