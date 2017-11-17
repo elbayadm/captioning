@@ -752,9 +752,6 @@ class HammingRewardSampler(nn.Module):
                           (select, score))
         stats = {"sent_mean": score,
                  "sent_std": 0}
-
-        scores = np.ones((N, seq_length), dtype="float32") * score
-        smooth_target = Variable(torch.from_numpy(scores).view(-1, 1)).cuda().float()
         # Format preds by changing d=select tokens at random
         preds = refs
         # choose tokens to replace
@@ -769,39 +766,40 @@ class HammingRewardSampler(nn.Module):
         preds[rows, change_index] = select_index
         preds_matrix = np.hstack((np.zeros((N, 1)), preds))  # padd <BOS>
         preds_matrix = Variable(torch.from_numpy(preds_matrix)).cuda().type_as(labels)
-        # print('preds', preds_matrix, 'labels:', labels)
-        # Flatten
         # gt_s = decode_sequence(self.vocab, preds_matrix.data[:, 1:])
         # gt = decode_sequence(self.vocab, labels.data[:, 1:])
         # for s, ss in zip(gt, gt_s):
             # print('GT:', s, '\nSA:', ss)
-        preds = to_contiguous(preds_matrix[:, 1:]).view(-1, 1)
-        input = to_contiguous(input).view(-1, input.size(2))
-        mask = to_contiguous(mask).view(-1, 1)
-        if self.version == 1:
-            output = - input.gather(1, preds) * mask * smooth_target
-            if torch.sum(smooth_target * mask).data[0] > 0:
-                output = torch.sum(output) / torch.sum(smooth_target * mask)
-            else:
-                self.logger.warn("Smooth targets weights sum to 0")
-                output = torch.sum(output)
-        else:
-            # in this case log(p(\tilde y|x)) = log(p(\tilde y|x, y*))
-            # logprob = input.gather(1, preds) * mask
-            # Updating input with log(p(_tilde y|x, \tilde y))
-            sample_input = model.forward(fc_feats, att_feats, preds_matrix)
-            sample_input = to_contiguous(sample_input).view(-1, sample_input.size(2))
+        # Flatten
+        # preds = to_contiguous(preds_matrix[:, 1:]).view(-1, 1)
+        # input = to_contiguous(input).view(-1, input.size(2))
+        # mask = to_contiguous(mask).view(-1, 1)
+        """
+        Version 1
+        scores = np.ones((N, seq_length), dtype="float32") * score
+        smooth_target = Variable(torch.from_numpy(scores).view(-1, 1)).cuda().float()
 
-            logprob = sample_input.gather(1, preds) * mask
-            logprob = logprob.view(N, seq_length)
-            logprob = torch.sum(logprob, dim=1).unsqueeze(1) # / seq_length
-            print('Sentences log(p):', torch.mean(logprob.data.squeeze(1)))
-            # r = Variable(torch.from_numpy(
-                # np.ones((N), dtype="float32") * score
-            # ).view(-1, 1)).cuda().float()
-            # it's a constant, the easy way:
-            output = torch.sum(math.log(score) - logprob) / N
-            # output = torch.sum(torch.log(r) - logprob) / N
+        output = - input.gather(1, preds) * mask * smooth_target
+        if torch.sum(smooth_target * mask).data[0] > 0:
+            output = torch.sum(output) / torch.sum(smooth_target * mask)
+        else:
+            self.logger.warn("Smooth targets weights sum to 0")
+            output = torch.sum(output)
+        """
+        """
+        using log p(\tilde y) = log p(\tilde y|x, y^*)
+        logprob = input.gather(1, preds) * mask
+        """
+        # Forward the sampled captions
+        sample_input = model.forward(fc_feats, att_feats, preds_matrix)
+        # sample_input = to_contiguous(sample_input).view(-1, sample_input.size(2))
+        # logprob = sample_input.gather(1, preds) * mask
+        # logprob = logprob.view(N, seq_length)
+        # logprob = torch.sum(logprob, dim=1).unsqueeze(1)  # / seq_length
+        # print('Sentences log(p):', torch.mean(logprob.data.squeeze(1)))
+        ml_sampled = get_ml_loss(sample_input, preds_matrix[:, 1:], mask, norm=False) / N
+        output = torch.add(ml_sampled, -select / self.tau - math.log(Z))
+        # output = torch.sum(torch.log(r) - logprob) / N
         print("Pure RAML:", output.data[0])
         return ml_output, self.alpha * output + (1 - self.alpha) * ml_output, stats
 
