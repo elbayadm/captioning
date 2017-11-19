@@ -1,6 +1,6 @@
 # Generic
 # -------------------------
-modelname : debug
+modelname : sample2_hamming_ml_tsent017_a03
 restart : 1
 
 caption_model : show_tell
@@ -20,6 +20,6 @@ learning_rate_decay_every: 3
 # Loss:
 sample_reward: 1
 sentence_loss_version : 2
-loss_version : tfidf
-rare_tfidf : 1
+loss_version : hamming
+tau_sent : .17
 alpha : 0.3

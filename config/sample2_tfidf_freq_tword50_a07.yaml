@@ -1,6 +1,6 @@
 # Generic
 # -------------------------
-modelname : debug
+modelname : sample2_tfidf_freq_tword50_a07
 restart : 1
 
 caption_model : show_tell
@@ -22,4 +22,5 @@ sample_reward: 1
 sentence_loss_version : 2
 loss_version : tfidf
 rare_tfidf : 1
-alpha : 0.3
+tau_word: 50
+alpha : 0.7

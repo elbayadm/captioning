@@ -1,6 +1,7 @@
 import os
 import os.path as osp
 import sys
+import random
 import collections
 import math
 import pickle
@@ -701,13 +702,13 @@ class HammingRewardCriterion(RewardCriterion):
         return scores
 
 
-class HammingRewardSampler(nn.Module):
+class RewardSampler(nn.Module):
     """
     Sampling the sentences wtr the reward distribution
     instead of the captionig model itself
     """
     def __init__(self, opt, vocab):
-        super(HammingRewardSampler, self).__init__()
+        super(RewardSampler, self).__init__()
         self.logger = opt.logger
         # the final loss is (1-alpha) ML + alpha * RewardLoss
         self.alpha = opt.alpha
@@ -718,7 +719,6 @@ class HammingRewardSampler(nn.Module):
         self.version = opt.sentence_loss_version
         self.vocab = vocab
         self.limited = opt.limited_vocab_sub
-
 
     def forward(self, model, fc_feats, att_feats, labels, mask, scores=None):
         # truncate
@@ -732,8 +732,35 @@ class HammingRewardSampler(nn.Module):
             row_scores = scores.repeat(1, seq_length)
             mask = torch.mul(mask, row_scores)
         ml_output = get_ml_loss(input, target, mask)
+
+        preds_matrix, stats = self.alter(target)
+        # gt_s = decode_sequence(self.vocab, preds_matrix.data[:, 1:])
+        # gt = decode_sequence(self.vocab, labels.data[:, 1:])
+        # for s, ss in zip(gt, gt_s):
+            # print('GT:', s, '\nSA:', ss)
+
+        # Forward the sampled captions
+        sample_input = model.forward(fc_feats, att_feats, preds_matrix)
+        ml_sampled = get_ml_loss(sample_input, preds_matrix[:, 1:], mask)
+        # output = torch.add(ml_sampled, -select / self.tau - math.log(Z))
+        output = ml_sampled
+        # output = torch.sum(torch.log(r) - logprob) / N
+        print("Pure RAML:", output.data[0])
+        return ml_output, self.alpha * output + (1 - self.alpha) * ml_output, stats
+
+
+class HammingRewardSampler(RewardSampler):
+    """
+    Sample a hamming distance and alter the truth
+    """
+    def __init__(self, opt, vocab):
+        RewardSampler.__init__(self, opt, vocab)
+
+    def alter(self, labels):
+        N = labels.size(0)
+        seq_length = labels.size(1)
         # get batch vocab size
-        refs = target.cpu().data.numpy()
+        refs = labels.cpu().data.numpy()
         if self.limited:
             batch_vocab = np.delete(np.unique(refs), 0)
             lv = len(batch_vocab)
@@ -752,6 +779,7 @@ class HammingRewardSampler(nn.Module):
                           (select, score))
         stats = {"sent_mean": score,
                  "sent_std": 0}
+
         # Format preds by changing d=select tokens at random
         preds = refs
         # choose tokens to replace
@@ -766,43 +794,62 @@ class HammingRewardSampler(nn.Module):
         preds[rows, change_index] = select_index
         preds_matrix = np.hstack((np.zeros((N, 1)), preds))  # padd <BOS>
         preds_matrix = Variable(torch.from_numpy(preds_matrix)).cuda().type_as(labels)
-        # gt_s = decode_sequence(self.vocab, preds_matrix.data[:, 1:])
-        # gt = decode_sequence(self.vocab, labels.data[:, 1:])
-        # for s, ss in zip(gt, gt_s):
-            # print('GT:', s, '\nSA:', ss)
-        # Flatten
-        # preds = to_contiguous(preds_matrix[:, 1:]).view(-1, 1)
-        # input = to_contiguous(input).view(-1, input.size(2))
-        # mask = to_contiguous(mask).view(-1, 1)
-        """
-        Version 1
-        scores = np.ones((N, seq_length), dtype="float32") * score
-        smooth_target = Variable(torch.from_numpy(scores).view(-1, 1)).cuda().float()
+        return preds_matrix, stats
 
-        output = - input.gather(1, preds) * mask * smooth_target
-        if torch.sum(smooth_target * mask).data[0] > 0:
-            output = torch.sum(output) / torch.sum(smooth_target * mask)
+
+class TFIDFRewardSampler(RewardSampler):
+    """
+    Sample an edit distance and alter the ground truth
+    """
+    def __init__(self, opt, vocab):
+        RewardSampler.__init__(self, opt, vocab)
+        self.ngrams = pickle.load(open('data/coco-train-ng-df.p', 'rb'))
+        self.select_rare = opt.rare_tfidf
+        self.tau = opt.tau_word
+        if self.select_rare:
+            for k in self.ngrams:
+                freq = np.array([1/c for c in list(self.ngrams[k].values())])
+                if self.tau:
+                    freq = np.exp(freq/self.tau)
+                freq /= np.sum(freq)
+                self.ngrams[k] = (list(self.ngrams[k]), freq)
         else:
-            self.logger.warn("Smooth targets weights sum to 0")
-            output = torch.sum(output)
-        """
-        """
-        using log p(\tilde y) = log p(\tilde y|x, y^*)
-        logprob = input.gather(1, preds) * mask
-        """
-        # Forward the sampled captions
-        sample_input = model.forward(fc_feats, att_feats, preds_matrix)
-        # sample_input = to_contiguous(sample_input).view(-1, sample_input.size(2))
-        # logprob = sample_input.gather(1, preds) * mask
-        # logprob = logprob.view(N, seq_length)
-        # logprob = torch.sum(logprob, dim=1).unsqueeze(1)  # / seq_length
-        # print('Sentences log(p):', torch.mean(logprob.data.squeeze(1)))
-        ml_sampled = get_ml_loss(sample_input, preds_matrix[:, 1:], mask, norm=False) / N
-        output = torch.add(ml_sampled, -select / self.tau - math.log(Z))
-        # output = torch.sum(torch.log(r) - logprob) / N
-        print("Pure RAML:", output.data[0])
-        return ml_output, self.alpha * output + (1 - self.alpha) * ml_output, stats
+            for k in self.ngrams:
+                self.ngrams[k] = list(self.ngrams[k])
 
+    def alter(self, labels):
+        N = labels.size(0)
+        seq_length = labels.size(1)
+        # get batch vocab size
+        refs = labels.cpu().data.numpy()
+        if self.limited:
+            batch_vocab = np.delete(np.unique(refs), 0)
+            lv = len(batch_vocab)
+        else:
+            lv = self.vocab_size
+        # print('batch vocab:', len(batch_vocab), batch_vocab)
+        ng = 1 + np.random.randint(4)
+
+        stats = {"sent_mean": ng,
+                 "sent_std": 0}
+        # Format preds by changing d=select tokens at random
+        preds = refs
+        # choose an n-consecutive words to replace
+        change_index = np.random.randint(seq_length - ng, size=(N, 1))
+        change_index = np.hstack((change_index + k for k in range(ng)))
+        rows = np.arange(N).reshape(-1, 1).repeat(ng, axis=1)
+        # select substitutes from occuring n-grams in the training set:
+        if self.select_rare:
+            picked = np.random.choice(np.arange(len(self.ngrams[ng][0])),
+                                      p=self.ngrams[ng][1],
+                                      size=(N,))
+            picked_ngrams = [self.ngrams[ng][0][k] for k in picked]
+        else:
+            picked_ngrams = random.sample(self.ngrams[ng], N)
+        preds[rows, change_index] = picked_ngrams
+        preds_matrix = np.hstack((np.zeros((N, 1)), preds))  # padd <BOS>
+        preds_matrix = Variable(torch.from_numpy(preds_matrix)).cuda().type_as(labels)
+        return preds_matrix, stats
 
 class MultiLanguageModelCriterion(nn.Module):
     def __init__(self, seq_per_img=5):

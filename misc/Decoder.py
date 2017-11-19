@@ -72,6 +72,8 @@ class DecoderModel(nn.Module):
         elif opt.sample_reward:
             if 'hamming' in opt.loss_version:
                 crit = loss.HammingRewardSampler(opt, vocab)
+            elif 'tfidf' in opt.loss_version:
+                crit = loss.TFIDFRewardSampler(opt, vocab)
             else:
                 raise ValueError('Loss function %s in sample_reward mode unknown' % (opt.loss_version))
         else:

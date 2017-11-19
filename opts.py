@@ -96,6 +96,9 @@ def add_loss_params(parser):
                default=0, help='whether or not to clip the similarities')
     parser.add('--limited_vocab_sub', type=int,
                default=1, help='Hamming vocab pool')
+    parser.add('--rare_tfidf', type=int,
+               default=0, help='Sample according to rarity')
+
     parser.add('--margin', type=float,
                default=0.95, help='clipping margin for the similarities')
     parser.add('--alpha', type=float,
