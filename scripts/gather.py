@@ -86,15 +86,28 @@ def parse_name(model):
                 modelname.append(c[:-1])
             elif 'tword' in c:
                 tau = c[5:]
-                if len(tau) == 4:
-                    tau = float(tau)/1000
-                elif len(tau) == 2:
-                    tau = float(tau)/10
+                if tau.startswith('0'):
+                    tau = float(tau)/(10 ** tau.count('0'))
                 else:
-                    print('Other case:', tau)
+                    try:
+                        tau = float(tau)
+                    except:
+                        print('Other case:', tau)
+                        tau = 0
                 modelname.append('$\\tau(w) = %.3f$' % tau)
             elif 'tsent' in c:
-                modelname.append('$\\tau(s) = %.2f$' % (float(c[5:])/10))
+                tau = c[5:]
+                if tau.startswith('0'):
+                    div = tau.count('0') * (len(tau) - tau.count('0'))
+                    tau = float(tau)/(10 ** div)
+                else:
+                    try:
+                        tau = float(tau)
+                    except:
+                        print('Other case:', tau)
+                        tau = 0
+
+                modelname.append('$\\tau(s) = %.2f$' % tau)
             elif c.startswith('a'):
                 modelname.append('$\\alpha = %.2f$' % (float(c[1:])/10))
             elif c in ['word', 'word2', 'sample', 'sample2']:
