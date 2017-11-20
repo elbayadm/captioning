@@ -44,8 +44,23 @@ class DecoderModel(nn.Module):
                              % str(list(saved.keys())))
             self.load_state_dict(saved)
 
+    def define_alter_loss(self, vocab):
+        opt = self.opt
+        if 'hamming' in opt.loss_version:
+            crit_sent = loss.HammingRewardSampler(opt, vocab)
+        elif 'tfidf' in opt.loss_version:
+            crit_sent = loss.TFIDFRewardSampler(opt, vocab)
+        else:
+            raise ValueError('Loss function %s in sample_reward mode unknown' % (opt.loss_version))
+        crit_word = loss.WordSmoothCriterion2(opt)
+        self.crit = crit_word
+        self.crit_word = crit_word
+        self.crit_sent = crit_sent
+
     def define_loss(self, vocab):
         opt = self.opt
+        if opt.alter_loss:
+            return self.define_alter_loss(vocab)
         if opt.sample_cap:
             # Sampling from the captioning model itself
             if 'dummy' in opt.loss_version:
@@ -82,8 +97,26 @@ class DecoderModel(nn.Module):
             crit = loss.LanguageModelCriterion(opt)
         self.crit = crit
 
-    def step(self, data, att_feats, fc_feats):
+    def step_alter(self, data, att_feats, fc_feats, batch):
         opt = self.opt
+        tmp = [data['labels'], data['masks'], data['scores']]
+        tmp = [Variable(torch.from_numpy(_), requires_grad=False).cuda() for _ in tmp]
+        labels, masks, scores = tmp
+        stats = None
+        if batch % 2:
+            ml_loss, loss, stats = self.crit_sent(self, fc_feats, att_feats, labels, masks[:, 1:], scores)
+        else:
+            logprobs = self.forward(fc_feats, att_feats, labels)
+            ml_loss, loss, stats = self.crit_word(logprobs,
+                                                  labels[:, 1:],
+                                                  masks[:, 1:],
+                                                  scores)
+        return ml_loss, loss, stats
+
+    def step(self, data, att_feats, fc_feats, batch=None):
+        opt = self.opt
+        if opt.alter_loss:
+            return self.step_alter(data, att_feats, fc_feats, batch)
         if opt.bootstrap:
             assert opt.bootstrap_score in ['cider', 'bleu2', 'bleu3', 'bleu4', 'infersent']
             tmp = [data['labels'], data['masks'], data['scores'], data[opt.bootstrap_score]]

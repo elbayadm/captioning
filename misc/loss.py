@@ -242,6 +242,7 @@ class WordSmoothCriterion2(nn.Module):
         M = Variable(torch.from_numpy(M)).cuda()
         self.Sim_Matrix = M
         self.exact = opt.exact_dkl
+        print("Initialized Word2 loss tau=%.3f, alpha=%.1f" % (self.tau_word, self.alpha))
 
     def forward(self, input, target, mask, scores=None):
         # truncate to the same size
@@ -755,6 +756,9 @@ class HammingRewardSampler(RewardSampler):
     """
     def __init__(self, opt, vocab):
         RewardSampler.__init__(self, opt, vocab)
+        print('Initialized hamming reward sampler tau = %.2f, alpha= %.1f limited=%d' % (self.tau,
+                                                                                         self.alpha,
+                                                                                         self.limited))
 
     def alter(self, labels):
         N = labels.size(0)
@@ -805,7 +809,7 @@ class TFIDFRewardSampler(RewardSampler):
         RewardSampler.__init__(self, opt, vocab)
         self.ngrams = pickle.load(open('data/coco-train-ng-df.p', 'rb'))
         self.select_rare = opt.rare_tfidf
-        self.tau = opt.tau_word
+        self.tau = opt.tau_sent
         if self.select_rare:
             for k in self.ngrams:
                 freq = np.array([1/c for c in list(self.ngrams[k].values())])
@@ -816,6 +820,9 @@ class TFIDFRewardSampler(RewardSampler):
         else:
             for k in self.ngrams:
                 self.ngrams[k] = list(self.ngrams[k])
+        print('Initialized TFIDF reward sampler tau = %.2f, alpha= %.1f rarity=%d' % (self.tau,
+                                                                                      self.alpha,
+                                                                                      self.select_rare))
 
     def alter(self, labels):
         N = labels.size(0)

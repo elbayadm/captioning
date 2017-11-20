@@ -130,7 +130,7 @@ def train(opt):
         images = data['images']
         images = Variable(torch.from_numpy(images), requires_grad=False).cuda()
         att_feats, fc_feats = cnn_model.forward_caps(images, opt.seq_per_img)
-        ml_loss, loss, stats = model.step(data, att_feats, fc_feats)
+        ml_loss, loss, stats = model.step(data, att_feats, fc_feats, iteration)
         print(stats)
         optimizer.zero_grad()
         # // Move

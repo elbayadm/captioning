@@ -63,6 +63,7 @@ def add_loss_params(parser):
                default="ml", help='Separate loss for the augmented caps')
 
     ## Smoothed loss
+    parser.add('--alter_loss', type=int, default=0, help='Alter between losses at every iteration')
     parser.add('--sample_cap', type=int,
                default=0, help='use smooth loss with captining model sampling (sentence level) or word level smoothing')
     parser.add('--sample_reward', type=int,
