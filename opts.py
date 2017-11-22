@@ -99,7 +99,8 @@ def add_loss_params(parser):
                default=1, help='Hamming vocab pool')
     parser.add('--rare_tfidf', type=int,
                default=0, help='Sample according to rarity')
-
+    parser.add('--ngram_length', type=int,
+               default=2, help='ngram length to substitute')
     parser.add('--margin', type=float,
                default=0.95, help='clipping margin for the similarities')
     parser.add('--alpha', type=float,

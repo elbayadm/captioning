@@ -46,7 +46,7 @@ def get_pairwise_distances(G):
     return Ds
 
 
-def prepare_glove(ixtow, source):
+def prepare_glove(ixtow, source, output):
     """
     inputs:
         ixtow : index to word dictionnary of the vocab
@@ -72,7 +72,7 @@ def prepare_glove(ixtow, source):
                         raise ValueError("Norm of glove embedding null token %d| word %s" % (i, word) )
             except:
                 print("Missing word %s in Glove" % word)
-    # pickle.dump(G, open('data/Glove/%s' % output, 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
+    pickle.dump(G, open('data/Glove/%s' % output, 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
     return G
 
 
@@ -100,26 +100,26 @@ def get_synonyms(source, ixtow):
 
 
 if __name__== '__main__':
-    #  Glove = {}
-    #  with open('data/Glove/glove.42B.300d.txt', 'r') as f:
-    #      for line in f:
-    #          code = line.strip().split()
-    #          word = code[0]
-    #          print "parsed word:", word
-    #          g = np.array(code[1:], dtype="float32")
-    #          assert g.shape == (300,)
-    #          Glove[word] = g
-    #  pickle.dump(Glove, open('data/Glove/glove_dict.pkl', 'w'), protocol=pickle.HIGHEST_PROTOCOL)
-    Glove = pickle.load(open('data/Glove/glove_dict.pkl', 'rb'), encoding='iso-8859-1')
+    # Glove = {}
+    # with open('../GloVe-1.2/coco/vectors.txt', 'r') as f:
+        # for line in f:
+            # code = line.strip().split()
+            # word = code[0]
+            # print("parsed word:", word)
+            # g = np.array(code[1:], dtype="float32")
+            # assert g.shape == (300,)
+            # Glove[word] = g
+    # pickle.dump(Glove, open('data/Glove/glove_dict_train_coco.pkl', 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
+    Glove = pickle.load(open('data/Glove/glove_dict_train_coco.pkl', 'rb'))
     # Glove = pickle.load(open('data/embeddings/full_image.pkl', 'rb'), encoding='iso-8859-1')
 
-    data = json.load(open('data/flickr30k/freq5.json', "r"))
+    data = json.load(open('data/coco/cocotalk.json', "r"))
     ixtow = data['ix_to_word']
     print("Preparing Glove embeddings matrix")
-    gloves = prepare_glove(ixtow, Glove)
-    print("Preparing similarities matrix")
-    Sim = get_pairwise_distances(gloves)
-    pickle.dump(Sim, open('data/flickr30k/freq5_glove_sim.pkl', 'wb'))
+    gloves = prepare_glove(ixtow, Glove, output='glove_matrix_train_coco.pkl')
+    # print("Preparing similarities matrix")
+    # Sim = get_pairwise_distances(gloves)
+    # pickle.dump(Sim, open('data/coco/train_coco_similarities.pkl', 'wb'))
     # pickle.dump(Sim, open('data/embeddings/cocotalk_full_image_sim.pkl', 'wb'))
 
     # plt.figure()

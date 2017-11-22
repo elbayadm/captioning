@@ -1,6 +1,6 @@
 # Generic
 # -------------------------
-modelname : debug
+modelname : word2_tword04_idf_a09
 restart : 1
 
 caption_model : show_tell
@@ -18,9 +18,9 @@ learning_rate_decay_rate : 0.6
 learning_rate_decay_every: 3
 
 # Loss:
-alter_loss : 1
-loss_version : tfidf
+sample_cap: 1
+loss_version : word2
+tau_word : 0.4
 rare_tfidf: 1
-tau_sent : 5
-tau_word : 0.2
+word_add_entropy : 0
 alpha : 0.9

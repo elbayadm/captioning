@@ -144,7 +144,7 @@ def eval_split(cnn_model, model, crit, loader, logger, eval_kwargs={}):
         att_feats, fc_feats, att_unique, fc_unique = cnn_model.forward_caps(images,
                                                                             seq_per_img,
                                                                             return_unique=True)
-        ml_loss, loss, stats = model.step(data, att_feats, fc_feats)
+        ml_loss, loss, stats = model.step(data, att_feats, fc_feats, train=False)
         print('Scores : ', stats)
         ml_loss_sum += ml_loss.data[0]
         loss_sum += loss.data[0]

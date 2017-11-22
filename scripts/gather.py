@@ -17,7 +17,11 @@ def get_results(model, split='val'):
         tr_res = infos['val_result_history']
         tr_res = tr_res[max(list(tr_res))]
         out = tr_res['lang_stats']
-        out['ml_loss'] = tr_res['loss']
+        try:
+            out['ml_loss'] = tr_res['ml_loss']
+        except:
+            print('%s: ml loss set to 0' % model)
+            out["ml_loss"] = 0
         # Defaults
         params = {'beams_size': 1, 'sample_max': 1, 'temperature': 0.5, 'flip': 0}
         params.update(vars(infos['opt']))
@@ -65,6 +69,8 @@ def parse_name(model):
         # parse parameters from name:
         if model.startswith("word2"):
             modelname = ['WL v2']
+            if 'tsent' in model:
+                modelname.append('& SL')
         elif model.startswith('word'):
             modelname = ['WL']
             if 'tsent' in model:
@@ -87,14 +93,15 @@ def parse_name(model):
             elif 'tword' in c:
                 tau = c[5:]
                 if tau.startswith('0'):
-                    tau = float(tau)/(10 ** tau.count('0'))
+                    div = tau.count('0') * (len(tau) - tau.count('0'))
+                    tau = float(tau)/(10 ** div)
                 else:
                     try:
                         tau = float(tau)
                     except:
                         print('Other case:', tau)
                         tau = 0
-                modelname.append('$\\tau(w) = %.3f$' % tau)
+                modelname.append('$\\tau(w) = %.2f$' % tau)
             elif 'tsent' in c:
                 tau = c[5:]
                 if tau.startswith('0'):

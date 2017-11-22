@@ -2,7 +2,16 @@ from collections import defaultdict
 import pickle
 import json
 
-def precook(s, n=4, out=False):
+
+def ngrams(words, k=2):
+    ngrams = []
+    for i in range(len(words)-k+1):
+        ngram = "_".join(words[i:i+k])
+        ngrams.append(ngram)
+    return " ".join(ngrams)
+
+
+def precook(words, nmin=1, nmax=4, out=False):
     """
     Takes a string as input and returns an object that can be given to
     either cook_refs or cook_test. This is optional: cook_refs and cook_test
@@ -11,9 +20,8 @@ def precook(s, n=4, out=False):
     :param n: int    : number of ngrams for which representation is calculated
     :return: term frequency vector for occuring ngrams
     """
-    words = s.split()
     counts = defaultdict(int)
-    for k in range(1,n+1):
+    for k in range(nmin, nmax+1):
         for i in range(len(words)-k+1):
             ngram = tuple(words[i:i+k])
             counts[ngram] += 1
@@ -30,24 +38,40 @@ def compute_doc_freq(crefs):
     return document_frequency
 
 
-def read_coco(n=4):
+def build_ngrams(n=2, output='train_bigrams.txt'):
+    coco = json.load(open('data/coco/dataset_coco.json', 'r'))
+    imgs = coco['images']
+    with open('data/coco/%s' % output, 'w') as f:
+        for img in imgs:
+            for sent in img['sentences']:
+                if n == 1:
+                    f.write('%s\n' % " ".join(sent['tokens']))
+                else:
+                    f.write("%s\n" % ngrams(sent['tokens']))
+
+
+def read_coco(nmin=1, nmax=4):
     crefs = []
-    coco = json.load(open('data/coco/annotations/captions_train2014.json', 'r'))
-    annot = coco['annotations']
+    coco = json.load(open('data/coco/dataset_coco.json', 'r'))
+    imgs = coco['images']
     coco_refs = {}
-    for a in annot:
-        try:
-            coco_refs[a['image_id']].append(a['caption'])
-        except:
-            coco_refs[a['image_id']] = [a['caption']]
+    for img in imgs:
+        for sent in img['sentences']:
+            try:
+                coco_refs[img['imgid']].append(sent['tokens'])
+            except:
+                coco_refs[img['imgid']] = [sent['tokens']]
 
     for imid in coco_refs:
-        crefs.append([precook(ref, n) for ref in coco_refs[imid]])
+        crefs.append([precook(ref, nmin=nmin, nmax=nmax) for ref in coco_refs[imid]])
     return crefs
 
 
 if __name__ == "__main__":
-    crefs = read_coco()
-    tfidf = compute_doc_freq(crefs)
-    pickle.dump({'freq': tfidf, 'length': len(crefs)}, open('data/coco-train-df.p', 'wb'))
+    # crefs = read_coco()
+    # tfidf = compute_doc_freq(crefs)
+    # pickle.dump({'freq': tfidf, 'length': len(crefs)}, open('data/coco-train-tok-df.p', 'wb'))
+    # Dump bigrams as corpus:
+    build_ngrams(n=1, output="train_unigrams.txt")
+
 

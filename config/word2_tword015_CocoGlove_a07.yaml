@@ -1,6 +1,6 @@
 # Generic
 # -------------------------
-modelname : debug
+modelname : word2_tword015_CocoGlove_a07
 restart : 1
 
 caption_model : show_tell
@@ -8,6 +8,7 @@ cnn_model : resnet50
 
 batch_size : 10
 input_data : data/coco/cocotalk
+similarity_matrix : data/Glove/train_coco_similarities.pkl
 val_images_use : -1
 save_checkpoint_every : 4000
 
@@ -18,9 +19,8 @@ learning_rate_decay_rate : 0.6
 learning_rate_decay_every: 3
 
 # Loss:
-alter_loss : 1
-loss_version : tfidf
-rare_tfidf: 1
-tau_sent : 5
-tau_word : 0.2
-alpha : 0.9
+sample_cap: 1
+loss_version : word2
+tau_word : 0.15
+word_add_entropy : 0
+alpha : 0.7

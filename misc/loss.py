@@ -235,6 +235,10 @@ class WordSmoothCriterion2(nn.Module):
         self.tau_word = opt.tau_word
         # Load the similarity matrix:
         M = pickle.load(open(opt.similarity_matrix, 'rb'), encoding='iso-8859-1')
+        M = M - 1
+        if opt.rare_tfidf:
+            IDF = pickle.load(open('data/coco/idf_coco.pkl', 'rb'))
+            M += IDF/1.9
         M = M.astype(np.float32)
         n, d = M.shape
         assert n == d and n == opt.vocab_size, 'Similarity matrix has incompatible shape'
@@ -269,10 +273,10 @@ class WordSmoothCriterion2(nn.Module):
             input = input.gather(1, indices_vocab)
 
         if self.tau_word:
-            smooth_target = torch.exp(torch.mul(torch.add(sim, -1.), 1/self.tau_word))
+            smooth_target = torch.exp(torch.mul(sim, 1/self.tau_word))
         else:
             # Do not exponentiate
-            smooth_target = torch.add(sim, -1.)
+            smooth_target = sim
         # Normalize the word reward distribution:
         smooth_target = normalize_reward(smooth_target)
 
@@ -807,19 +811,18 @@ class TFIDFRewardSampler(RewardSampler):
     """
     def __init__(self, opt, vocab):
         RewardSampler.__init__(self, opt, vocab)
-        self.ngrams = pickle.load(open('data/coco-train-ng-df.p', 'rb'))
+        self.ngrams = pickle.load(open('data/coco-train-tok-ng-df.p', 'rb'))
         self.select_rare = opt.rare_tfidf
         self.tau = opt.tau_sent
+        self.n = opt.ngram_length
         if self.select_rare:
-            for k in self.ngrams:
-                freq = np.array([1/c for c in list(self.ngrams[k].values())])
-                if self.tau:
-                    freq = np.exp(freq/self.tau)
-                freq /= np.sum(freq)
-                self.ngrams[k] = (list(self.ngrams[k]), freq)
+            freq = np.array([1/c for c in list(self.ngrams[self.n].values())])
+            if self.tau:
+                freq = np.exp(freq/self.tau)
+            freq /= np.sum(freq)
+            self.ngrams = (list(self.ngrams[self.n]), freq)
         else:
-            for k in self.ngrams:
-                self.ngrams[k] = list(self.ngrams[k])
+            self.ngrams = list(self.ngrams[self.n])
         print('Initialized TFIDF reward sampler tau = %.2f, alpha= %.1f rarity=%d' % (self.tau,
                                                                                       self.alpha,
                                                                                       self.select_rare))
@@ -835,7 +838,8 @@ class TFIDFRewardSampler(RewardSampler):
         else:
             lv = self.vocab_size
         # print('batch vocab:', len(batch_vocab), batch_vocab)
-        ng = 1 + np.random.randint(4)
+        # ng = 1 + np.random.randint(4)
+        ng = self.n
 
         stats = {"sent_mean": ng,
                  "sent_std": 0}
@@ -847,12 +851,12 @@ class TFIDFRewardSampler(RewardSampler):
         rows = np.arange(N).reshape(-1, 1).repeat(ng, axis=1)
         # select substitutes from occuring n-grams in the training set:
         if self.select_rare:
-            picked = np.random.choice(np.arange(len(self.ngrams[ng][0])),
-                                      p=self.ngrams[ng][1],
+            picked = np.random.choice(np.arange(len(self.ngrams[0])),
+                                      p=self.ngrams[1],
                                       size=(N,))
-            picked_ngrams = [self.ngrams[ng][0][k] for k in picked]
+            picked_ngrams = [self.ngrams[0][k] for k in picked]
         else:
-            picked_ngrams = random.sample(self.ngrams[ng], N)
+            picked_ngrams = random.sample(self.ngrams, N)
         preds[rows, change_index] = picked_ngrams
         preds_matrix = np.hstack((np.zeros((N, 1)), preds))  # padd <BOS>
         preds_matrix = Variable(torch.from_numpy(preds_matrix)).cuda().type_as(labels)

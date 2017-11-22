@@ -1,6 +1,6 @@
 # Generic
 # -------------------------
-modelname : debug
+modelname : word2_tword02_sample2_tfidf_freq_tsent5_a07
 restart : 1
 
 caption_model : show_tell
@@ -23,4 +23,4 @@ loss_version : tfidf
 rare_tfidf: 1
 tau_sent : 5
 tau_word : 0.2
-alpha : 0.9
+alpha : 0.7

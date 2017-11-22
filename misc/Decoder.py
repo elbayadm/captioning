@@ -113,9 +113,9 @@ class DecoderModel(nn.Module):
                                                   scores)
         return ml_loss, loss, stats
 
-    def step(self, data, att_feats, fc_feats, batch=None):
+    def step(self, data, att_feats, fc_feats, batch=None, train=True):
         opt = self.opt
-        if opt.alter_loss:
+        if opt.alter_loss and train:
             return self.step_alter(data, att_feats, fc_feats, batch)
         if opt.bootstrap:
             assert opt.bootstrap_score in ['cider', 'bleu2', 'bleu3', 'bleu4', 'infersent']
