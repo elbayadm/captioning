@@ -284,8 +284,11 @@ def add_generic(parser):
                default='lstm', help='rnn, gru, or lstm')
     parser.add('--input_encoding_size', type=int,
                default=512, help='the encoding size of each token in the vocabulary, and the image.')
-    parser.add('--use_glove', type=int,
-               default=0, help='whether or not to use glove embeddings.')
+    parser.add('--init_decoder_W', type=str,
+               default="", help='Path to intialize the decoder words embeddings, default random')
+    parser.add('--freeze_decoder_W', type=int,
+               default=0, help='Freeze the deocder W')
+
     parser.add('--drop_x_lm', type=float,
                default=0.5, help='strength of dropout in the Language Model RNN input')
     parser.add('--drop_prob_lm', type=float,

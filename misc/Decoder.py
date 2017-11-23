@@ -11,11 +11,17 @@ class DecoderModel(nn.Module):
     def __init__(self, opt):
         super(DecoderModel, self).__init__()
         self.vocab_size = opt.vocab_size
-        self.use_glove = opt.use_glove
-        if self.use_glove:
-            self.input_encoding_size = 300
+        self.logger = opt.logger
+        self.input_encoding_size = opt.input_encoding_size
+        if len(opt.init_decoder_W):
+            # Load W intializer:
+            self.W = pickle.load(open(opt.init_decoder_W, 'rb'),
+                                 encoding="iso-8859-1")
+            self.logger.info('Loading weights to initialize W')
+            self.input_encoding_size = self.W.shape[1]
         else:
-            self.input_encoding_size = opt.input_encoding_size
+            self.W = None
+        self.require_W_grad = not bool(opt.freeze_decoder_W)
         self.rnn_type = opt.rnn_type
         self.rnn_size = opt.rnn_size
         self.num_layers = opt.num_layers
@@ -25,8 +31,7 @@ class DecoderModel(nn.Module):
         self.num_regions = opt.num_regions  # Or the number of candidate regions
         self.att_feat_size = opt.att_feat_size
         self.opt = opt
-        self.logger = opt.logger
-        self.ss_prob = 0.0 # Schedule sampling probability
+        self.ss_prob = 0.0  # Schedule sampling probability
         self.ss_vocab = opt.scheduled_sampling_vocab
 
     def load(self):

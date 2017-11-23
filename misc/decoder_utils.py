@@ -135,7 +135,7 @@ def set_optimizer(opt, epoch, model, cnn_model):
         # active_params = filter(lambda p: p.requires_grad, model.parameters())
         # params = [{'params': active_params, 'lr': opt.learning_rate}]
 
-    params = model.parameters()
+    params = filter(lambda p: p.requires_grad, model.parameters())
     if opt.finetune_cnn_after != -1 and epoch >= opt.finetune_cnn_after:
         if isinstance(cnn_model, list):
             cnn_params = [{'params': module.parameters(),

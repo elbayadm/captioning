@@ -30,8 +30,9 @@ class ShowTellModel(DecoderModel):
 
     def init_weights(self):
         initrange = 0.1
-        if self.use_glove:
-            self.embed.weight = nn.Parameter(torch.from_numpy(pickle.load(open('data/Glove/cocotalk_glove.pkl', 'r'))))
+        if self.W is not None:
+            self.embed.weight = nn.Parameter(torch.from_numpy(self.W),
+                                             requires_grad=self.require_W_grad)
         else:
             self.embed.weight.data.uniform_(-initrange, initrange)
         self.logit.bias.data.fill_(0)
