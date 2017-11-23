@@ -86,6 +86,12 @@ def parse_name_clean(params):
             G = "Coco"
         else:
             G = "Glove-Wiki"
+        if rare:
+            G += ' xIDF'
+        if params.get('word_add_entropy', 0):
+            G += ' +H'
+        if params.get('exact_dkl', 0):
+            G += ' +ExDKL'
         modelname = 'Word Level, Sim=%s, \\tau=%.2f, \\alpha=%.1f' % (G, tau_word, alpha)
 
     elif sample_cap:
