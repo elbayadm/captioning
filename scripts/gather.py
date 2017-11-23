@@ -141,6 +141,7 @@ def crawl_results(filter=''):
     tab = PrettyTable()
     tab.field_names = fields
     for model in models:
+        # print("model:", model)
         modelname = parse_name(model)
         outputs = get_results(model)
         for (p, res) in outputs:
@@ -148,7 +149,11 @@ def crawl_results(filter=''):
                 cid = float(res['CIDEr'] * 100)
                 bl = float(res['Bleu_4'] * 100)
                 sp = float(res['SPICE'] * 100)
-                perpl = float(exp(res['ml_loss']))
+                # print('ml_loss:', res['ml_loss'])
+                try:
+                    perpl = float(exp(res['ml_loss']))
+                except:
+                    perpl = 1
                 tab.add_row([modelname,
                              p['beam_size'],
                              cid, bl, sp, perpl])
