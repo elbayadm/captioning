@@ -238,7 +238,7 @@ class WordSmoothCriterion2(nn.Module):
         M = M - 1
         if opt.rare_tfidf:
             IDF = pickle.load(open('data/coco/idf_coco.pkl', 'rb'))
-            M += IDF/1.9
+            M += self.tau_word * IDF  # old versions IDF/1.8
         M = M.astype(np.float32)
         n, d = M.shape
         assert n == d and n == opt.vocab_size, 'Similarity matrix has incompatible shape'
