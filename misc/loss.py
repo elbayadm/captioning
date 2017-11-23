@@ -739,10 +739,10 @@ class RewardSampler(nn.Module):
         ml_output = get_ml_loss(input, target, mask)
 
         preds_matrix, stats = self.alter(target)
-        gt_s = decode_sequence(self.vocab, preds_matrix.data[:, 1:])
-        gt = decode_sequence(self.vocab, labels.data[:, 1:])
-        for s, ss in zip(gt, gt_s):
-            print('GT:', s, '\nSA:', ss)
+        # gt_s = decode_sequence(self.vocab, preds_matrix.data[:, 1:])
+        # gt = decode_sequence(self.vocab, labels.data[:, 1:])
+        # for s, ss in zip(gt, gt_s):
+            # print('GT:', s, '\nSA:', ss)
 
         # Forward the sampled captions
         sample_input = model.forward(fc_feats, att_feats, preds_matrix)
