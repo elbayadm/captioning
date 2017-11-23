@@ -92,17 +92,17 @@ def parse_name_clean(params):
             G += ' +H'
         if params.get('exact_dkl', 0):
             G += ' +ExDKL'
-        modelname = 'Word Level, Sim=%s, \\tau=%.2f, \\alpha=%.1f' % (G, tau_word, alpha)
+        modelname = 'Word Level, Sim=%s, $\\tau=%.2f$, $\\alpha=%.1f$' % (G, tau_word, alpha)
 
     elif sample_cap:
         if loss_version == "dummy":
             loss_version = "constant"
         ver = params.get('sentence_loss_version', 1)
-        modelname = 'SampleP, r=%s V%d, \\tau=%.2f, \\alpha=%.1f' % (loss_version, ver, tau_sent, alpha)
+        modelname = 'SampleP, r=%s V%d, $\\tau=%.2f$, $\\alpha=%.1f$' % (loss_version, ver, tau_sent, alpha)
     elif sample_reward:
-        modelname = 'SampleR, r=%s, \\tau=%.2f, \\alpha=%.1f' % (loss_version, tau_sent, alpha)
+        modelname = 'SampleR, r=%s, $\\tau=%.2f$, $\\alpha=%.1f$' % (loss_version, tau_sent, alpha)
     elif alter_loss:
-        modelname = "Alternating losses, WL \\tau=%.2f w/ SampleR, r=%s \\tau=%.2f, \\alpha=%.1f" \
+        modelname = "Alternating losses, WL $\\tau=%.2f$ w/ SampleR, r=%s $\\tau=%.2f$, $\\alpha=%.1f$" \
                      % (tau_word, loss_version, tau_sent, alpha)
     else:
         modelname = ""
