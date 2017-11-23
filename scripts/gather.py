@@ -1,5 +1,6 @@
 import sys
 import os.path as osp
+import socket
 import glob
 import operator
 import pickle
@@ -193,10 +194,12 @@ def crawl_results(filter='', exc=None):
     recap = {}
     tab = PrettyTable()
     tab.field_names = fields
+    dump = []
     for model in models:
         outputs = get_results(model)
         if len(outputs):
             modelname = parse_name_clean(outputs[0][0])
+            dump.append(outputs)
             for (p, res) in outputs:
                 if p['beam_size'] > 1:
                     cid = float(res['CIDEr'] * 100)
@@ -206,11 +209,11 @@ def crawl_results(filter='', exc=None):
                     try:
                         perpl = float(exp(res['ml_loss']))
                     except:
-                        perpl = 1.0
+                        perpl = 1.
                     tab.add_row([modelname,
                                  p['beam_size'],
                                  cid, bl, sp, perpl])
-    return tab
+    return tab, dump
 
 
 if __name__ == "__main__":
@@ -227,10 +230,12 @@ if __name__ == "__main__":
             exc = None
     else:
         filter= ''
-    tab = crawl_results(filter, exc)
+    tab, dump = crawl_results(filter, exc)
     print(tab.get_string(sortby='CIDEr', reversesort=True))
-    with open('res%s.html' % filter, 'w') as f:
+    filename = "Results/res%s_%s" % (filter, socket.gethostname())
+    with open(filename+'.html', 'w') as f:
         ss = tab.get_html_string(sortby="CIDEr", reversesort=True)
         # print(ss)
         f.write(ss)
+    pickle.dump(dump, open(filename+".res", 'wb'))
 
