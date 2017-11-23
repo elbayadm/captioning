@@ -97,7 +97,8 @@ def parse_name_clean(params):
     elif sample_cap:
         if loss_version == "dummy":
             loss_version = "constant"
-        modelname = 'SampleP, r=%s, \\tau=%.2f, \\alpha=%.1f' % (loss_version, tau_sent, alpha)
+        ver = params.get('sentence_loss_version', 1)
+        modelname = 'SampleP, r=%s V%d, \\tau=%.2f, \\alpha=%.1f' % (loss_version, ver, tau_sent, alpha)
     elif sample_reward:
         modelname = 'SampleR, r=%s, \\tau=%.2f, \\alpha=%.1f' % (loss_version, tau_sent, alpha)
     elif alter_loss:
