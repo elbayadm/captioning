@@ -32,18 +32,22 @@ def get_results(model, split='val'):
     # Read post-results
     val_results = sorted(glob.glob('%s/val_*.res' % model_dir))
     for res in val_results:
-        params = res.split('/')[-1].split('_')
-        beam = int(params[1][2:])
-        sample_max = 1 if params[3] == "max" else 0
+        eval_params = res.split('/')[-1].split('_')
+        beam = int(eval_params[1][2:])
+        sample_max = 1 if eval_params[3] == "max" else 0
         temp = 0
         if not sample_max:
-            temp = float(params[4])
+            temp = float(eval_params[4])
             index = 5
         else:
             index = 4
-        flip = int(params[index][4])
-        params = {'beam_size': beam, 'sample_max': sample_max,
-                 'temperature': temp, 'flip': flip}
+        flip = int(eval_params[index][4])
+        eval_params = {'beam_size': beam, 'sample_max': sample_max,
+                       'temperature': temp, 'flip': flip}
+        if params:
+            params.update(eval_params)
+        else:
+            params = eval_params
         # Load results:
         out = pickle.load(open(res, 'rb'))
         compiled.append([params, out])
@@ -55,11 +59,49 @@ def gather_results(model):
     tab = PrettyTable()
     tab.field_names = ['Sorter'] + FIELDS
     for (p, res) in outputs:
+        print('params:', len(p))
+        print('res:', res)
         tab.add_row([p['beam_size'] + p['temperature'],
                      p['beam_size'], p['temperature'],
                      round(res['CIDEr'] * 100, 2), round(res['Bleu_4'] * 100, 2),
                      round(res['SPICE'] * 100, 2), round(exp(res['ml_loss']), 2)])
     return tab
+
+
+def parse_name_clean(params):
+    sample_cap = params.get('sample_cap', 0)
+    sample_reward = params.get('sample_reward', 0)
+    alter_loss = params.get('alter_loss', 0)
+
+    loss_version = params['loss_version']
+    alpha = params['alpha']
+    tau_sent = params['tau_sent']
+    tau_word = params['tau_word']
+    rare = params.get('rare_tfidf', 0)
+    simi = params['similarity_matrix']
+    if 'tfidf' in loss_version:
+        loss_version += " n=%d, idf=%d" % (params.get('ngram_length', 0), rare)
+    if loss_version == "word2":
+        if 'train_coco' in simi:
+            G = "Coco"
+        else:
+            G = "Glove-Wiki"
+        modelname = 'Word Level, Sim=%s, \\tau=%.2f, \\alpha=%.1f' % (G, tau_word, alpha)
+
+    elif sample_cap:
+        if loss_version == "dummy":
+            loss_version = "constant"
+        modelname = 'SampleP, r=%s, \\tau=%.2f, \\alpha=%.1f' % (loss_version, tau_sent, alpha)
+    elif sample_reward:
+        modelname = 'SampleR, r=%s, \\tau=%.2f, \\alpha=%.1f' % (loss_version, tau_sent, alpha)
+    elif alter_loss:
+        modelname = "Alternating losses, WL \\tau=%.2f w/ SampleR, r=%s \\tau=%.2f, \\alpha=%.1f" \
+                     % (tau_word, loss_version, tau_sent, alpha)
+    else:
+        modelname = ""
+        print('Couldnt name ', params['modelname'])
+    return modelname
+
 
 
 def parse_name(model):
@@ -134,29 +176,30 @@ def highlight(score, tresh):
     else:
         return '%.2f' % score
 
-def crawl_results(filter=''):
+def crawl_results(filter='', exc=None):
     models = sorted(glob.glob('save/*%s*' % filter))
+    if exc:
+        # Exclude models containg exc:
+        models = [model for model in models if exc not in model]
     # print("Found:", models)
     fields = ["Model", 'Beam', 'CIDEr', 'Bleu4', 'Spice', 'Perplexity']
+    recap = {}
     tab = PrettyTable()
     tab.field_names = fields
     for model in models:
-        # print("model:", model)
-        modelname = parse_name(model)
         outputs = get_results(model)
-        for (p, res) in outputs:
-            if p['beam_size'] > 1:
-                cid = float(res['CIDEr'] * 100)
-                bl = float(res['Bleu_4'] * 100)
-                sp = float(res['SPICE'] * 100)
-                # print('ml_loss:', res['ml_loss'])
-                try:
+        if len(outputs):
+            modelname = parse_name_clean(outputs[0][0])
+            for (p, res) in outputs:
+                if p['beam_size'] > 1:
+                    cid = float(res['CIDEr'] * 100)
+                    recap[p['alpha']] = cid
+                    bl = float(res['Bleu_4'] * 100)
+                    sp = float(res['SPICE'] * 100)
                     perpl = float(exp(res['ml_loss']))
-                except:
-                    perpl = 1
-                tab.add_row([modelname,
-                             p['beam_size'],
-                             cid, bl, sp, perpl])
+                    tab.add_row([modelname,
+                                 p['beam_size'],
+                                 cid, bl, sp, perpl])
     return tab
 
 
@@ -168,9 +211,13 @@ if __name__ == "__main__":
 
     if len(sys.argv) > 1:
         filter = sys.argv[1]
+        if len(sys.argv) > 2:
+            exc = sys.argv[2]
+        else:
+            exc = None
     else:
         filter= ''
-    tab = crawl_results(filter)
+    tab = crawl_results(filter, exc)
     print(tab.get_string(sortby='CIDEr', reversesort=True))
     with open('res%s.html' % filter, 'w') as f:
         ss = tab.get_html_string(sortby="CIDEr", reversesort=True)
