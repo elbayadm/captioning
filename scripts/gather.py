@@ -203,7 +203,10 @@ def crawl_results(filter='', exc=None):
                     recap[p['alpha']] = cid
                     bl = float(res['Bleu_4'] * 100)
                     sp = float(res['SPICE'] * 100)
-                    perpl = float(exp(res['ml_loss']))
+                    try:
+                        perpl = float(exp(res['ml_loss']))
+                    except:
+                        perpl = 1.0
                     tab.add_row([modelname,
                                  p['beam_size'],
                                  cid, bl, sp, perpl])
