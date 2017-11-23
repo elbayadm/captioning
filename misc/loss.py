@@ -8,7 +8,7 @@ import pickle
 from scipy.special import binom
 import numpy as np
 from scipy.spatial.distance import hamming
-from collections import Counter
+from collections import Counter, OrderedDict
 from scipy.misc import comb
 
 import torch
@@ -739,10 +739,10 @@ class RewardSampler(nn.Module):
         ml_output = get_ml_loss(input, target, mask)
 
         preds_matrix, stats = self.alter(target)
-        # gt_s = decode_sequence(self.vocab, preds_matrix.data[:, 1:])
-        # gt = decode_sequence(self.vocab, labels.data[:, 1:])
-        # for s, ss in zip(gt, gt_s):
-            # print('GT:', s, '\nSA:', ss)
+        gt_s = decode_sequence(self.vocab, preds_matrix.data[:, 1:])
+        gt = decode_sequence(self.vocab, labels.data[:, 1:])
+        for s, ss in zip(gt, gt_s):
+            print('GT:', s, '\nSA:', ss)
 
         # Forward the sampled captions
         sample_input = model.forward(fc_feats, att_feats, preds_matrix)
@@ -815,12 +815,15 @@ class TFIDFRewardSampler(RewardSampler):
         self.select_rare = opt.rare_tfidf
         self.tau = opt.tau_sent
         self.n = opt.ngram_length
+        self.sub_idf = opt.sub_idf
         if self.select_rare:
-            freq = np.array([1/c for c in list(self.ngrams[self.n].values())])
+            self.ngrams = OrderedDict(self.ngrams[self.n])
+            freq = np.array([1/c for c in list(self.ngrams.values())])
             if self.tau:
                 freq = np.exp(freq/self.tau)
             freq /= np.sum(freq)
-            self.ngrams = (list(self.ngrams[self.n]), freq)
+            self.ngrams = OrderedDict({k: v for k,v in zip(list(self.ngrams), freq)})
+            # print('self.ngrams:', self.ngrams)
         else:
             self.ngrams = list(self.ngrams[self.n])
         print('Initialized TFIDF reward sampler tau = %.2f, alpha= %.1f rarity=%d' % (self.tau,
@@ -846,15 +849,26 @@ class TFIDFRewardSampler(RewardSampler):
         # Format preds by changing d=select tokens at random
         preds = refs
         # choose an n-consecutive words to replace
-        change_index = np.random.randint(seq_length - ng, size=(N, 1))
+        if self.sub_idf:
+            # get current ngrams idfs:
+            change_index = np.zeros((N, 1), dtype=np.int)
+            for i in range(N):
+                p = np.array([self.ngrams.get(tuple(refs[i, j:j+ng]),
+                                              0) for j in range(seq_length - ng)])
+                p /= np.sum(p)
+                change_index[i] = np.random.choice(seq_length - ng,
+                                                   p=p,
+                                                   size=1)
+        else:
+            change_index = np.random.randint(seq_length - ng, size=(N, 1))
         change_index = np.hstack((change_index + k for k in range(ng)))
         rows = np.arange(N).reshape(-1, 1).repeat(ng, axis=1)
         # select substitutes from occuring n-grams in the training set:
         if self.select_rare:
-            picked = np.random.choice(np.arange(len(self.ngrams[0])),
-                                      p=self.ngrams[1],
+            picked = np.random.choice(np.arange(len(self.ngrams)),
+                                      p=list(self.ngrams.values()),
                                       size=(N,))
-            picked_ngrams = [self.ngrams[0][k] for k in picked]
+            picked_ngrams = [list(self.ngrams)[k] for k in picked]
         else:
             picked_ngrams = random.sample(self.ngrams, N)
         preds[rows, change_index] = picked_ngrams

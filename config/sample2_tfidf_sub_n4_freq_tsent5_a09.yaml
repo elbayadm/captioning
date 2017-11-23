@@ -1,6 +1,6 @@
 # Generic
 # -------------------------
-modelname : debug
+modelname : sample2_tfidf_sub_n4_freq_tsent5_a09
 restart : 1
 
 caption_model : show_tell
@@ -21,7 +21,7 @@ learning_rate_decay_every: 3
 sample_reward: 1
 sentence_loss_version : 2
 loss_version : tfidf
-ngram_length : 2
+ngram_length : 4
 rare_tfidf : 1
 sub_idf : 1
 tau_sent: 5

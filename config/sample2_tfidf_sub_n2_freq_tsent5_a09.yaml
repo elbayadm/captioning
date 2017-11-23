@@ -1,6 +1,6 @@
 # Generic
 # -------------------------
-modelname : debug
+modelname : sample2_tfidf_sub_n2_freq_tsent5_a09
 restart : 1
 
 caption_model : show_tell
