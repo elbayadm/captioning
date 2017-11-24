@@ -79,9 +79,11 @@ def parse_name_clean(params):
     tau_sent = params['tau_sent']
     tau_word = params['tau_word']
     rare = params.get('rare_tfidf', 0)
+    sub = params.get('sub_idf', 0)
     simi = params['similarity_matrix']
+
     if 'tfidf' in loss_version:
-        loss_version += " n=%d, idf=%d" % (params.get('ngram_length', 0), rare)
+        loss_version += " n=%d, idf_select=%d, idf_sub=%d" % (params.get('ngram_length', 0), rare, sub)
     if loss_version == "word2":
         if 'train_coco' in simi:
             G = "Coco"
