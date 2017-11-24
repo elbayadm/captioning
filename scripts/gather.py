@@ -106,7 +106,7 @@ def parse_name_clean(params):
         modelname = "Alternating losses, WL $\\tau=%.2f$ w/ SampleR, r=%s $\\tau=%.2f$, $\\alpha=%.1f$" \
                      % (tau_word, loss_version, tau_sent, alpha)
     else:
-        modelname = ""
+        modelname = " ".join(params['modelname'].split('/')[-1].split('_'))
         print('Couldnt name ', params['modelname'])
     return modelname
 

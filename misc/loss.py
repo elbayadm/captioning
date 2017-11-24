@@ -851,7 +851,7 @@ class TFIDFRewardSampler(RewardSampler):
         # choose an n-consecutive words to replace
         if self.sub_idf:
             # get current ngrams idfs:
-            change_index = np.zeros((N, 1), dtype=np.int)
+            change_index = np.zeros((N, 1), dtype=np.int32)
             for i in range(N):
                 p = np.array([self.ngrams.get(tuple(refs[i, j:j+ng]),
                                               0) for j in range(seq_length - ng)])

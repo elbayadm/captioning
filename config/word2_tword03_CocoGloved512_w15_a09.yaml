@@ -1,0 +1,25 @@
+# Generic
+# -------------------------
+modelname : word2_tword03_CocoGloved512_w15_a09
+restart : 1
+
+caption_model : show_tell
+cnn_model : resnet50
+
+batch_size : 10
+input_data : data/coco/cocotalk
+similarity_matrix : data/Glove/glove_coco_d512_w15_similarities.pkl
+val_images_use : -1
+save_checkpoint_every : 4000
+
+finetune_cnn_after : -1
+learning_rate : 5e-4
+learning_rate_decay_start : 5
+learning_rate_decay_rate : 0.6
+learning_rate_decay_every: 3
+
+# Loss:
+sample_cap: 1
+loss_version : word2
+tau_word : 0.3
+alpha : 0.9
