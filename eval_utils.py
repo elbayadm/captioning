@@ -109,7 +109,7 @@ def generate_caps(encoder, decoder, crit, loader, eval_kwargs={}):
     return 1
 
 
-def eval_split(cnn_model, model, crit, loader, logger, eval_kwargs={}):
+def eval_split(cnn_model, model, loader, logger, eval_kwargs={}):
     verbose = eval_kwargs.get('verbose', True)
 
     dataset = eval_kwargs.get('dataset', 'coco')

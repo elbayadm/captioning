@@ -49,21 +49,42 @@ class DecoderModel(nn.Module):
                              % str(list(saved.keys())))
             self.load_state_dict(saved)
 
+    def define_sum_loss(self, vocab):
+        opt = self.opt
+        if 'hamming' in opt.loss_version:
+            crit_sent = loss.HammingRewardSampler(opt, vocab)
+            crit_sent.log()
+        elif 'tfidf' in opt.loss_version:
+            crit_sent = loss.TFIDFRewardSampler(opt, vocab)
+            crit_sent.log()
+        else:
+            raise ValueError('Loss function %s in sample_reward mode unknown' % (opt.loss_version))
+        crit_word = loss.WordSmoothCriterion2(opt)
+        crit_word.log()
+        self.crit_word = crit_word
+        self.crit_sent = crit_sent
+        self.crit = self.crit_word
+
     def define_alter_loss(self, vocab):
         opt = self.opt
         if 'hamming' in opt.loss_version:
             crit_sent = loss.HammingRewardSampler(opt, vocab)
+            crit_sent.log()
         elif 'tfidf' in opt.loss_version:
             crit_sent = loss.TFIDFRewardSampler(opt, vocab)
+            crit_sent.log()
         else:
             raise ValueError('Loss function %s in sample_reward mode unknown' % (opt.loss_version))
         crit_word = loss.WordSmoothCriterion2(opt)
+        crit_word.log()
         self.crit = crit_word
         self.crit_word = crit_word
         self.crit_sent = crit_sent
 
     def define_loss(self, vocab):
         opt = self.opt
+        if opt.sum_loss:
+            return self.define_sum_loss(vocab)
         if opt.alter_loss:
             return self.define_alter_loss(vocab)
         if opt.sample_cap:
@@ -100,6 +121,7 @@ class DecoderModel(nn.Module):
             # The defualt ML
             opt.logger.warn('Using baseline loss criterion')
             crit = loss.LanguageModelCriterion(opt)
+        crit.log()
         self.crit = crit
 
     def step_alter(self, data, att_feats, fc_feats, batch):
@@ -109,19 +131,50 @@ class DecoderModel(nn.Module):
         labels, masks, scores = tmp
         stats = None
         if batch % 2:
-            ml_loss, loss, stats = self.crit_sent(self, fc_feats, att_feats, labels, masks[:, 1:], scores)
+            ml_loss, raml_loss, stats = self.crit_sent(self, fc_feats, att_feats, labels, masks[:, 1:], scores)
+            print('sent loss:', raml_loss.data[0])
+            alpha = self.crit_sent.alpha
         else:
             logprobs = self.forward(fc_feats, att_feats, labels)
-            ml_loss, loss, stats = self.crit_word(logprobs,
-                                                  labels[:, 1:],
-                                                  masks[:, 1:],
-                                                  scores)
-        return ml_loss, loss, stats
+            ml_loss, raml_loss, stats = self.crit_word(logprobs,
+                                                       labels[:, 1:],
+                                                       masks[:, 1:],
+                                                       scores)
+            alpha = self.crit_word.alpha
+            raml_loss *= opt.gamma
+            print('word loss (scaled):', raml_loss.data[0])
+        alt_loss = alpha * raml_loss + (1 - alpha) * ml_loss
+        return ml_loss, alt_loss, stats
+
+    def step_sum(self, data, att_feats, fc_feats):
+        opt = self.opt
+        tmp = [data['labels'], data['masks'], data['scores']]
+        tmp = [Variable(torch.from_numpy(_), requires_grad=False).cuda() for _ in tmp]
+        labels, masks, scores = tmp
+        stats = None
+        ml_loss_, loss_sent, stats = self.crit_sent(self, fc_feats, att_feats, labels, masks[:, 1:], scores)
+        logprobs = self.forward(fc_feats, att_feats, labels)
+        ml_loss, loss_word, stats_ = self.crit_word(logprobs,
+                                                   labels[:, 1:],
+                                                   masks[:, 1:],
+                                                   scores)
+        stats.update(stats_)
+        print('word loss:', loss_word.data[0])
+        print('sent loss:', loss_sent.data[0])
+        raml_loss = opt.gamma * loss_sent + (1 - opt.gamma) * loss_word
+        print('raml loss:', raml_loss.data[0])
+        assert self.crit_sent.alpha == self.crit_word.alpha, "When summing the losses, there should be a single alpha"
+        alpha = self.crit_sent.alpha
+        sum_loss = alpha * raml_loss + (1 - alpha) * ml_loss
+        return ml_loss, sum_loss, stats
+
 
     def step(self, data, att_feats, fc_feats, batch=None, train=True):
         opt = self.opt
         if opt.alter_loss and train:
             return self.step_alter(data, att_feats, fc_feats, batch)
+        if opt.sum_loss:
+            return self.step_sum(data, att_feats, fc_feats)
         if opt.bootstrap:
             assert opt.bootstrap_score in ['cider', 'bleu2', 'bleu3', 'bleu4', 'infersent']
             tmp = [data['labels'], data['masks'], data['scores'], data[opt.bootstrap_score]]
@@ -152,20 +205,18 @@ class DecoderModel(nn.Module):
             raml_scores = reward * Variable(torch.ones(scores.size()))
             # raml_scores = Variable(torch.ones(scores.size()))
             print('Raml reward:', reward)
-            ml_loss, loss = self.crit(probs, labels[:, 1:], masks[:, 1:], raml_scores)
+            ml_loss, raml_loss = self.crit(probs, labels[:, 1:], masks[:, 1:], raml_scores)
         else:
             if self.opt.sample_reward:
-                ml_loss, loss, stats = self.crit(self, fc_feats, att_feats, labels, masks[:, 1:], scores)
+                ml_loss, raml_loss, stats = self.crit(self, fc_feats, att_feats, labels, masks[:, 1:], scores)
             else:
                 logprobs = self.forward(fc_feats, att_feats, labels)
-                ml_loss, loss, stats = self.crit(logprobs,
-                                                 labels[:, 1:],
-                                                 masks[:, 1:],
-                                                 scores)
-        # print('Grad check:', gradcheck(self.crit, [logprobs,
-                                                   # labels[:, 1:],
-                                                   # masks[:, 1:],
-                                                   # scores]))
-        return ml_loss, loss, stats
+                ml_loss, raml_loss, stats = self.crit(logprobs,
+                                                      labels[:, 1:],
+                                                      masks[:, 1:],
+                                                      scores)
+        print('raml loss:', raml_loss.data[0])
+        c_loss = self.crit.alpha * raml_loss + (1 - self.crit.alpha) * ml_loss
+        return ml_loss, c_loss, stats
 
 

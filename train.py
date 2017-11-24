@@ -179,7 +179,6 @@ def train(opt):
             (val_ml_loss, val_loss,
              predictions, lang_stats) = eval_utils.eval_split(cnn_model,
                                                               model,
-                                                              model.crit,
                                                               loader,
                                                               opt.logger,
                                                               eval_kwargs)

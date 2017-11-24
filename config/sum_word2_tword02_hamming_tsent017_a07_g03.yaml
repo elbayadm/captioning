@@ -1,0 +1,29 @@
+# Generic
+# -------------------------
+modelname : sum_word2_tword02_hamming_tsent017_a07_g03
+restart : 1
+
+caption_model : show_tell
+cnn_model : resnet50
+
+batch_size : 10
+input_data : data/coco/cocotalk
+val_images_use : -1
+save_checkpoint_every : 4000
+
+finetune_cnn_after : -1
+learning_rate : 5e-4
+learning_rate_decay_start : 5
+learning_rate_decay_rate : 0.6
+learning_rate_decay_every: 3
+
+# Loss:
+sum_loss : 1
+loss_version : hamming
+
+tau_sent : 0.17
+tau_word : 0.2
+
+alpha_sent : 0.7
+alpha_word: 0.7
+gamma : 0.3

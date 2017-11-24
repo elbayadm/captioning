@@ -84,6 +84,8 @@ def parse_name_clean(params):
 
     if 'tfidf' in loss_version:
         loss_version += " n=%d, idf_select=%d, idf_sub=%d" % (params.get('ngram_length', 0), rare, sub)
+    elif 'hamming' in loss_version:
+        loss_version += " limited=%d" % params.get('limited_vocab_sub', 1)
     if loss_version == "word2":
         if 'train_coco' in simi:
             G = "Coco"

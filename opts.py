@@ -64,6 +64,9 @@ def add_loss_params(parser):
 
     ## Smoothed loss
     parser.add('--alter_loss', type=int, default=0, help='Alter between losses at every iteration')
+    parser.add('--sum_loss', type=int, default=0, help='Sum two different losses')
+    parser.add('--combine_loss', type=int,
+               default=0, help='combine WL with SL')
     parser.add('--sample_cap', type=int,
                default=0, help='use smooth loss with captining model sampling (sentence level) or word level smoothing')
     parser.add('--sample_reward', type=int,
@@ -105,10 +108,14 @@ def add_loss_params(parser):
                default=2, help='ngram length to substitute')
     parser.add('--margin', type=float,
                default=0.95, help='clipping margin for the similarities')
-    parser.add('--alpha', type=float,
-               default=0.3, help='Scalar used to weight the losses')
+    parser.add('--alpha_sent', type=float,
+               default=0.4, help='Scalar used to weight the losses')
+    parser.add('--alpha_word', type=float,
+               default=0.9, help='Scalar used to weight the losses')
     parser.add('--beta', type=float,
                default=0.1, help='Scalar used to weight the losses')
+    parser.add('--gamma', type=float,
+               default=.33, help='Scalar used to weight the losses')
 
     ### Alpha scheme:
     parser.add('--alpha_increase_every', type=int,

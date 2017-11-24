@@ -147,7 +147,7 @@ class WordSmoothCriterion(nn.Module):
             self.logger.warn('Clipping similarities below %.2f' % self.margin)
         self.limited = opt.limited_vocab_sim
         # the final loss is (1-alpha) ML + alpha * RewardLoss
-        self.alpha = opt.alpha
+        self.alpha = opt.alpha_word
         assert self.alpha > 0, 'set alpha to a nonzero value, otherwise use the default loss'
         self.tau_word = opt.tau_word
         # Load the similarity matrix:
@@ -206,7 +206,7 @@ class WordSmoothCriterion(nn.Module):
             self.logger.warn("Smooth targets weights sum to 0")
             output = torch.sum(output)
 
-        return ml_output, self.alpha * output + (1 - self.alpha) * ml_output, stats
+        return ml_output, output, stats
 
 
 class WordSmoothCriterion2(nn.Module):
@@ -230,7 +230,7 @@ class WordSmoothCriterion2(nn.Module):
             self.logger.warn('Clipping similarities below %.2f' % self.margin)
         self.limited = opt.limited_vocab_sim
         # the final loss is (1-alpha) ML + alpha * RewardLoss
-        self.alpha = opt.alpha
+        self.alpha = opt.alpha_word
         assert self.alpha > 0, 'set alpha to a nonzero value, otherwise use the default loss'
         self.tau_word = opt.tau_word
         # Load the similarity matrix:
@@ -246,7 +246,9 @@ class WordSmoothCriterion2(nn.Module):
         M = Variable(torch.from_numpy(M)).cuda()
         self.Sim_Matrix = M
         self.exact = opt.exact_dkl
-        print("Initialized Word2 loss tau=%.3f, alpha=%.1f" % (self.tau_word, self.alpha))
+
+    def log(self):
+        self.logger.info("Initialized Word2 loss tau=%.3f, alpha=%.1f" % (self.tau_word, self.alpha))
 
     def forward(self, input, target, mask, scores=None):
         # truncate to the same size
@@ -307,7 +309,6 @@ class WordSmoothCriterion2(nn.Module):
                 output = torch.sum(output)
         else:
             output = torch.sum(output)
-        print('Pure RAMl:', output.data[0])
 
         if self.add_entropy:
             H = rows_entropy(smooth_target).unsqueeze(1)
@@ -320,7 +321,7 @@ class WordSmoothCriterion2(nn.Module):
         if self.exact:
             return ml_output, output, stats
         else:
-            return ml_output, self.alpha * output + (1 - self.alpha) * ml_output, stats
+            return ml_output, output, stats
 
 
 class SentSmoothCriterion(nn.Module):
@@ -336,7 +337,7 @@ class SentSmoothCriterion(nn.Module):
         self.clip_scores = opt.clip_scores
         # TODO assert type is defined
         # the final loss is (1-alpha) ML + alpha * RewardLoss
-        self.alpha = opt.alpha
+        self.alpha = opt.alpha_sent
         assert self.alpha > 0, 'set alpha to a nonzero value, otherwise use the default loss'
         # tau set to zero means no exponentiation
         self.tau_sent = opt.tau_sent
@@ -377,7 +378,7 @@ class SentSmoothCriterion(nn.Module):
         else:
             self.logger.warn('Weights sum to zero')
             output = sum(output)
-        return ml_output, self.alpha * output + (1 - self.alpha) * ml_output, stats
+        return ml_output, output, stats
 
 
 class SentSmoothCriterion2(nn.Module):
@@ -393,7 +394,7 @@ class SentSmoothCriterion2(nn.Module):
         self.clip_scores = opt.clip_scores
         # TODO assert type is defined
         # the final loss is (1-alpha) ML + alpha * RewardLoss
-        self.alpha = opt.alpha
+        self.alpha = opt.alpha_sent
         assert self.alpha > 0, 'set alpha to a nonzero value, otherwise use the default loss'
         # tau set to zero means no exponentiation
         self.tau_sent = opt.tau_sent
@@ -438,8 +439,7 @@ class SentSmoothCriterion2(nn.Module):
             output = torch.sum(importance * torch.log(importance)) / batch_size
         elif self.sentence_version == 3:
             output = - torch.sum(importance * logprob) / batch_size
-        print("Pure RAML:", output.data[0])
-        return ml_output, self.alpha * output + (1 - self.alpha) * ml_output, stats
+        return ml_output, output, stats
 
 
 
@@ -459,7 +459,7 @@ class WordSentSmoothCriterion(nn.Module):
             self.logger.warn('Clipping similarities below %.2f' % self.margin)
         self.limited = opt.limited_vocab_sim
         # the final loss is (1-alpha) ML + alpha * RewardLoss
-        self.alpha = opt.alpha
+        self.alpha = opt.alpha_sent  # FIXME
         assert self.alpha > 0, 'set alpha to a nonzero value, otherwise use the default loss'
         self.tau_sent = opt.tau_sent
         self.tau_word = opt.tau_word
@@ -514,7 +514,7 @@ class WordSentSmoothCriterion(nn.Module):
         else:
             self.logger.warn("Smooth targets weights sum to 0")
             output = torch.sum(output_wl)
-        return ml_output, self.alpha * output + (1 - self.alpha) * ml_output, stats
+        return ml_output, output, stats
 
 
 class RewardCriterion(SentSmoothCriterion2,
@@ -716,14 +716,19 @@ class RewardSampler(nn.Module):
         super(RewardSampler, self).__init__()
         self.logger = opt.logger
         # the final loss is (1-alpha) ML + alpha * RewardLoss
-        self.alpha = opt.alpha
+        self.alpha = opt.alpha_sent
         assert self.alpha > 0, 'set alpha to a nonzero value, otherwise use the default loss'
         self.tau = opt.tau_sent
+        self.combine_loss = opt.combine_loss
         self.scale_loss = opt.scale_loss
         self.vocab_size = opt.vocab_size
-        self.version = opt.sentence_loss_version
         self.vocab = vocab
         self.limited = opt.limited_vocab_sub
+        if self.combine_loss:
+            # Instead of ML(sampled) return WL(sampled)
+            self.loss = WordSmoothCriterion2(opt)
+            self.loss.log()
+
 
     def forward(self, model, fc_feats, att_feats, labels, mask, scores=None):
         # truncate
@@ -746,12 +751,15 @@ class RewardSampler(nn.Module):
 
         # Forward the sampled captions
         sample_input = model.forward(fc_feats, att_feats, preds_matrix)
-        ml_sampled = get_ml_loss(sample_input, preds_matrix[:, 1:], mask)
-        # output = torch.add(ml_sampled, -select / self.tau - math.log(Z))
-        output = ml_sampled
+        if self.combine_loss:
+            ml_sampled, word_loss, stats_ = self.loss(sample_input, preds_matrix[:, 1:], mask)
+            stats.update(stats_)
+            output = self.loss.alpha * word_loss + (1 - self.loss.alpha) * ml_sampled
+        else:
+            ml_sampled = get_ml_loss(sample_input, preds_matrix[:, 1:], mask)
+            output = ml_sampled
         # output = torch.sum(torch.log(r) - logprob) / N
-        print("Pure RAML:", output.data[0])
-        return ml_output, self.alpha * output + (1 - self.alpha) * ml_output, stats
+        return ml_output, output, stats
 
 
 class HammingRewardSampler(RewardSampler):
@@ -760,9 +768,10 @@ class HammingRewardSampler(RewardSampler):
     """
     def __init__(self, opt, vocab):
         RewardSampler.__init__(self, opt, vocab)
-        print('Initialized hamming reward sampler tau = %.2f, alpha= %.1f limited=%d' % (self.tau,
-                                                                                         self.alpha,
-                                                                                         self.limited))
+
+    def log(self):
+        sl = "ML" if not self.combine_loss else "Word"
+        self.logger.info('Initialized hamming reward sampler tau = %.2f, alpha= %.1f limited=%d sampled loss = %s' % (self.tau, self.alpha, self.limited, sl))
 
     def alter(self, labels):
         N = labels.size(0)
@@ -826,9 +835,10 @@ class TFIDFRewardSampler(RewardSampler):
             # print('self.ngrams:', self.ngrams)
         else:
             self.ngrams = list(self.ngrams[self.n])
-        print('Initialized TFIDF reward sampler tau = %.2f, alpha= %.1f rarity=%d' % (self.tau,
-                                                                                      self.alpha,
-                                                                                      self.select_rare))
+
+    def log(self):
+        sl = "ML" if not self.combine_loss else "Word"
+        self.logger.info('Initialized IDF reward sampler tau = %.2f, alpha= %.1f select_rare=%d, sub_rare=%d sampled loss = %s' % (self.tau, self.alpha, self.select_rare, self.sub_idf, sl))
 
     def alter(self, labels):
         N = labels.size(0)
