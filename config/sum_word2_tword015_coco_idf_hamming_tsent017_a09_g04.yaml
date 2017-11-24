@@ -1,6 +1,6 @@
 # Generic
 # -------------------------
-modelname : sample2_tfidf_sub_n2_freq_tsent5_a09
+modelname : sum_word2_tword015_coco_idf_hamming_tsent017_a09_g04
 restart : 1
 
 caption_model : show_tell
@@ -8,6 +8,7 @@ cnn_model : resnet50
 
 batch_size : 10
 input_data : data/coco/cocotalk
+similarity_matrix : data/Glove/train_coco_similarities.pkl
 val_images_use : -1
 save_checkpoint_every : 4000
 
@@ -18,11 +19,12 @@ learning_rate_decay_rate : 0.6
 learning_rate_decay_every: 3
 
 # Loss:
-sample_reward: 1
-sentence_loss_version : 2
-loss_version : tfidf
-ngram_length : 2
+sum_loss : 1
+loss_version : hamming
+tau_sent : 0.17
+
+tau_word : 0.15
 rare_tfidf : 1
-sub_idf : 1
-tau_sent: 5
+alpha_word : 0.9
 alpha_sent : 0.9
+gamma : 0.4

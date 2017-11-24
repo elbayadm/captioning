@@ -845,26 +845,20 @@ class TFIDFRewardSampler(RewardSampler):
         seq_length = labels.size(1)
         # get batch vocab size
         refs = labels.cpu().data.numpy()
-        if self.limited:
-            batch_vocab = np.delete(np.unique(refs), 0)
-            lv = len(batch_vocab)
-        else:
-            lv = self.vocab_size
-        # print('batch vocab:', len(batch_vocab), batch_vocab)
         # ng = 1 + np.random.randint(4)
         ng = self.n
-
         stats = {"sent_mean": ng,
                  "sent_std": 0}
         # Format preds by changing d=select tokens at random
         preds = refs
         # choose an n-consecutive words to replace
         if self.sub_idf:
-            # get current ngrams idfs:
+            # get current ngrams dfs:
             change_index = np.zeros((N, 1), dtype=np.int32)
             for i in range(N):
                 p = np.array([self.ngrams.get(tuple(refs[i, j:j+ng]),
-                                              0) for j in range(seq_length - ng)])
+                                              1) for j in range(seq_length - ng)])
+                p = 1/p
                 p /= np.sum(p)
                 change_index[i] = np.random.choice(seq_length - ng,
                                                    p=p,
