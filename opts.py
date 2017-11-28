@@ -122,10 +122,15 @@ def add_loss_params(parser):
                default=2, help='step width')
     parser.add('--alpha_increase_factor', type=float,
                default=0.1, help='increase factor when step')
+    parser.add('--alpha_increase_start', type=int,
+               default=1, help='increase factor when step')
     parser.add('--alpha_speed', type=float,
                default=20000, help='alpha decreasing speed')
     parser.add('--alpha_strategy', type=str,
                default="constant", help='Increase strategy')
+    parser.add('--verbose', type=int, default=0,
+               help='code verbosity')
+
     return parser
 
 

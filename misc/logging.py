@@ -20,14 +20,18 @@ def print_sampled(id, sent, score=None, warn=False):
 
 def log_epoch(writer, iteration, opt,
               losses, stats, grad_norm,
-              ss_prob):
+              model):
 
     train_loss = losses['train_loss']
     train_ml_loss = losses['train_ml_loss']
     add_summary_value(writer, 'train_loss', train_loss, iteration)
     add_summary_value(writer, 'train_ml_loss', train_ml_loss, iteration)
     add_summary_value(writer, 'learning_rate', opt.current_lr, iteration)
-    add_summary_value(writer, 'scheduled_sampling_prob', ss_prob, iteration)
+    add_summary_value(writer, 'scheduled_sampling_prob', model.ss_prob, iteration)
+    try:
+        add_summary_value(writer, 'alpha_word', model.crit.alpha_word, iteration)
+    except:
+        pass
     add_summary_value(writer, 'RNN_grad_norm', grad_norm[0], iteration)
     if stats:
         for k in stats:

@@ -29,7 +29,7 @@ else
         echo "Submitting as besteffort"
         oarsub -l "walltime=24:0:0" -n $JOB \
             -t besteffort -t idempotent \
-            -p "gpumem>"$MEM \
+            -p "not gpumodel='k40m' and gpumem>"$MEM \
             -O  save/$JOB/stdout -E save/$JOB/stderr\
             'python train.py -c config/'$JOB'.yaml'
     else
@@ -43,7 +43,7 @@ else
             echo "Standard (high priority)"
             oarsub -l "walltime=24:0:0" -n $JOB \
                 -O  save/$JOB/stdout -E save/$JOB/stderr\
-                -p "gpumem>"$MEM\
+                -p "not gpumodel='k40m' and gpumem>"$MEM\
                 'python train.py -c config/'$JOB'.yaml'
         fi
     fi

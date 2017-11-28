@@ -215,7 +215,7 @@ class DecoderModel(nn.Module):
                                                       labels[:, 1:],
                                                       masks[:, 1:],
                                                       scores)
-        print('raml loss:', raml_loss.data[0])
+        # print('raml loss:', raml_loss.data[0])
         c_loss = self.crit.alpha * raml_loss + (1 - self.crit.alpha) * ml_loss
         return ml_loss, c_loss, stats
 

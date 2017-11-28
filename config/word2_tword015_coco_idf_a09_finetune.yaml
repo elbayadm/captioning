@@ -1,0 +1,30 @@
+# Generic
+# -------------------------
+modelname : word2_tword015_coco_idf_a09_finetune
+start_from : save/baseline
+start_from_best : 1
+restart : 1
+
+caption_model : show_tell
+cnn_model : resnet50
+
+batch_size : 10
+input_data : data/coco/cocotalk
+similarity_matrix : data/Glove/train_coco_similarities.pkl
+rare_tfidf : 1
+
+val_images_use : -1
+save_checkpoint_every : 4000
+
+finetune_cnn_after : -1
+learning_rate : 5e-5
+learning_rate_decay_start : 20
+learning_rate_decay_rate : 0.6
+learning_rate_decay_every: 3
+
+# Loss:
+sample_cap: 1
+loss_version : word2
+tau_word : 0.15
+word_add_entropy : 0
+alpha_word : 0.9

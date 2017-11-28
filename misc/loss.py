@@ -231,7 +231,7 @@ class WordSmoothCriterion2(nn.Module):
         self.limited = opt.limited_vocab_sim
         # the final loss is (1-alpha) ML + alpha * RewardLoss
         self.alpha = opt.alpha_word
-        assert self.alpha > 0, 'set alpha to a nonzero value, otherwise use the default loss'
+        # assert self.alpha > 0, 'set alpha to a nonzero value, otherwise use the default loss'
         self.tau_word = opt.tau_word
         # Load the similarity matrix:
         M = pickle.load(open(opt.similarity_matrix, 'rb'), encoding='iso-8859-1')
@@ -289,7 +289,7 @@ class WordSmoothCriterion2(nn.Module):
 
         # Store some stats about the sentences scores:
         scalars = smooth_target.data.cpu().numpy()
-        print("Reward multip:", scalars[0][:10])
+        # print("Reward multip:", scalars[0][:10])
 
         stats = {"word_mean": np.mean(scalars),
                  "word_std": np.std(scalars)}
@@ -724,6 +724,8 @@ class RewardSampler(nn.Module):
         self.vocab_size = opt.vocab_size
         self.vocab = vocab
         self.limited = opt.limited_vocab_sub
+        self.verbose = opt.verbose
+        # print('Training:', self.training)
         if self.combine_loss:
             # Instead of ML(sampled) return WL(sampled)
             self.loss = WordSmoothCriterion2(opt)
@@ -785,15 +787,17 @@ class HammingRewardSampler(RewardSampler):
             lv = self.vocab_size
         # print('batch vocab:', len(batch_vocab), batch_vocab)
         distrib, Z = hamming_distrib(seq_length, lv, self.tau)
-        print('Sampling distrib:', distrib, "Z:", Z)
+        if self.training:
+            print('Sampling distrib:', distrib, "Z:", Z)
         # Sample a distance i.e. a reward
         select = np.random.choice(a=np.arange(seq_length + 1),
                                   p=distrib)
         # score = math.exp(-select / self.tau)
         # score = distrib[select]
         score = math.exp(-select / self.tau) / Z
-        self.logger.debug("reward (d=%d): %.2e" %
-                          (select, score))
+        if self.training:
+            self.logger.debug("reward (d=%d): %.2e" %
+                              (select, score))
         stats = {"sent_mean": score,
                  "sent_std": 0}
 

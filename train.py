@@ -83,7 +83,7 @@ def train(opt):
     lg.log_optimizer(opt, optimizer)
     # Main loop
     # To save before training:
-    # iteration -= 1
+    iteration -= 1
     val_losses = []
     while True:
         if update_lr_flag:
@@ -99,12 +99,13 @@ def train(opt):
                     model.ss_prob = opt.ss_prob
                     opt.logger.warn('ss_prob= %.2e' % model.ss_prob )
             if opt.sample_cap and opt.alpha_strategy == "step":
-                # Update ncrit's alpha:
-                opt.logger.warn('Updating the loss scaling param alpha')
-                frac = epoch // opt.alpha_increase_every
-                new_alpha = min(opt.alpha_increase_factor  * frac, 1)
-                model.crit.alpha = new_alpha
-                opt.logger.warn('New alpha %.3e' % new_alpha)
+                if epoch >= opt.alpha_increase_start:
+                    # Update ncrit's alpha:
+                    opt.logger.warn('Updating alpha')
+                    frac = (epoch - opt.alpha_increase_start) // opt.alpha_increase_every
+                    new_alpha = min(opt.alpha_increase_factor  * frac, 1)
+                    model.crit.alpha_word = new_alpha
+                    opt.logger.warn('New alpha %.3e' % new_alpha)
             update_lr_flag = False
 
         if opt.scheduled_sampling_strategy == "sigmoid":
@@ -131,7 +132,6 @@ def train(opt):
         images = Variable(torch.from_numpy(images), requires_grad=False).cuda()
         att_feats, fc_feats = cnn_model.forward_caps(images, opt.seq_per_img)
         ml_loss, loss, stats = model.step(data, att_feats, fc_feats, iteration)
-        print(stats)
         optimizer.zero_grad()
         # // Move
         loss.backward()
@@ -163,7 +163,7 @@ def train(opt):
         if (iteration % opt.losses_log_every == 0):
             lg.log_epoch(tf_summary_writer, iteration, opt,
                          losses, stats, grad_norm,
-                         model.ss_prob)
+                         model)
             history['loss'][iteration] = losses['train_loss']
             history['lr'][iteration] = opt.current_lr
             history['ss_prob'][iteration] = model.ss_prob
@@ -175,7 +175,7 @@ def train(opt):
             eval_kwargs = {'split': 'val',
                            'dataset': opt.input_data + '.json'}
             eval_kwargs.update(vars(opt))
-            print("eval kwargs: ", eval_kwargs)
+            # print("eval kwargs: ", eval_kwargs)
             (val_ml_loss, val_loss,
              predictions, lang_stats) = eval_utils.eval_split(cnn_model,
                                                               model,

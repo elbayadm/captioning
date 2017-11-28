@@ -110,8 +110,7 @@ def generate_caps(encoder, decoder, crit, loader, eval_kwargs={}):
 
 
 def eval_split(cnn_model, model, loader, logger, eval_kwargs={}):
-    verbose = eval_kwargs.get('verbose', True)
-
+    verbose = eval_kwargs.get('verbose', False)
     dataset = eval_kwargs.get('dataset', 'coco')
     split = eval_kwargs.get('split', 'val')
     val_images_use = eval_kwargs.get('val_images_use', -1)
@@ -145,7 +144,7 @@ def eval_split(cnn_model, model, loader, logger, eval_kwargs={}):
                                                                             seq_per_img,
                                                                             return_unique=True)
         ml_loss, loss, stats = model.step(data, att_feats, fc_feats, train=False)
-        print('Scores : ', stats)
+        # print('Scores : ', stats)
         ml_loss_sum += ml_loss.data[0]
         loss_sum += loss.data[0]
         loss_evals = loss_evals + 1
@@ -173,7 +172,7 @@ def eval_split(cnn_model, model, loader, logger, eval_kwargs={}):
             else:
                 entry = {'image_id': data['infos'][k]['id'], 'caption': sent}
                 predictions.append(entry)
-            print_sampled(entry['image_id'], entry['caption'])
+            # print_sampled(entry['image_id'], entry['caption'])
         ix0 = data['bounds']['it_pos_now']
         ix1 = data['bounds']['it_max']
         if val_images_use != -1:

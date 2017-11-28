@@ -68,48 +68,71 @@ def gather_results(model):
                      round(res['SPICE'] * 100, 2), round(exp(res['ml_loss']), 2)])
     return tab
 
+def get_wl(params):
+    if 'alpha_word' in params:
+        alpha = params['alpha_word']
+    else:
+        alpha = params['alpha']
+    if 'train_coco' in params.get('similarity_matrix', ''):
+        G = "Coco"
+    else:
+        G = "Glove-Wiki"
+    if params.get('rare_tfidf', 0):
+        G += ' xIDF'
+    if params.get('word_add_entropy', 0):
+        G += ' +H'
+    if params.get('exact_dkl', 0):
+        G += ' +ExDKL'
+    modelname = 'Word Level, Sim=%s, $\\tau=%.2f$, $\\alpha=%.1f$' % (G, params['tau_word'], alpha)
+    return modelname
+
 
 def parse_name_clean(params):
     sample_cap = params.get('sample_cap', 0)
     sample_reward = params.get('sample_reward', 0)
     alter_loss = params.get('alter_loss', 0)
-
+    sum_loss = params.get('sum_loss', 0)
+    combine_loss = params.get('combine_loss', 0)
+    multi = alter_loss + sum_loss + combine_loss
     loss_version = params['loss_version']
-    alpha = params['alpha']
+    if "alpha" in params:
+        alpha = (params['alpha'], params['alpha'])
+    else:
+        alpha = (params['alpha_sent'], params['alpha_word'])
     tau_sent = params['tau_sent']
     tau_word = params['tau_word']
     rare = params.get('rare_tfidf', 0)
     sub = params.get('sub_idf', 0)
-    simi = params['similarity_matrix']
 
     if 'tfidf' in loss_version:
         loss_version += " n=%d, idf_select=%d, idf_sub=%d" % (params.get('ngram_length', 0), rare, sub)
     elif 'hamming' in loss_version:
         loss_version += " limited=%d" % params.get('limited_vocab_sub', 1)
-    if loss_version == "word2":
-        if 'train_coco' in simi:
-            G = "Coco"
+    if not multi:
+        if loss_version == "word2":
+            modelname = get_wl(params)
+        elif sample_cap:
+            if loss_version == "dummy":
+                loss_version = "constant"
+            ver = params.get('sentence_loss_version', 1)
+            modelname = 'SampleP, r=%s V%d, $\\tau=%.2f$, $\\alpha=%.1f$' % (loss_version, ver, tau_sent, alpha[0])
+        elif sample_reward:
+            modelname = 'SampleR, r=%s, $\\tau=%.2f$, $\\alpha=%.1f$' % (loss_version, tau_sent, alpha[0])
         else:
-            G = "Glove-Wiki"
-        if rare:
-            G += ' xIDF'
-        if params.get('word_add_entropy', 0):
-            G += ' +H'
-        if params.get('exact_dkl', 0):
-            G += ' +ExDKL'
-        modelname = 'Word Level, Sim=%s, $\\tau=%.2f$, $\\alpha=%.1f$' % (G, tau_word, alpha)
-
-    elif sample_cap:
-        if loss_version == "dummy":
-            loss_version = "constant"
-        ver = params.get('sentence_loss_version', 1)
-        modelname = 'SampleP, r=%s V%d, $\\tau=%.2f$, $\\alpha=%.1f$' % (loss_version, ver, tau_sent, alpha)
-    elif sample_reward:
-        modelname = 'SampleR, r=%s, $\\tau=%.2f$, $\\alpha=%.1f$' % (loss_version, tau_sent, alpha)
-    elif alter_loss:
-        modelname = "Alternating losses, WL $\\tau=%.2f$ w/ SampleR, r=%s $\\tau=%.2f$, $\\alpha=%.1f$" \
-                     % (tau_word, loss_version, tau_sent, alpha)
+            print('Model: %s - unknown unique loss mode ' % params['modelname'])
     else:
+        wl = get_wl(params)
+        if alter_loss:
+            modelname = "Alternating losses, %s  w/ SampleR, r=%s $\\tau=%.2f$, $\\alpha=%.1f$" \
+                         % (wl, loss_version, tau_sent, alpha[0])
+        elif sum_loss:
+            modelname = "Sum losses, %s w/ SampleR, r=%s $\\tau=%.2f$, $\\alpha=%.1f$" \
+                         % (wl, loss_version, tau_sent, alpha[0])
+        elif combine_loss:
+            modelname = "Combining losses, %s w/ SampleR, r=%s $\\tau=%.2f$, $\\alpha=%.1f$" \
+                         % (wl, loss_version, tau_sent, alpha[0])
+
+    if not modelname:
         modelname = " ".join(params['modelname'].split('/')[-1].split('_'))
         print('Couldnt name ', params['modelname'])
     return modelname
@@ -207,7 +230,11 @@ def crawl_results(filter='', exc=None):
             for (p, res) in outputs:
                 if p['beam_size'] > 1:
                     cid = float(res['CIDEr'] * 100)
-                    recap[p['alpha']] = cid
+                    try:
+                        recap[p['alpha']] = cid
+                    except:
+                        recap[p['alpha_sent']] = cid
+                        recap[p['alpha_word']] = cid
                     bl = float(res['Bleu_4'] * 100)
                     sp = float(res['SPICE'] * 100)
                     try:
