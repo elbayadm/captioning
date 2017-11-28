@@ -33,6 +33,7 @@ class DecoderModel(nn.Module):
         self.opt = opt
         self.ss_prob = 0.0  # Schedule sampling probability
         self.ss_vocab = opt.scheduled_sampling_vocab
+        self.cnn_finetuning = 0
 
     def load(self):
         opt = self.opt
@@ -216,7 +217,10 @@ class DecoderModel(nn.Module):
                                                       masks[:, 1:],
                                                       scores)
         # print('raml loss:', raml_loss.data[0])
-        c_loss = self.crit.alpha * raml_loss + (1 - self.crit.alpha) * ml_loss
+        if self.opt.sample_reward or self.opt.sample_cap:
+            c_loss = self.crit.alpha * raml_loss + (1 - self.crit.alpha) * ml_loss
+        else:
+            c_loss = ml_loss
         return ml_loss, c_loss, stats
 
 

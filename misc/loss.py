@@ -72,7 +72,9 @@ class LanguageModelCriterion(nn.Module):
         self.logger = opt.logger
         self.scale_loss = opt.scale_loss
         self.normalize_batch = opt.normalize_batch
-        self.logger.warn('Initiating ML loss')
+
+    def log(self):
+        self.logger.info('Default ML loss')
 
     def forward(self, input, target, mask, scores=None):
         """

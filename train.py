@@ -76,10 +76,14 @@ def train(opt):
     update_lr_flag = True
     # Assure in training mode
     model.train()
-    cnn_model.eval()
     model.define_loss(loader.get_vocab())
     optimizer = du.set_optimizer(opt, epoch,
                                  model, cnn_model)
+    if model.cnn_finetuning:
+        opt.logger.warn('CNN in training mode')
+        cnn_model.train()
+    else:
+        cnn_model.eval()
     lg.log_optimizer(opt, optimizer)
     # Main loop
     # To save before training:

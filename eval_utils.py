@@ -190,6 +190,7 @@ def eval_split(cnn_model, model, loader, logger, eval_kwargs={}):
                                       language_creativity)
     # Back to training:
     model.train()
+    cnn_model.train()
     return ml_loss_sum/loss_evals, loss_sum/loss_evals, predictions, lang_stats
 
 
