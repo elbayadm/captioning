@@ -76,15 +76,11 @@ def train(opt):
     update_lr_flag = True
     # Assure in training mode
     model.train()
+    cnn_model.eval()
     model.define_loss(loader.get_vocab())
-    optimizer = du.set_optimizer(opt, epoch,
-                                 model, cnn_model)
-    if model.cnn_finetuning:
-        opt.logger.warn('CNN in training mode')
-        cnn_model.train()
-    else:
-        cnn_model.eval()
-    lg.log_optimizer(opt, optimizer)
+    optimizers = du.set_optimizer(opt, epoch,
+                                  model, cnn_model)
+    lg.log_optimizer(opt, optimizers)
     # Main loop
     # To save before training:
     iteration -= 1
@@ -93,8 +89,8 @@ def train(opt):
         if update_lr_flag:
             # Assign the learning rate
             opt = utils.manage_lr(epoch, opt, val_losses)
-            utils.scale_lr(optimizer, opt.scale_lr) # set the decayed rate
-            lg.log_optimizer(opt, optimizer)
+            utils.scale_lr(optimizers, opt.scale_lr) # set the decayed rate
+            lg.log_optimizer(opt, optimizers)
             # Assign the scheduled sampling prob
             if opt.scheduled_sampling_strategy == "step":
                 if epoch >= opt.scheduled_sampling_start and opt.scheduled_sampling_start >= 0:
@@ -136,12 +132,14 @@ def train(opt):
         images = Variable(torch.from_numpy(images), requires_grad=False).cuda()
         att_feats, fc_feats = cnn_model.forward_caps(images, opt.seq_per_img)
         ml_loss, loss, stats = model.step(data, att_feats, fc_feats, iteration)
-        optimizer.zero_grad()
+        for optimizer in optimizers:
+            optimizer.zero_grad()
         # // Move
         loss.backward()
         grad_norm = []
-        grad_norm.append(utils.clip_gradient(optimizer, opt.grad_clip))
-        optimizer.step()
+        grad_norm.append(utils.clip_gradient(optimizers, opt.grad_clip))
+        for optimizer in optimizers:
+            optimizer.step()
         train_loss = loss.data[0]
         if np.isnan(train_loss):
             sys.exit('Loss is nan')
@@ -207,7 +205,7 @@ def train(opt):
             if best_val_score is None or current_score > best_val_score:
                 best_val_score = current_score
                 best_flag = True
-            lg.save_model(model, cnn_model, optimizer, opt,
+            lg.save_model(model, cnn_model, optimizers, opt,
                           iteration, epoch, loader, best_val_score,
                           history, best_flag)
         # Stop if reaching max epochs

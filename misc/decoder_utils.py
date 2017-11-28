@@ -135,11 +135,13 @@ def set_optimizer(opt, epoch, model, cnn_model):
         # active_params = filter(lambda p: p.requires_grad, model.parameters())
         # params = [{'params': active_params, 'lr': opt.learning_rate}]
 
-    model_params = filter(lambda p: p.requires_grad, model.parameters())
-    params = [{'params': model_params, 'lr': opt.learning_rate}]
+    params = filter(lambda p: p.requires_grad, model.parameters())
+    optimizer = optim_func(params,
+                           lr=opt.learning_rate,
+                           weight_decay=opt.weight_decay)
 
+    optimizers = [optimizer]
     if opt.finetune_cnn_after != -1 and epoch >= opt.finetune_cnn_after:
-        model.cnn_finetuning = 1
         # if isinstance(cnn_model, list):
             # cnn_params = [{'params': module.parameters(),
                            # 'lr': opt.cnn_learning_rate * opt.learning_rate}
@@ -150,29 +152,25 @@ def set_optimizer(opt, epoch, model, cnn_model):
                            # 'lr': opt.cnn_learning_rate * opt.learning_rate}
                           # for module in cnn_model.to_finetune]
         cnn_params = filter(lambda p: p.requires_grad, cnn_model.parameters())
-        params += [{'params': cnn_params, 'lr': opt.cnn_learning_rate * opt.learning_rate}]
-
-    optimizer = optim_func(params,
-                           lr=opt.learning_rate, weight_decay=opt.weight_decay)
+        cnn_optimizer = optim_func(cnn_params,
+                           lr=opt.learning_rate * opt.cnn_learning_rate,
+                           weight_decay=opt.weight_decay)
+        optimizers.append(cnn_optimizer)
 
     # Load the optimizer
     if vars(opt).get('optimizer_start_from', None) is not None:
         if osp.isfile(opt.optimizer_start_from) and not opt.finetune_cnn_only:
             opt.logger.warn('Loading saved optimizer')
-            # try:
-            current = optimizer.state_dict()
-            loaded = torch.load(opt.optimizer_start_from)
-            # update:
-            current['state'].update(loaded['state'])
-            current['param_groups'][0].update(loaded['param_groups'][0])
-            optimizer.load_state_dict(current)
-            # except:
-                # opt.logger.error("Starting with blank optimizer")
+            try:
+                optimizers[0].load_state_dict(torch.load(opt.optimizer_start_from))
+            except:
+                print("Starting Rnn optimizer with blank state")
     # Require grads
-    for p in optimizer.param_groups:
-        if isinstance(p, dict):
-            for pp in p['params']:
-                pp.requires_grad = True
-    return optimizer
+    for optimizer in optimizers:
+        for p in optimizer.param_groups:
+            if isinstance(p, dict):
+                for pp in p['params']:
+                    pp.requires_grad = True
+    return optimizers
 
 

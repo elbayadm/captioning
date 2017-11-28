@@ -51,7 +51,7 @@ def log_epoch(writer, iteration, opt,
         pass
     writer.flush()
 
-def save_model(model, cnn_model, optimizer, opt,
+def save_model(model, cnn_model, optimizers, opt,
                iteration, epoch, loader, best_val_score,
                history, best_flag):
     checkpoint_path = osp.join(opt.modelname, 'model.pth')
@@ -61,7 +61,11 @@ def save_model(model, cnn_model, optimizer, opt,
     opt.logger.info("model saved to {}".format(checkpoint_path))
     opt.logger.info("cnn model saved to {}".format(cnn_checkpoint_path))
     optimizer_path = osp.join(opt.modelname, 'optimizer.pth')
-    torch.save(optimizer.state_dict(), optimizer_path)
+    torch.save(optimizers[0].state_dict(), optimizer_path)
+    if len(optimizers) > 1:
+        cnn_optimizer_path = osp.join(opt.modelname, 'cnn-optimizer.pth')
+        torch.save(optimizers[1].state_dict(), cnn_optimizer_path)
+
     infos = {}
     # Dump miscalleous informations
     infos['iter'] = iteration
@@ -87,7 +91,11 @@ def save_model(model, cnn_model, optimizer, opt,
         opt.logger.info("model saved to {}".format(checkpoint_path))
         opt.logger.info("cnn model saved to {}".format(cnn_checkpoint_path))
         optimizer_path = osp.join(opt.modelname, 'optimizer-best.pth')
-        torch.save(optimizer.state_dict(), optimizer_path)
+        torch.save(optimizers[0].state_dict(), optimizer_path)
+        if len(optimizers) > 1:
+            cnn_optimizer_path = osp.join(opt.modelname, 'cnn-optimizer-best.pth')
+            torch.save(optimizers[1].state_dict(), cnn_optimizer_path)
+
         with open(osp.join(opt.modelname, 'infos-best.pkl'), 'wb') as f:
             pickle.dump(infos, f)
 
@@ -113,15 +121,16 @@ def stderr_epoch(epoch, iteration, opt, losses, grad_norm, ttt):
     opt.logger.debug(message)
 
 
-def log_optimizer(opt, optimizer):
-    opt.logger.debug('########### OPTIMIZER ###########')
-    for p in optimizer.param_groups:
-        if isinstance(p, dict):
-            print('LR:', p['lr'], )
-            for pp in p['params']:
-                print(pp.size(), end=' ')
-            print('\n')
-    opt.logger.debug('########### OPTIMIZER ###########')
+def log_optimizer(opt, optimizers):
+    for e, optimizer in enumerate(optimizers):
+        opt.logger.debug('########### OPTIMIZER %d ###########' % e)
+        for p in optimizer.param_groups:
+            if isinstance(p, dict):
+                print('LR:', p['lr'], )
+                for pp in p['params']:
+                    print(pp.size(), end=' ')
+                print('\n')
+        opt.logger.debug('########### /OPTIMIZER %d ###########' % e)
 
 
 

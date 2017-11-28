@@ -154,36 +154,39 @@ def set_lr(optimizer, lr):
         group['lr'] = lr
 
 
-def scale_lr(optimizer, scale):
-    for group in optimizer.param_groups:
-        group['lr'] *= scale
+def scale_lr(optimizers, scale):
+    for optimizer in optimizers:
+        for group in optimizer.param_groups:
+            group['lr'] *= scale
 
 
-def clip_gradient(optimizer, max_norm, norm_type=2):
+def clip_gradient(optimizers, max_norm, norm_type=2):
     max_norm = float(max_norm)
     if norm_type == float('inf'):
-        total_norm = max(p.grad.data.abs().max() for group in optimizer.param_groups for p in group['params'])
+        total_norm = max(p.grad.data.abs().max() for optimizer in optimizers for group in optimizer.param_groups for p in group['params'])
     else:
         total_norm = 0.0
-        for group in optimizer.param_groups:
-            for p in group['params']:
-                try:
-                    param_norm = p.grad.data.norm(norm_type)
-                    nn = param_norm ** norm_type
-                    # print('norm:', nn, p.grad.size())
-                    total_norm += nn
-                    param_norm ** norm_type
-                except:
-                    pass
+        for optimizer in optimizers:
+            for group in optimizer.param_groups:
+                for p in group['params']:
+                    try:
+                        param_norm = p.grad.data.norm(norm_type)
+                        nn = param_norm ** norm_type
+                        # print('norm:', nn, p.grad.size())
+                        total_norm += nn
+                        param_norm ** norm_type
+                    except:
+                        pass
         total_norm = total_norm ** (1. / norm_type)
     clip_coef = max_norm / (total_norm + 1e-6)
     if clip_coef < 1:
-        for group in optimizer.param_groups:
-            for p in group['params']:
-                try:
-                    p.grad.data.mul_(clip_coef)
-                except:
-                    pass
+        for optimizer in optimizers:
+            for group in optimizer.param_groups:
+                for p in group['params']:
+                    try:
+                        p.grad.data.mul_(clip_coef)
+                    except:
+                        pass
     return total_norm
 
 
