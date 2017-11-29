@@ -104,7 +104,7 @@ def train(opt):
                     opt.logger.warn('Updating alpha')
                     frac = (epoch - opt.alpha_increase_start) // opt.alpha_increase_every
                     new_alpha = min(opt.alpha_increase_factor  * frac, 1)
-                    model.crit.alpha_word = new_alpha
+                    model.crit.alpha = new_alpha
                     opt.logger.warn('New alpha %.3e' % new_alpha)
             update_lr_flag = False
 

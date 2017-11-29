@@ -168,6 +168,8 @@ def add_optim_params(parser):
                default=-1, help='After what epoch do we start finetuning the CNN? (-1 = disable; never finetune, 0 = finetune from start)')
     parser.add('--finetune_cnn_only', type=int,
                default=0, help="if 1, finetune the cnn only.")
+    parser.add('--finetune_cnn_slice', type=int,
+               default=0, help='modules from which start finetuning')
 
     ## RNN optimizer
     parser.add('--optim', type=str,

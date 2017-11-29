@@ -64,9 +64,8 @@ class ResNetModel(models.ResNet):
             opt.logger.debug('Setting CNN weigths from %s' % opt.cnn_start_from)
             self.load_state_dict(torch.load(opt.cnn_start_from))
 
-        self.to_finetune = self._modules.values() #less = 6, otherwise 5
-        #  self.keep_asis = self._modules.values()[:6]
-        #  print "RESNET:", self._modules
+        opt.logger.warn('Finetuning up from %d modules in the cnn' % opt.finetune_cnn_slice)
+        self.to_finetune = list(self._modules.values())[opt.finetune_cnn_slice:] #less = 6, otherwise 5
 
     def forward(self, x):
         x = self.conv1(x)
@@ -104,6 +103,26 @@ class ResNetModel(models.ResNet):
         if return_unique:
             return att_feats, fc_feats, att_feats_unique, fc_feats_unique
         return att_feats, fc_feats
+
+    def filter_bn(self):
+        for k, layer in self._modules.items():
+            # print('layer:', k, type(layer))
+            if isinstance(layer, nn.Sequential):
+                # go deeper
+                for kk, ll in layer._modules.items():
+                    # print('sub-layer:', kk, type(ll))
+                    if isinstance(ll, models.resnet.Bottleneck):
+                        # Once more!
+                          for kkk, lll in ll._modules.items():
+                            # print('bottleneck-layer:', kkk, type(lll))
+                            if isinstance(lll, nn.BatchNorm2d):
+                                lll.eval()
+
+                    elif isinstance(ll, nn.BatchNorm2d):
+                        ll.eval()
+
+            elif isinstance(layer, nn.BatchNorm2d):
+                layer.eval()
 
 
 class VggNetModel(models.VGG):

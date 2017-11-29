@@ -1,0 +1,26 @@
+# Generic
+# -------------------------
+modelname : fncnn_baseline_bn
+start_from : save/baseline
+start_from_best : 1
+restart : 1
+
+caption_model : show_tell
+cnn_model : resnet50
+cnn_learning_rate : 1.0
+batch_size : 10
+input_data : data/coco/cocotalk
+seq_per_img : 5
+val_images_use : -1
+save_checkpoint_every : 4000
+
+finetune_cnn_after : 0
+learning_rate : 1e-4
+learning_rate_decay_start : 5
+learning_rate_decay_rate : 0.8
+learning_rate_decay_every: 4
+
+# Loss:
+bootstrap : 0
+sample_cap : 0
+

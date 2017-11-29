@@ -78,6 +78,7 @@ def recover_infos(opt):
         opt.cnn_start_from = osp.join(opt.modelname, 'model-cnn.pth')
         opt.infos_start_from = osp.join(opt.modelname, 'infos.pkl')
         opt.optimizer_start_from = osp.join(opt.modelname, 'optimizer.pth')
+        opt.cnn_optimizer_start_from = osp.join(opt.modelname, 'cnn-optimizer.pth')
         infos = pickle.load(open(opt.infos_start_from, 'rb'), encoding='iso-8859-1')
 
     elif opt.start_from is not None:
@@ -92,6 +93,7 @@ def recover_infos(opt):
         opt.cnn_start_from = osp.join(opt.start_from, 'model-cnn%s.pth' % flag)
         opt.infos_start_from = osp.join(opt.start_from, 'infos%s.pkl' % flag)
         opt.optimizer_start_from = osp.join(opt.start_from, 'optimizer%s.pth' % flag)
+        opt.cnn_optimizer_start_from = osp.join(opt.start_from, 'cnn-optimizer%s.pth' % flag)
         opt.start_from = osp.join(opt.start_from, 'model%s.pth' % flag)
 
         infos = pickle.load(open(opt.infos_start_from, 'rb'), encoding='iso-8859-1')
@@ -127,13 +129,6 @@ def set_optimizer(opt, epoch, model, cnn_model):
         optim_func = optim.Adagrad
     else:
         raise ValueError('Unknown optimizer % s' % ref)
-    # TODO; add sclaed lr for every chunk of cnn layers
-    # if isinstance(model, list):
-        # params = [{'params': m.parameters(), 'lr': opt.learning_rate}
-                       # for m in model]
-    # else:
-        # active_params = filter(lambda p: p.requires_grad, model.parameters())
-        # params = [{'params': active_params, 'lr': opt.learning_rate}]
 
     params = filter(lambda p: p.requires_grad, model.parameters())
     optimizer = optim_func(params,
@@ -142,29 +137,24 @@ def set_optimizer(opt, epoch, model, cnn_model):
 
     optimizers = [optimizer]
     if opt.finetune_cnn_after != -1 and epoch >= opt.finetune_cnn_after:
-        # if isinstance(cnn_model, list):
-            # cnn_params = [{'params': module.parameters(),
-                           # 'lr': opt.cnn_learning_rate * opt.learning_rate}
-                          # for cnnm in cnn_model
-                          # for module in cnnm.to_finetune]
-        # else:
-            # cnn_params = [{'params': module.parameters(),
-                           # 'lr': opt.cnn_learning_rate * opt.learning_rate}
-                          # for module in cnn_model.to_finetune]
-        cnn_params = filter(lambda p: p.requires_grad, cnn_model.parameters())
+        cnn_params = [p for module in cnn_model.to_finetune for p in module.parameters()]
         cnn_optimizer = optim_func(cnn_params,
-                           lr=opt.learning_rate * opt.cnn_learning_rate,
-                           weight_decay=opt.weight_decay)
+                                   lr=opt.learning_rate * opt.cnn_learning_rate,
+                                   weight_decay=opt.weight_decay)
         optimizers.append(cnn_optimizer)
+        opt.logger.warn('Cnn finetuning flag ON')
+        model.cnn_finetuning = 1
 
     # Load the optimizer
     if vars(opt).get('optimizer_start_from', None) is not None:
         if osp.isfile(opt.optimizer_start_from) and not opt.finetune_cnn_only:
             opt.logger.warn('Loading saved optimizer')
-            try:
-                optimizers[0].load_state_dict(torch.load(opt.optimizer_start_from))
-            except:
-                print("Starting Rnn optimizer with blank state")
+            optimizers[0].load_state_dict(torch.load(opt.optimizer_start_from))
+    if vars(opt).get('cnn_optimizer_start_from', None) is not None:
+        if osp.isfile(opt.cnn_optimizer_start_from):
+            opt.logger.warn('Loading saved optimizer')
+            optimizers[1].load_state_dict(torch.load(opt.cnn_optimizer_start_from))
+
     # Require grads
     for optimizer in optimizers:
         for p in optimizer.param_groups:

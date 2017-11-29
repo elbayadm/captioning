@@ -127,9 +127,9 @@ def log_optimizer(opt, optimizers):
         for p in optimizer.param_groups:
             if isinstance(p, dict):
                 print('LR:', p['lr'], )
-                for pp in p['params']:
-                    print(pp.size(), end=' ')
-                print('\n')
+                # for pp in p['params']:
+                    # print(pp.size(), end=' ')
+                # print('\n')
         opt.logger.debug('########### /OPTIMIZER %d ###########' % e)
 
 

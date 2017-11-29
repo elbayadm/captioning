@@ -190,7 +190,10 @@ def eval_split(cnn_model, model, loader, logger, eval_kwargs={}):
                                       language_creativity)
     # Back to training:
     model.train()
-    cnn_model.train()
+    if model.cnn_finetuning:
+        logger.warn('Finetuning cnn ON, filtering the BN layers')
+        cnn_model.train()
+        cnn_model.filter_bn()
     return ml_loss_sum/loss_evals, loss_sum/loss_evals, predictions, lang_stats
 
 
