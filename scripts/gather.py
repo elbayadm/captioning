@@ -123,11 +123,11 @@ def parse_name_clean(params):
     else:
         wl = get_wl(params)
         if alter_loss:
-            modelname = "Alternating losses, %s  w/ SampleR, r=%s $\\tau=%.2f$, $\\alpha=%.1f$" \
-                         % (wl, loss_version, tau_sent, alpha[0])
+            modelname = "Alternating losses, %s  w/ SampleR, r=%s $\\tau=%.2f$, $\\alpha=%.1f$, $\\gamma=%.1f$" \
+                         % (wl, loss_version, tau_sent, alpha[0], params.get('gamma', 0))
         elif sum_loss:
-            modelname = "Sum losses, %s w/ SampleR, r=%s $\\tau=%.2f$, $\\alpha=%.1f$" \
-                         % (wl, loss_version, tau_sent, alpha[0])
+            modelname = "Sum losses, %s w/ SampleR, r=%s $\\tau=%.2f$, $\\alpha=%.1f$, $\\gamma=%.1f$" \
+                         % (wl, loss_version, tau_sent, alpha[0], params.get('gamma', 0))
         elif combine_loss:
             modelname = "Combining losses, %s w/ SampleR, r=%s $\\tau=%.2f$, $\\alpha=%.1f$" \
                          % (wl, loss_version, tau_sent, alpha[0])
