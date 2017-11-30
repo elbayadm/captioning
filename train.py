@@ -83,7 +83,7 @@ def train(opt):
     lg.log_optimizer(opt, optimizers)
     # Main loop
     # To save before training:
-    # iteration -= 1
+    iteration -= 1
     val_losses = []
     while True:
         if update_lr_flag:
