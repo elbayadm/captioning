@@ -29,10 +29,11 @@ def log_epoch(writer, iteration, opt,
     add_summary_value(writer, 'learning_rate', opt.current_lr, iteration)
     add_summary_value(writer, 'scheduled_sampling_prob', model.ss_prob, iteration)
     try:
-        add_summary_value(writer, 'alpha_word', model.crit.alpha_word, iteration)
+        add_summary_value(writer, 'alpha', model.crit.alpha, iteration)
     except:
         print('No alpha_word found')
         pass
+
     add_summary_value(writer, 'RNN_grad_norm', grad_norm[0], iteration)
     if stats:
         for k in stats:
