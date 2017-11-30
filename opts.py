@@ -51,6 +51,8 @@ def add_loss_params(parser):
     # Loss parameters:
     parser.add('--scale_loss', type=float,
                default=0, help='if neq 0, each sentence loss will be scaled by a score')
+    parser.add('--scale_wl', type=float,
+               default=0, help='scale the wl to the ml level typically, 0.2')
     ## Importance sampling:
     parser.add('--bootstrap', type=int,
                default=0, help='use bootstrap/importance sampling loss.')

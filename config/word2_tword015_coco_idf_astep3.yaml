@@ -2,7 +2,7 @@
 # -------------------------
 modelname : word2_tword015_coco_idf_astep3
 restart : 1
-
+max_epochs : 25
 caption_model : show_tell
 cnn_model : resnet50
 

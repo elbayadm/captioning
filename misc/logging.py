@@ -31,6 +31,7 @@ def log_epoch(writer, iteration, opt,
     try:
         add_summary_value(writer, 'alpha_word', model.crit.alpha_word, iteration)
     except:
+        print('No alpha_word found')
         pass
     add_summary_value(writer, 'RNN_grad_norm', grad_norm[0], iteration)
     if stats:

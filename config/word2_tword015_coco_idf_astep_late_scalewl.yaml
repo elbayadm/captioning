@@ -1,8 +1,8 @@
 # Generic
 # -------------------------
-modelname : word2_tword015_coco_idf_astep2
+modelname : word2_tword015_coco_idf_astep_late_scalewl
 restart : 1
-max_epochs : 25
+
 caption_model : show_tell
 cnn_model : resnet50
 
@@ -21,11 +21,12 @@ learning_rate_decay_rate : 0.6
 learning_rate_decay_every: 3
 
 # Loss:
+scale_wl : .45
 sample_cap: 1
 loss_version : word2
 tau_word : 0.15
 alpha_word : 0.0
 alpha_strategy: step
-alpha_increase_every : 2
+alpha_increase_every : 1
 alpha_increase_factor : .1
-alpha_increase_start : 1
+alpha_increase_start : 8

@@ -227,6 +227,7 @@ class WordSmoothCriterion2(nn.Module):
         self.clip_sim = opt.clip_sim
         self.add_entropy = opt.word_add_entropy
         self.normalize_batch = opt.normalize_batch
+        self.scale_wl = opt.scale_wl
         if self.clip_sim:
             self.margin = opt.margin
             self.logger.warn('Clipping similarities below %.2f' % self.margin)
@@ -320,10 +321,10 @@ class WordSmoothCriterion2(nn.Module):
             # print('Entropy:', entropy.data[0])
             output += entropy
 
-        if self.exact:
-            return ml_output, output, stats
-        else:
-            return ml_output, output, stats
+        if self.scale_wl:
+            self.logger.warn('Scaling the pure WL RAML by %.3f' % self.scale_wl)
+            output = self.scale_wl * output
+        return ml_output, output, stats
 
 
 class SentSmoothCriterion(nn.Module):
