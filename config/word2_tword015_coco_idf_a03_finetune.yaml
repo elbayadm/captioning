@@ -1,7 +1,7 @@
 # Generic
 # -------------------------
 modelname : word2_tword015_coco_idf_a03_finetune
-start_from : save/baseline
+start_from : save/baseline_inria
 start_from_best : 1
 restart : 1
 
