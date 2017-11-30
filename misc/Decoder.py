@@ -125,13 +125,23 @@ class DecoderModel(nn.Module):
         crit.log()
         self.crit = crit
 
-    def step_alter(self, data, att_feats, fc_feats, batch):
+    def step_alter(self, data, att_feats, fc_feats, batch, epoch):
         opt = self.opt
+        mode = opt.alter_mode
         tmp = [data['labels'], data['masks'], data['scores']]
         tmp = [Variable(torch.from_numpy(_), requires_grad=False).cuda() for _ in tmp]
         labels, masks, scores = tmp
         stats = None
-        if batch % 2:
+        if mode == 'even-odd':
+            pick_sent = batch % 2
+        elif mode == 'even-odd-epoch':
+            pick_sent = (batch + epoch) % 2  # same oddity
+            print('bacth : %d, epoch : %d, picked sentenece: %d' % (batch, epoch, pick_sent))
+        elif mode == 'epoch':
+            pick_sent = epoch % 2
+        else:
+            raise ValueError('Unknown alterning mode %s' % mode)
+        if pick_sent:
             ml_loss, raml_loss, stats = self.crit_sent(self, fc_feats, att_feats, labels, masks[:, 1:], scores)
             print('sent loss:', raml_loss.data[0])
             alpha = self.crit_sent.alpha
@@ -170,10 +180,10 @@ class DecoderModel(nn.Module):
         return ml_loss, sum_loss, stats
 
 
-    def step(self, data, att_feats, fc_feats, batch=None, train=True):
+    def step(self, data, att_feats, fc_feats, batch=None, epoch=None, train=True):
         opt = self.opt
         if opt.alter_loss and train:
-            return self.step_alter(data, att_feats, fc_feats, batch)
+            return self.step_alter(data, att_feats, fc_feats, batch, epoch)
         if opt.sum_loss:
             return self.step_sum(data, att_feats, fc_feats)
         if opt.bootstrap:

@@ -83,7 +83,7 @@ def train(opt):
     lg.log_optimizer(opt, optimizers)
     # Main loop
     # To save before training:
-    iteration -= 1
+    # iteration -= 1
     val_losses = []
     while True:
         if update_lr_flag:
@@ -131,7 +131,7 @@ def train(opt):
         images = data['images']
         images = Variable(torch.from_numpy(images), requires_grad=False).cuda()
         att_feats, fc_feats = cnn_model.forward_caps(images, opt.seq_per_img)
-        ml_loss, loss, stats = model.step(data, att_feats, fc_feats, iteration)
+        ml_loss, loss, stats = model.step(data, att_feats, fc_feats, iteration, epoch)
         for optimizer in optimizers:
             optimizer.zero_grad()
         # // Move

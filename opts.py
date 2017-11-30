@@ -64,6 +64,8 @@ def add_loss_params(parser):
 
     ## Smoothed loss
     parser.add('--alter_loss', type=int, default=0, help='Alter between losses at every iteration')
+    parser.add('--alter_mode', type=str, default='even-odd', help='How to altern between losses: even-odd, even-odd-epoch, epoch')
+
     parser.add('--sum_loss', type=int, default=0, help='Sum two different losses')
     parser.add('--combine_loss', type=int,
                default=0, help='combine WL with SL')
