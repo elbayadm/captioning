@@ -22,7 +22,7 @@ def create_csv(inpath, outpath):
     df.to_csv(outpath)
 
 
-def create_pkl(inpath, outpath=None):
+def create_pkl(inpath, select=None, outpath=None):
     """
     Parse the scalars in a directory of events or a single event file
     """
@@ -36,14 +36,19 @@ def create_pkl(inpath, outpath=None):
     ea.Reload()
     scalar_tags = ea.Tags()['scalars']
     print('Columns:', scalar_tags)
+    if select:
+        selected_tags = filter(lambda x: x in select, scalar_tags)
+    else:
+        selected_tags = scalar_tags
+    print('Selected columns:', list(selected_tags))
     track = {}
-    for tag in scalar_tags:
+    for tag in selected_tags:
         events = ea.Scalars(tag)
         scalars = np.array([x.value for x in events])
         track[tag] = scalars
     if not outpath:
-        modelname = "_".join(inpath.split('/')[1:])
-        print(modelname)
+        # modelname = "_".join(inpath.split('/')[1:])
+        modelname = inpath.split('/')[-1]
         outpath = "Results/%s.ev" % modelname
         print('Dumping pickled stats in %s' % outpath)
     pickle.dump(track,
@@ -54,4 +59,4 @@ if __name__ == '__main__':
     inpath = args[1]
     # outpath = args[2]
     # create_csv(inpath, outpath)
-    create_pkl(inpath)
+    create_pkl(inpath, select=['train_loss', 'train_ml_loss', 'CIDEr', 'Bleu_1', 'Bleu_4', 'alpha', 'learning_rate'])
