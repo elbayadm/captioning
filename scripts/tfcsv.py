@@ -59,4 +59,7 @@ if __name__ == '__main__':
     inpath = args[1]
     # outpath = args[2]
     # create_csv(inpath, outpath)
-    create_pkl(inpath, select=['train_loss', 'train_ml_loss', 'CIDEr', 'Bleu_1', 'Bleu_4', 'alpha', 'learning_rate'])
+    create_pkl(inpath, select=['train_loss', 'train_ml_loss',
+                               'RNN_grad_norm', 'CIDEr',
+                               'Bleu_1', 'Bleu_4',
+                               'alpha', 'learning_rate'])
