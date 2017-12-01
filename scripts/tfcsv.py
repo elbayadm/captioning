@@ -37,10 +37,10 @@ def create_pkl(inpath, select=None, outpath=None):
     scalar_tags = ea.Tags()['scalars']
     print('Columns:', scalar_tags)
     if select:
-        selected_tags = filter(lambda x: x in select, scalar_tags)
+        selected_tags = list(filter(lambda x: x in select, scalar_tags))
     else:
         selected_tags = scalar_tags
-    print('Selected columns:', list(selected_tags))
+    print('Selected columns:', selected_tags)
     track = {}
     for tag in selected_tags:
         events = ea.Scalars(tag)
