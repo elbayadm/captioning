@@ -83,7 +83,7 @@ def train(opt):
     lg.log_optimizer(opt, optimizers)
     # Main loop
     # To save before training:
-    iteration -= 1
+    # iteration -= 1
     val_losses = []
     while True:
         if update_lr_flag:
@@ -103,7 +103,7 @@ def train(opt):
                     # Update ncrit's alpha:
                     opt.logger.warn('Updating alpha')
                     frac = (epoch - opt.alpha_increase_start) // opt.alpha_increase_every
-                    new_alpha = min(opt.alpha_increase_factor  * frac, 1)
+                    new_alpha = min(opt.alpha_increase_factor  * frac, opt.alpha_max)
                     model.crit.alpha = new_alpha
                     opt.logger.warn('New alpha %.3e' % new_alpha)
             update_lr_flag = False
@@ -118,7 +118,7 @@ def train(opt):
             # Update crit's alpha:
             opt.logger.warn('Updating the loss scaling param alpha')
             new_alpha = 1 - opt.alpha_speed / (opt.alpha_speed + exp(iteration / opt.alpha_speed))
-            new_alpha = min(new_alpha, 1)
+            new_alpha = min(new_alpha, opt.alpha_max)
             model.crit.alpha = new_alpha
             opt.logger.warn('New alpha %.3e' % new_alpha)
         # if opt.sample_cap:

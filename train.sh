@@ -1,51 +1,51 @@
 #! /usr/bin/bash
-BQ=""
-TX=""
-
-while getopts 'b:t' flag; do
+BQ=''
+TX=''
+K40=''
+while getopts 'btk' flag; do
     echo "Reading flag "$flag
     case "${flag}" in
         b) BQ='true' ;;
         t) TX='true' ;;
+        k) K40='true' ;;
         *) error "Unexpected option ${flag}" ;;
     esac
 done
-shift $((OPTIND-2))
+echo titanx:$TX besteffort $BQ k40 tolereance $K40
+shift $((OPTIND-1))
+
 JOB=$1
 MEM=$2
 
 echo traininig $JOB
 mkdir -p 'save/'$JOB
 
-if [ $BQ ] && [ $TX ]; then
-    echo "Submitting as besteffort to titan_x"
-    oarsub -l "walltime=24:0:0" -n $JOB \
-           -t besteffort -t idempotent \
-           -p "gpumodel='titan_x' or gpumodel='titan_x_pascal'"\
-           -O  save/$JOB/stdout -E save/$JOB/stderr\
-           'python train.py -c config/'$JOB'.yaml'
-else
-    if [ $BQ ]; then
-        echo "Submitting as besteffort"
-        oarsub -l "walltime=24:0:0" -n $JOB \
-            -t besteffort -t idempotent \
-            -p "not gpumodel='k40m' and gpumem>"$MEM \
-            -O  save/$JOB/stdout -E save/$JOB/stderr\
-            'python train.py -c config/'$JOB'.yaml'
+if [ $TX ]; then
+    oarprop="\"gpumodel='titan_x_pascal' or gpumodel='titan_x'\""
+    echo $oarprop
+else 
+    if [ $K40 ]; then
+        oarprop="\"gpumem>"$MEM"\""
     else
-        if [ $TX ]; then
-            echo "Requesting a titan_x (high priority)"
-            oarsub -l "walltime=24:0:0" -n $JOB \
-                -O  save/$JOB/stdout -E save/$JOB/stderr\
-                -p "gpumodel='titan_x' or gpumodel='titan_x_pascal'"\
-                'python train.py -c config/'$JOB'.yaml'
-        else
-            echo "Standard (high priority)"
-            oarsub -l "walltime=24:0:0" -n $JOB \
-                -O  save/$JOB/stdout -E save/$JOB/stderr\
-                -p "not gpumodel='k40m' and gpumem>"$MEM\
-                'python train.py -c config/'$JOB'.yaml'
-        fi
+        oarprop="\"not gpumodel='k40m' and gpumem>"$MEM"\""
     fi
+fi
+echo "OAR requirements:" $oarprop 
+
+if [ $BQ ]; then
+    echo "Submitting to besteffort queue"
+    cmd="oarsub -l \"walltime=24:0:0\" -n $JOB \
+           -t besteffort -t idempotent \
+           -p $oarprop \
+           -O  save/$JOB/stdout -E save/$JOB/stderr\
+           'python train.py -c config/'$JOB'.yaml'"
+    eval $cmd
+else
+    echo "Submitting to default queue"
+    cmd="oarsub -l \"walltime=24:0:0\" -n $JOB \
+            -O  save/$JOB/stdout -E save/$JOB/stderr\
+            -p $oarprop\
+            'python train.py -c config/'$JOB'.yaml'"
+    eval $cmd
 fi
 

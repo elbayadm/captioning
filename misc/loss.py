@@ -322,8 +322,13 @@ class WordSmoothCriterion2(nn.Module):
             output += entropy
 
         if self.scale_wl:
-            self.logger.warn('Scaling the pure WL RAML by %.3f' % self.scale_wl)
-            output = self.scale_wl * output
+            if self.scale_wl == -1:
+                # dynamic scaling:
+                sc = float(ml_output.data.cpu().numpy() / output.data.cpu().numpy())
+            else:
+                sc = self.scale_wl
+            self.logger.warn('Scaling the pure WL RAML by %.3f' % sc)
+            output = sc * output
         return ml_output, output, stats
 
 
@@ -728,6 +733,7 @@ class RewardSampler(nn.Module):
         self.vocab = vocab
         self.limited = opt.limited_vocab_sub
         self.verbose = opt.verbose
+        self.mc_samples = opt.mc_samples
         # print('Training:', self.training)
         if self.combine_loss:
             # Instead of ML(sampled) return WL(sampled)
@@ -747,22 +753,30 @@ class RewardSampler(nn.Module):
             row_scores = scores.repeat(1, seq_length)
             mask = torch.mul(mask, row_scores)
         ml_output = get_ml_loss(input, target, mask)
-
-        preds_matrix, stats = self.alter(target)
-        # gt_s = decode_sequence(self.vocab, preds_matrix.data[:, 1:])
-        # gt = decode_sequence(self.vocab, labels.data[:, 1:])
-        # for s, ss in zip(gt, gt_s):
-            # print('GT:', s, '\nSA:', ss)
-
-        # Forward the sampled captions
-        sample_input = model.forward(fc_feats, att_feats, preds_matrix)
-        if self.combine_loss:
-            ml_sampled, word_loss, stats_ = self.loss(sample_input, preds_matrix[:, 1:], mask)
-            stats.update(stats_)
-            output = self.loss.alpha * word_loss + (1 - self.loss.alpha) * ml_sampled
+        if self.training:
+            MC = self.mc_samples
         else:
-            ml_sampled = get_ml_loss(sample_input, preds_matrix[:, 1:], mask)
-            output = ml_sampled
+            MC = 1
+        for ss in range(MC):
+            preds_matrix, stats = self.alter(target)
+            # gt_s = decode_sequence(self.vocab, preds_matrix.data[:, 1:])
+            # gt = decode_sequence(self.vocab, labels.data[:, 1:])
+            # for s, ss in zip(gt, gt_s):
+                # print('GT:', s, '\nSA:', ss)
+            # Forward the sampled captions
+            sample_input = model.forward(fc_feats, att_feats, preds_matrix)
+            if self.combine_loss:
+                ml_sampled, word_loss, stats_ = self.loss(sample_input, preds_matrix[:, 1:], mask)
+                stats.update(stats_)
+                mc_output = self.loss.alpha * word_loss + (1 - self.loss.alpha) * ml_sampled
+            else:
+                ml_sampled = get_ml_loss(sample_input, preds_matrix[:, 1:], mask)
+                mc_output = ml_sampled
+            if not ss:
+                output = mc_output
+            else:
+                output += mc_output
+        output /= MC
         # output = torch.sum(torch.log(r) - logprob) / N
         return ml_output, output, stats
 

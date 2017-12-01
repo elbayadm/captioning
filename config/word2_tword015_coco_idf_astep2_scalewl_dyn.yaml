@@ -1,6 +1,6 @@
 # Generic
 # -------------------------
-modelname : debug 
+modelname : word2_tword015_coco_idf_astep2_scalewl_dyn
 restart : 1
 max_epochs : 25
 caption_model : show_tell

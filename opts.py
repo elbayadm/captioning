@@ -85,6 +85,8 @@ def add_loss_params(parser):
                default="word", help='Version of loss smoothing')
     parser.add('--sentence_loss_version', type=int,
                default=1, help='Version of sentence loss smoothing')
+    parser.add('--mc_samples', type=int,
+               default=1, help='Number of MC samples')
     parser.add('--normalize_batch', type=int,
                default=1, help='Version of sentence loss smoothing')
     parser.add('--bleu_version', type=str,
@@ -126,6 +128,8 @@ def add_loss_params(parser):
                default=2, help='step width')
     parser.add('--alpha_increase_factor', type=float,
                default=0.1, help='increase factor when step')
+    parser.add('--alpha_max', type=float,
+               default=0.9, help='increase factor when step')
     parser.add('--alpha_increase_start', type=int,
                default=1, help='increase factor when step')
     parser.add('--alpha_speed', type=float,

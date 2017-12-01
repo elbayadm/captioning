@@ -1,6 +1,6 @@
 # Generic
 # -------------------------
-modelname : debug 
+modelname : word2_tword015_coco_idf_astep2_max09_scalewl_dyn
 restart : 1
 max_epochs : 25
 caption_model : show_tell
@@ -26,6 +26,7 @@ sample_cap: 1
 loss_version : word2
 tau_word : 0.15
 alpha_word : 0.0
+alpha_max : 0.9
 alpha_strategy: step
 alpha_increase_every : 2
 alpha_increase_factor : .1
