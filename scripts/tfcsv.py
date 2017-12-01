@@ -44,7 +44,7 @@ def create_pkl(inpath, outpath=None):
     if not outpath:
         modelname = "_".join(inpath.split('/')[1:])
         print(modelname)
-        outpath = "Results/%s_events.pkl" % modelname
+        outpath = "Results/%s.ev" % modelname
         print('Dumping pickled stats in %s' % outpath)
     pickle.dump(track,
                 open(outpath, 'wb'))
