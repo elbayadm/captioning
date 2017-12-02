@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 from __future__ import division
-#  from __future__ import print_function
+from __future__ import print_function
 
 import torch
 import torch.nn as nn
@@ -8,31 +8,37 @@ import torch.nn.functional as F
 from torch.autograd import *
 import misc.utils as utils
 from misc.Decoder import DecoderModel
-
+from misc.lstm import MultiLayerLSTMCells, LSTMAttnDecoder
+_BOS = 0
+_EOS = 0
 
 class ShowAttendTellModel(DecoderModel):
     def __init__(self, opt):
         super(ShowAttendTellModel, self).__init__(opt)
-        self.attend_mode = opt.attend_mode
-        self.img_embed = nn.Linear(self.att_feat_size, self.input_encoding_size)
-        # self.context_embed = nn.Linear(self.att_feat_size, self.input_encoding_size)
-
-        # RNN block
-        self.core = getattr(nn, self.rnn_type.upper())(self.input_encoding_size,
-                                                       self.rnn_size,
-                                                       self.num_layers,
-                                                       bias=(opt.rnn_bias == 1),
-                                                       dropout=self.drop_prob_lm)
+        # Encoder
+        self.img_embed = nn.Conv2d(self.att_feat_size, self.rnn_size, kernel_size=1)
         # Word embedding:
-        self.embed = nn.Embedding(self.vocab_size + 1, self.input_encoding_size)
-        self.drop_x_lm = nn.Dropout(p=opt.drop_x_lm)
-        # Regions/context embedding:
-        self.ctx_embed = nn.Linear(self.att_feat_size, self.input_encoding_size)
-        # Attention weights
-        self.attend_1 = nn.Linear(self.rnn_size, self.input_encoding_size)  #maps the hidden state from 2*dim back to dim
-        self.attend_2 = nn.Linear(self.input_encoding_size, 1, bias=False)
-        self.Softmax = nn.Softmax()
-        self.logit = nn.Linear(self.rnn_size, self.vocab_size + 1)
+        self.embed = nn.Embedding(self.vocab_size, self.input_encoding_size)
+        # self.drop_x_lm = nn.Dropout(p=opt.drop_x_lm)
+        # intialize LSTM states:
+        self.init_h = nn.Linear(self.rnn_size, self.rnn_size)
+        self.init_c = nn.Linear(self.rnn_size, self.rnn_size)
+        self.decoder_lstm = MultiLayerLSTMCells(self.rnn_size + self.input_encoding_size,
+                                                self.rnn_size,
+                                                self.num_layers)
+
+        # Attention
+        self.attend = nn.Linear(self.rnn_size,
+                                self.rnn_size)
+        self.project = nn.Linear(self.input_encoding_size + 2 * self.rnn_size,
+                                 self.input_encoding_size)
+        self.decoder = LSTMAttnDecoder(self.embed, # what about drop_x_lm FIXME
+                                       self.decoder_lstm,
+                                       self.attend,
+                                       self.project)
+
+        # self.Softmax = nn.Softmax()
+        # self.logit = nn.Linear(self.rnn_size, self.vocab_size)
         self.init_weights()
         opt.logger.warn('Show, attend & Tell : %s' % str(self._modules))
 
@@ -41,64 +47,63 @@ class ShowAttendTellModel(DecoderModel):
         initrange = 0.1
         self.embed.weight.data.uniform_(-initrange, initrange)
 
-        self.img_embed.bias.data.fill_(0)
-        self.img_embed.weight.data.uniform_(-initrange, initrange)
+        self.init_h.bias.data.fill_(0)
+        self.init_h.weight.data.uniform_(-initrange, initrange)
+        self.init_c.bias.data.fill_(0)
+        self.init_c.weight.data.uniform_(-initrange, initrange)
 
-        # self.context_embed.bias.data.fill_(0)
-        # self.context_embed.weight.data.uniform_(-initrange, initrange)
+        self.attend.bias.data.fill_(0)
+        self.attend.weight.data.uniform_(-initrange, initrange)
+        self.project.bias.data.fill_(0)
+        self.project.weight.data.uniform_(-initrange, initrange)
 
-        self.ctx_embed.bias.data.fill_(0)
-        self.ctx_embed.weight.data.uniform_(-initrange, initrange)
+        # self.logit.bias.data.fill_(0)
+        # self.logit.weight.data.uniform_(-initrange, initrange)
 
-        self.attend_1.bias.data.fill_(0)
-        self.attend_1.weight.data.uniform_(-initrange, initrange)
-        self.attend_2.weight.data.uniform_(-initrange, initrange)
-
-        self.logit.bias.data.fill_(0)
-        self.logit.weight.data.uniform_(-initrange, initrange)
-
-    def init_hidden(self, bsz):
-        weight = next(self.parameters()).data
-        if self.rnn_type == 'lstm':
-            return (Variable(weight.new(self.num_layers, bsz, self.rnn_size).zero_()),
-                    Variable(weight.new(self.num_layers, bsz, self.rnn_size).zero_()))
-        else:
-            return Variable(weight.new(self.num_layers, bsz, self.rnn_size).zero_())
-
-    def get_ctx(self, att_feats, state):
-        batch_size = att_feats.size(0)
-        att_feats = att_feats.view(-1, self.att_feat_size)
-        # self.opt.logger.warn('> Att feats resized: %s' % str(att_feats.size()))
-        ctx = self.ctx_embed(att_feats)
-        ctx = ctx.resize(batch_size, self.num_regions, self.input_encoding_size)
-        # self.opt.logger.warn('CTX mapped: %s' % str(ctx.size()))
-        alphas = self.get_alphas(state, ctx)
-        alphas = alphas.unsqueeze(1).expand(batch_size, self.num_regions, self.input_encoding_size)
-        # self.opt.logger.warn('> Alphas size %s' % str(alphas.size()))
-        weighted_ctx = (ctx * alphas).sum(1).squeeze(1)
-        # print('Weighted context:', weighted_ctx.size())
-        # final_ctx = self.context_embed(weighted_ctx)
-        return weighted_ctx
-
-    def get_alphas(self, state, ctx):
-        # state (batch_size, rnn_size)
-        # ctx (batch_size, num_regions, att_feat_size)
-        if self.rnn_type == "lstm":
-            state = state[0]
-        batch_size = state.size(1)
-        # Option 1: cat(h, v_i)->MLP->
-        # option 2: dot(h, v_i)->MLP->
-        state = state.squeeze(0).unsqueeze(1)
-        state = state.expand(batch_size, self.num_regions, self.rnn_size)
-        # self.opt.logger.warn('state %s - ctx %s' % (str(state.size()), str(ctx.size())))
-        att = self.attend_1(state)
-        alphas = self.attend_2(F.relu(ctx + att))
-        # print('alphas:', alphas.size())
-        alphas = alphas.resize(batch_size, self.num_regions)
-        alphas = self.Softmax(alphas)
-        return alphas
+    def encode(self, att_feats):
+        att_feats = self.img_embed(att_feats)
+        avg_attn = att_feats.mean(dim=3,
+                                  keepdim=False).mean(dim=2, keepdim=False)
+        N = att_feats.size(0)
+        L = self.num_layers
+        D = self.rnn_size
+        init_states = (self.init_h(avg_attn).unsqueeze(0).expand(L, N, D),
+                       self.init_c(avg_attn).unsqueeze(0).expand(L, N, D))
+        return att_feats, init_states
 
     def forward(self, fc_feats, att_feats, seq):
+        att_feats, init_states = self.encode(att_feats)
+        logit = self.decoder(att_feats, seq, init_states)[:, 1:, :]
+        # Reshape:
+        logit_flat = logit.resize(logit.size(0) * logit.size(1), logit.size(2))
+        output = F.log_softmax(logit_flat)
+        output = output.resize(logit.size(0), logit.size(1), logit.size(2))
+        return output
+
+    def sample(self, fc_feats, att_feats, opt={}):
+        """
+        Sampling without beam search
+        """
+        batch_size = att_feats.size(0)
+        att_feats, init_states = self.encode(att_feats)
+        tok = Variable(torch.LongTensor([[_BOS] for i in range(batch_size)])).cuda()
+        seq = []
+        logprobs = []
+        attns = []
+        states = init_states
+        for _ in range(self.seq_length):
+            out, prob, states, attn = self.decoder.decode_step(tok, states, att_feats)
+            if out.data[0, 0] == _EOS:  #FIXME may be the index as is
+                break
+            seq.append(out)
+            logprobs.append(prob)
+            attns.append(attn)
+            tok = out
+        # FIXME return attns for viz
+        return torch.cat(seq, 1).data, torch.cat(logprobs, 1).data
+
+
+    def forward_old(self, fc_feats, att_feats, seq):
         batch_size = fc_feats.size(0)
         state = self.init_hidden(batch_size)
         outputs = []
@@ -233,7 +238,7 @@ class ShowAttendTellModel(DecoderModel):
         # return the samples and their log likelihoods
         return seq.transpose(0, 1), seqLogprobs.transpose(0, 1)
 
-    def sample(self, fc_feats, att_feats, opt={}):
+    def sample_old(self, fc_feats, att_feats, opt={}):
         sample_max = opt.get('sample_max', 1)
         beam_size = opt.get('beam_size', 1)
         temperature = opt.get('temperature', 1.0)

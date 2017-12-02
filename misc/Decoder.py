@@ -222,6 +222,7 @@ class DecoderModel(nn.Module):
                 ml_loss, raml_loss, stats = self.crit(self, fc_feats, att_feats, labels, masks[:, 1:], scores)
             else:
                 logprobs = self.forward(fc_feats, att_feats, labels)
+                # print('Model forward output:', logprobs.size(), labels.size())
                 ml_loss, raml_loss, stats = self.crit(logprobs,
                                                       labels[:, 1:],
                                                       masks[:, 1:],
