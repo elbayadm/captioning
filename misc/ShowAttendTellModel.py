@@ -93,7 +93,7 @@ class ShowAttendTellModel(DecoderModel):
         states = init_states
         for _ in range(self.seq_length):
             out, prob, states, attn = self.decoder.decode_step(tok, states, att_feats)
-            if out.data[0, 0] == _EOS:  #FIXME may be the index as is
+            if out.data[0, 0] == _EOS and _:  #FIXME may be the index as is
                 break
             seq.append(out)
             logprobs.append(prob)
