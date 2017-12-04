@@ -210,22 +210,28 @@ class DecoderModel(nn.Module):
                 # #FIXME add the scaling as parameter
 
         stats = None
+        if opt.caption_model == "show_attend_tell":
+            seq = labels
+            msk = masks
+        else:
+            seq = labels[:, 1:]
+            msk = masks[:, 1:]
         # FIXME Deprecated
         if opt.caption_model == 'show_tell_raml':
             probs, reward = self.forward(fc_feats, att_feats, labels)
             raml_scores = reward * Variable(torch.ones(scores.size()))
             # raml_scores = Variable(torch.ones(scores.size()))
             print('Raml reward:', reward)
-            ml_loss, raml_loss = self.crit(probs, labels[:, 1:], masks[:, 1:], raml_scores)
+            ml_loss, raml_loss = self.crit(probs, seq, msk, raml_scores)
         else:
             if self.opt.sample_reward:
-                ml_loss, raml_loss, stats = self.crit(self, fc_feats, att_feats, labels, masks[:, 1:], scores)
+                ml_loss, raml_loss, stats = self.crit(self, fc_feats, att_feats, labels, msk, scores)
             else:
                 logprobs = self.forward(fc_feats, att_feats, labels)
-                # print('Model forward output:', logprobs.size(), labels.size())
+                # print('Model forward output:', logprobs.size(), seq.size(), msk.size(), 'lab pure:', labels.size())
                 ml_loss, raml_loss, stats = self.crit(logprobs,
-                                                      labels[:, 1:],
-                                                      masks[:, 1:],
+                                                      seq,
+                                                      msk,
                                                       scores)
         # print('raml loss:', raml_loss.data[0])
         if self.opt.sample_reward or self.opt.sample_cap:

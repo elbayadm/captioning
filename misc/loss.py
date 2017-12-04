@@ -84,6 +84,7 @@ class LanguageModelCriterion(nn.Module):
         scores: scalars to scale the loss of each sentence (N, 1)
         """
         # truncate to the same size
+        # print('Logprobs:', input.size(), "labels:", target.size(), mask.size())
         seq_length = input.size(1)
         target = target[:, :seq_length]
         mask = mask[:, :seq_length]
@@ -91,11 +92,13 @@ class LanguageModelCriterion(nn.Module):
             row_scores = scores.unsqueeze(1).repeat(1, seq_length)
             # print('mask:', mask.size(), 'row_scores:', row_scores.size())
             mask = torch.mul(mask, row_scores)
+        # print('in:', input.data[0,0,:])
         input = to_contiguous(input).view(-1, input.size(2))
         target = to_contiguous(target).view(-1, 1)
         mask = to_contiguous(mask).view(-1, 1)
         output = - input.gather(1, target) * mask
         output = torch.sum(output)
+        print('out:', output.data[0], 'mask:', torch.sum(mask).data[0])
         if self.normalize_batch:
             output /= torch.sum(mask)
         stats = None

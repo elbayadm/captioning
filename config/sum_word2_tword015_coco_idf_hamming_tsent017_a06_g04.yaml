@@ -1,0 +1,30 @@
+# Generic
+# -------------------------
+modelname : sum_word2_tword015_coco_idf_hamming_tsent017_a06_g04
+restart : 1
+
+caption_model : show_tell
+cnn_model : resnet50
+
+batch_size : 10
+input_data : data/coco/cocotalk
+similarity_matrix : data/Glove/train_coco_similarities.pkl
+val_images_use : -1
+save_checkpoint_every : 4000
+
+finetune_cnn_after : -1
+learning_rate : 5e-4
+learning_rate_decay_start : 5
+learning_rate_decay_rate : 0.6
+learning_rate_decay_every: 3
+
+# Loss:
+sum_loss : 1
+loss_version : hamming
+tau_sent : 0.17
+
+tau_word : 0.15
+rare_tfidf : 1
+alpha_word : 0.6
+alpha_sent : 0.6
+gamma : 0.4

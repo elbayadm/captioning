@@ -73,10 +73,11 @@ class ShowAttendTellModel(DecoderModel):
 
     def forward(self, fc_feats, att_feats, seq):
         att_feats, init_states = self.encode(att_feats)
-        logit = self.decoder(att_feats, seq, init_states)[:, 1:, :]
+        logit = self.decoder(att_feats, seq, init_states)  # [:, 1:, :]
         # Reshape:
         logit_flat = logit.resize(logit.size(0) * logit.size(1), logit.size(2))
         output = F.log_softmax(logit_flat)
+        # print('out:', torch.sum(output, dim=1))  # tested with softmax sum==1
         output = output.resize(logit.size(0), logit.size(1), logit.size(2))
         return output
 
