@@ -139,7 +139,7 @@ def language_eval(dataset, preds, logger, get_creativity=True):
     logger.warn('Model captions loaded')
     cocoEval = COCOEvalCap(coco, cocoRes)
     cocoEval.params['image_id'] = cocoRes.getImgIds()
-    logger.want('Starting evaluation...')
+    logger.warn('Starting evaluation...')
     cocoEval.evaluate()
 
     # delete the temp file
