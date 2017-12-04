@@ -186,7 +186,7 @@ def eval_split(cnn_model, model, loader, logger, eval_kwargs={}):
             break
     lang_stats = None
     if lang_eval:
-        lang_stats, _ = language_eval(dataset, predictions,
+        lang_stats, _ = language_eval(dataset, predictions, logger,
                                       language_creativity)
     # Back to training:
     model.train()
@@ -401,7 +401,7 @@ def eval_multiple(cnn_model, model, crit, loader, eval_kwargs={}):
     lang_stats = None
     unseen_grams = None
     if lang_eval == 1:
-        lang_stats, unseen_grams = language_eval(dataset, predictions)
+        lang_stats, unseen_grams = language_eval(dataset, predictions, logger=None)  # FIXME
     # Switch back to training mode
     model.train()
     return loss_sum/loss_evals, predictions, lang_stats, unseen_grams

@@ -107,7 +107,7 @@ def language_lm_eval(refs, cands):
     B4 = corpus_bleu(refs, cands)
     return {'Bleu4': B4}
 
-def language_eval(dataset, preds, get_creativity=True):
+def language_eval(dataset, preds, logger, get_creativity=True):
     """
     Measure language performance:
         BLEU_1:4, ROUGE_L, CIDER, #FIXME METEOR, SPICE;
@@ -124,17 +124,22 @@ def language_eval(dataset, preds, get_creativity=True):
     json.encoder.FLOAT_REPR = lambda o: format(o, '.3f')
     random.seed(time.time())
     tmp_name = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(6))
+    logger.warn('Loading reference captions..')
     coco = COCO(annFile)
+    logger.warn('Reference captions loaded!')
     valids = coco.getImgIds()
 
     # filter results to only those in MSCOCO validation set (will be about a third)
     preds_filt = [p for p in preds if p['image_id'] in valids]
-    print(('using %d/%d predictions' % (len(preds_filt), len(preds))))
+    logger.warn('using %d/%d predictions' % (len(preds_filt), len(preds)))
     json.dump(preds_filt, open(tmp_name + '.json', 'w')) # serialize to temporary json file. Sigh, COCO API...
     resFile = tmp_name+'.json'
+    logger.warn('Loading model captions')
     cocoRes = coco.loadRes(resFile)
+    logger.warn('Model captions loaded')
     cocoEval = COCOEvalCap(coco, cocoRes)
     cocoEval.params['image_id'] = cocoRes.getImgIds()
+    logger.want('Starting evaluation...')
     cocoEval.evaluate()
 
     # delete the temp file
