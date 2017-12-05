@@ -7,7 +7,7 @@ import pickle
 from math import exp
 from prettytable import PrettyTable
 
-FIELDS = ['Beam', 'Temperature', 'CIDEr', 'Bleu4', 'Spice', 'Perplexity']
+FIELDS = ['Beam', 'Temperature', 'CIDEr', 'Bleu4', 'Perplexity']
 
 
 def get_results(model, split='val'):
@@ -65,7 +65,7 @@ def gather_results(model):
         tab.add_row([p['beam_size'] + p['temperature'],
                      p['beam_size'], p['temperature'],
                      round(res['CIDEr'] * 100, 2), round(res['Bleu_4'] * 100, 2),
-                     round(res['SPICE'] * 100, 2), round(exp(res['ml_loss']), 2)])
+                     round(exp(res['ml_loss']), 2)])
     return tab
 
 def get_wl(params):
@@ -217,7 +217,7 @@ def crawl_results(filter='', exc=None):
         # Exclude models containg exc:
         models = [model for model in models if exc not in model]
     # print("Found:", models)
-    fields = ["Model", 'Beam', 'CIDEr', 'Bleu4', 'Spice', 'Perplexity']
+    fields = ["Model", 'Beam', 'CIDEr', 'Bleu4', 'Perplexity']
     recap = {}
     tab = PrettyTable()
     tab.field_names = fields
@@ -236,14 +236,13 @@ def crawl_results(filter='', exc=None):
                         recap[p['alpha_sent']] = cid
                         recap[p['alpha_word']] = cid
                     bl = float(res['Bleu_4'] * 100)
-                    sp = float(res['SPICE'] * 100)
                     try:
                         perpl = float(exp(res['ml_loss']))
                     except:
                         perpl = 1.
                     tab.add_row([modelname,
                                  p['beam_size'],
-                                 cid, bl, sp, perpl])
+                                 cid, bl, perpl])
     return tab, dump
 
 

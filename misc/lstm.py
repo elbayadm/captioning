@@ -102,9 +102,12 @@ class LSTMAttnDecoder(object):
         h, c = states
         context, attn = step_attention(self._attention(h[-1]), attention)
         emb = self._embedding(tok).squeeze(1)
-        h, c = self._lstm_cell(torch.cat([emb, context], dim=1), (h, c))
-        out = self._projection(torch.cat([emb, context, h[-1]], dim=1))
-        logit = torch.mm(out, self._embedding.weight.t())
+        x = torch.cat([emb, context], dim=1).unsqueeze(0)
+        out, (h, c) = self._lstm_cell(x, (h, c))
+        input_proj = torch.cat([emb, context, out[-1]], dim=1)
+        output = self._projection(input_proj)
+        # print('output:', output.size())
+        logit = F.log_softmax(torch.mm(output, self._embedding.weight.t()))
         return logit, (h, c), attn
 
     def decode_step(self, tok, states, attention):

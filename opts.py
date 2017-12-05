@@ -337,7 +337,10 @@ def parse_opt():
     parser.add('--start_from', type=str,
                default=None, help="The directory of the initialization model, must contain model.pth (resp model-best.pth) \
                the optimizer and the pickled infos")
-
+    parser.add('--reset_optimizer', type=int, default=0,
+               help="whether or not to start with a clean optimizer")
+    parser.add('--shift_epoch', type=int, default=0,
+               help="Start from epoch 0")
     parser = add_generic(parser)
     parser = add_loss_params(parser)
     parser = add_optim_params(parser)

@@ -92,8 +92,9 @@ def recover_infos(opt):
             flag = ''
         opt.cnn_start_from = osp.join(opt.start_from, 'model-cnn%s.pth' % flag)
         opt.infos_start_from = osp.join(opt.start_from, 'infos%s.pkl' % flag)
-        opt.optimizer_start_from = osp.join(opt.start_from, 'optimizer%s.pth' % flag)
-        opt.cnn_optimizer_start_from = osp.join(opt.start_from, 'cnn-optimizer%s.pth' % flag)
+        if not opt.reset_optimizer:
+            opt.optimizer_start_from = osp.join(opt.start_from, 'optimizer%s.pth' % flag)
+            opt.cnn_optimizer_start_from = osp.join(opt.start_from, 'cnn-optimizer%s.pth' % flag)
         opt.start_from = osp.join(opt.start_from, 'model%s.pth' % flag)
 
         infos = pickle.load(open(opt.infos_start_from, 'rb'), encoding='iso-8859-1')

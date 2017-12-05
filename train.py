@@ -51,6 +51,9 @@ def train(opt):
 
     tf_summary_writer = tf.summary.FileWriter(opt.eventname)
     iteration, epoch, opt, infos, history = du.recover_infos(opt)
+    if opt.shift_epoch:
+        opt.logger.warn('Resetting epoch count (%d -> 0)' % epoch)
+        epoch = 0
     opt.logger.warn('Starting from iteration %d (epoch %d)' % (iteration, epoch))
     # Recover data iterator and best perf
     loader.iterators = infos.get('iterators', loader.iterators)
@@ -83,7 +86,7 @@ def train(opt):
     lg.log_optimizer(opt, optimizers)
     # Main loop
     # To save before training:
-    # iteration -= 1
+    iteration -= 1
     val_losses = []
     while True:
         if update_lr_flag:

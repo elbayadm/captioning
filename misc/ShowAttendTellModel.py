@@ -23,9 +23,12 @@ class ShowAttendTellModel(DecoderModel):
         # intialize LSTM states:
         self.init_h = nn.Linear(self.rnn_size, self.rnn_size)
         self.init_c = nn.Linear(self.rnn_size, self.rnn_size)
-        self.decoder_lstm = MultiLayerLSTMCells(self.rnn_size + self.input_encoding_size,
-                                                self.rnn_size,
-                                                self.num_layers)
+
+        self.core = getattr(nn, self.rnn_type.upper())(self.input_encoding_size + self.rnn_size,
+                                                       self.rnn_size,
+                                                       self.num_layers,
+                                                       bias=(opt.rnn_bias == 1),
+                                                       dropout=self.drop_prob_lm)
 
         # Attention
         self.attend = nn.Linear(self.rnn_size,
@@ -33,7 +36,7 @@ class ShowAttendTellModel(DecoderModel):
         self.project = nn.Linear(self.input_encoding_size + 2 * self.rnn_size,
                                  self.input_encoding_size)
         self.decoder = LSTMAttnDecoder(self.embed, # what about drop_x_lm FIXME
-                                       self.decoder_lstm,
+                                       self.core,  # self.decoder_lstm,
                                        self.attend,
                                        self.project)
 
@@ -45,7 +48,11 @@ class ShowAttendTellModel(DecoderModel):
 
     def init_weights(self):
         initrange = 0.1
-        self.embed.weight.data.uniform_(-initrange, initrange)
+        if self.W is not None:
+            self.embed.weight = nn.Parameter(torch.from_numpy(self.W),
+                                             requires_grad=self.require_W_grad)
+        else:
+            self.embed.weight.data.uniform_(-initrange, initrange)
 
         self.init_h.bias.data.fill_(0)
         self.init_h.weight.data.uniform_(-initrange, initrange)
@@ -54,16 +61,24 @@ class ShowAttendTellModel(DecoderModel):
 
         self.attend.bias.data.fill_(0)
         self.attend.weight.data.uniform_(-initrange, initrange)
+
         self.project.bias.data.fill_(0)
         self.project.weight.data.uniform_(-initrange, initrange)
+
+        self.img_embed.bias.data.fill_(0)
+        self.img_embed.weight.data.uniform_(-initrange, initrange)
 
         # self.logit.bias.data.fill_(0)
         # self.logit.weight.data.uniform_(-initrange, initrange)
 
     def encode(self, att_feats):
         att_feats = self.img_embed(att_feats)
+        # print('Attention feats:', att_feats.size())
+        # print(att_feats[0,0], att_feats[1,0])
         avg_attn = att_feats.mean(dim=3,
                                   keepdim=False).mean(dim=2, keepdim=False)
+        # print('avg:', avg_attn.size())
+        # print('avg(0):', avg_attn[0,:10], "avg(1):", avg_attn[1,:10])
         N = att_feats.size(0)
         L = self.num_layers
         D = self.rnn_size
@@ -74,12 +89,7 @@ class ShowAttendTellModel(DecoderModel):
     def forward(self, fc_feats, att_feats, seq):
         att_feats, init_states = self.encode(att_feats)
         logit = self.decoder(att_feats, seq, init_states)  # [:, 1:, :]
-        # Reshape:
-        logit_flat = logit.resize(logit.size(0) * logit.size(1), logit.size(2))
-        output = F.log_softmax(logit_flat)
-        # print('out:', torch.sum(output, dim=1))  # tested with softmax sum==1
-        output = output.resize(logit.size(0), logit.size(1), logit.size(2))
-        return output
+        return logit
 
     def sample(self, fc_feats, att_feats, opt={}):
         """

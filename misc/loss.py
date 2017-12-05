@@ -98,7 +98,7 @@ class LanguageModelCriterion(nn.Module):
         mask = to_contiguous(mask).view(-1, 1)
         output = - input.gather(1, target) * mask
         output = torch.sum(output)
-        print('out:', output.data[0], 'mask:', torch.sum(mask).data[0])
+        # print('out:', output.data[0], 'mask:', torch.sum(mask).data[0])
         if self.normalize_batch:
             output /= torch.sum(mask)
         stats = None
