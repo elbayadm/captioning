@@ -740,9 +740,10 @@ class RewardSampler(nn.Module):
         # print('Training:', self.training)
         if self.combine_loss:
             # Instead of ML(sampled) return WL(sampled)
-            self.loss = WordSmoothCriterion2(opt)
-            self.loss.log()
-
+            self.loss_sampled = WordSmoothCriterion2(opt)
+            self.loss_gt = WordSmoothCriterion2(opt)
+            self.loss_gt.log()
+            self.loss_sampled.log()
 
     def forward(self, model, fc_feats, att_feats, labels, mask, scores=None):
         # truncate
@@ -755,7 +756,12 @@ class RewardSampler(nn.Module):
         if self.scale_loss:
             row_scores = scores.repeat(1, seq_length)
             mask = torch.mul(mask, row_scores)
-        ml_output = get_ml_loss(input, target, mask)
+        if self.combine_loss:
+            ml_gt, wl_gt, stats_gt = self.loss_gt(input, target, mask)
+            loss_gt = self.loss_gt.alpha * wl_gt + (1 - self.loss_gt.alpha) * ml_gt
+        else:
+            ml_gt = get_ml_loss(input, target, mask)
+            loss_gt = ml_gt
         if self.training:
             MC = self.mc_samples
         else:
@@ -769,9 +775,9 @@ class RewardSampler(nn.Module):
             # Forward the sampled captions
             sample_input = model.forward(fc_feats, att_feats, preds_matrix)
             if self.combine_loss:
-                ml_sampled, word_loss, stats_ = self.loss(sample_input, preds_matrix[:, 1:], mask)
-                stats.update(stats_)
-                mc_output = self.loss.alpha * word_loss + (1 - self.loss.alpha) * ml_sampled
+                ml_sampled, wl_sampled, stats_sampled = self.loss_sampled(sample_input, preds_matrix[:, 1:], mask)
+                stats.update(stats_sampled)
+                mc_output = self.loss_sampled.alpha * wl_sampled + (1 - self.loss_sampled.alpha) * ml_sampled
             else:
                 ml_sampled = get_ml_loss(sample_input, preds_matrix[:, 1:], mask)
                 mc_output = ml_sampled
@@ -781,7 +787,7 @@ class RewardSampler(nn.Module):
                 output += mc_output
         output /= MC
         # output = torch.sum(torch.log(r) - logprob) / N
-        return ml_output, output, stats
+        return loss_gt, output, stats
 
 
 class HammingRewardSampler(RewardSampler):
