@@ -39,6 +39,7 @@ if [ $BQ ]; then
            -p $oarprop \
            -O  save/$JOB/stdout -E save/$JOB/stderr\
            'python train.py -c config/'$JOB'.yaml'"
+    echo 'Running' $cmd
     eval $cmd
 else
     echo "Submitting to default queue"
