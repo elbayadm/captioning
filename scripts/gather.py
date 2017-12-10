@@ -95,6 +95,7 @@ def parse_name_clean(params):
     combine_loss = params.get('combine_loss', 0)
     multi = alter_loss + sum_loss + combine_loss
     loss_version = params['loss_version']
+    modelname = None
     if "alpha" in params:
         alpha = (params['alpha'], params['alpha'])
     else:
