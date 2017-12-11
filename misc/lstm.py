@@ -4,13 +4,26 @@ from torch.nn import functional as F
 
 
 def step_attention(query, attention):
-    """query [B, D], attention: [B, D, W, H]"""
+    """
+    Input:
+        query: rnn hidden state (N, D)
+        attention: region embeddings (N, D, W, H)
+    Outpt:
+        context : weighted sum of attended Regions
+        attn_scores : weight assigned to each
+    """
     bs, d, w, h = attention.size()
     attention = attention.contiguous().view(bs, d, -1)
+    # print("Regions :", attention.size())
+    # print("Query:", query.unsqueeze(1).size())
     score = torch.matmul(query.unsqueeze(1), attention).squeeze(1)
+    # print('Scores:', score.size())
     normalized_score = F.softmax(score)
+    # print('Attention scores:', normalized_score[0])
+    # context = sum e_i a_i
     context = torch.matmul(normalized_score.unsqueeze(1),
                            attention.transpose(1, 2)).squeeze(1)
+    # print('context:', context.size())
     return context, normalized_score.contiguous().view(bs, w, h)
 
 
@@ -80,35 +93,54 @@ class MultiLayerLSTMCells(nn.Module):
         return False
 
 
-class LSTMAttnDecoder(object):
-    def __init__(self, embedding, lstm_cell, attention, projection):
+class LSTMAttnDecoder(nn.Module):
+    def __init__(self, embedding, lstm_cell, attention, projection, logit):
+        """
+        inputs:
+            E = word embedding size, D = rnn hidden size
+            embedding: Word embedding layer (a lookup table) V x E
+            lstm_cell: RNN LSMT cell dim(x) = E + D, dim(h) = D
+            attention: Linear layer D x D
+            projection: Linear layer (E + 2D) x D
+            logit:      Linear layer D x V
+        """
         super().__init__()
         self._embedding = embedding
         self._lstm_cell = lstm_cell
         self._attention = attention
         self._projection = projection
+        self._logit = logit
 
-    def __call__(self, enc_img, input_, init_states):
-        batch_size, max_len = input_.size()
+    def forward(self, enc_img, input, init_states):
+        """
+        enc_img     : region embeddings a_1,...a_L
+        input       : gt sequence of tokens
+        inti_states : h_0, c_0 (obtained as MLP(avearge(a_i)))T
+        """
+        batch_size, max_len = input.size()
         logits = []
         states = init_states
         for i in range(max_len):
-            tok = input_[:, i:i+1]
+            tok = input[:, i:i+1]
             logit, states, _ = self._step(tok, states, enc_img)
             logits.append(logit)
         return torch.stack(logits, dim=1)
 
     def _step(self, tok, states, attention):
         h, c = states
-        context, attn = step_attention(self._attention(h[-1]), attention)
+        # print('initial states:', h.size(), c.size(), h[-1].size())
+        context, attn_scores = step_attention(self._attention(h[-1]), attention)
         emb = self._embedding(tok).squeeze(1)
         x = torch.cat([emb, context], dim=1).unsqueeze(0)
+        # print('Feeding to the RNN:', x.size())
         out, (h, c) = self._lstm_cell(x, (h, c))
+        # print('LSTM outputs:', out.size(), h.size(), c.size(), out[-1].size())
         input_proj = torch.cat([emb, context, out[-1]], dim=1)
         output = self._projection(input_proj)
-        # print('output:', output.size())
-        logit = F.log_softmax(torch.mm(output, self._embedding.weight.t()))
-        return logit, (h, c), attn
+        # print('Final output size:', output.size())
+        # logit = F.log_softmax(torch.mm(output, self._embedding.weight.t()))  # If using a single embedding matrix
+        logit = F.log_softmax(self._logit(output))
+        return logit, (h, c), attn_scores
 
     def decode_step(self, tok, states, attention):
         logit, states, attn = self._step(tok, states, attention)

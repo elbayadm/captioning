@@ -18,8 +18,9 @@ class ShowAttendTellModel(DecoderModel):
         # Encoder
         self.img_embed = nn.Conv2d(self.att_feat_size, self.rnn_size, kernel_size=1)
         # Word embedding:
-        self.embed = nn.Embedding(self.vocab_size, self.input_encoding_size)
-        # self.drop_x_lm = nn.Dropout(p=opt.drop_x_lm)
+        self.embed_1 = nn.Embedding(self.vocab_size, self.input_encoding_size)
+        self.embed = nn.Sequential(self.embed_1,
+                                   nn.Dropout(p=opt.drop_x_lm))
         # intialize LSTM states:
         self.init_h = nn.Linear(self.rnn_size, self.rnn_size)
         self.init_c = nn.Linear(self.rnn_size, self.rnn_size)
@@ -35,10 +36,12 @@ class ShowAttendTellModel(DecoderModel):
                                 self.rnn_size)
         self.project = nn.Linear(self.input_encoding_size + 2 * self.rnn_size,
                                  self.input_encoding_size)
-        self.decoder = LSTMAttnDecoder(self.embed, # what about drop_x_lm FIXME
+        self.logit = nn.Linear(self.rnn_size, self.vocab_size)
+        self.decoder = LSTMAttnDecoder(self.embed,
                                        self.core,  # self.decoder_lstm,
                                        self.attend,
-                                       self.project)
+                                       self.project,
+                                       self.logit)
 
         # self.Softmax = nn.Softmax()
         # self.logit = nn.Linear(self.rnn_size, self.vocab_size)
@@ -49,10 +52,10 @@ class ShowAttendTellModel(DecoderModel):
     def init_weights(self):
         initrange = 0.1
         if self.W is not None:
-            self.embed.weight = nn.Parameter(torch.from_numpy(self.W),
+            self.embed_1.weight = nn.Parameter(torch.from_numpy(self.W),
                                              requires_grad=self.require_W_grad)
         else:
-            self.embed.weight.data.uniform_(-initrange, initrange)
+            self.embed_1.weight.data.uniform_(-initrange, initrange)
 
         self.init_h.bias.data.fill_(0)
         self.init_h.weight.data.uniform_(-initrange, initrange)
@@ -68,8 +71,8 @@ class ShowAttendTellModel(DecoderModel):
         self.img_embed.bias.data.fill_(0)
         self.img_embed.weight.data.uniform_(-initrange, initrange)
 
-        # self.logit.bias.data.fill_(0)
-        # self.logit.weight.data.uniform_(-initrange, initrange)
+        self.logit.bias.data.fill_(0)
+        self.logit.weight.data.uniform_(-initrange, initrange)
 
     def encode(self, att_feats):
         att_feats = self.img_embed(att_feats)
@@ -113,48 +116,6 @@ class ShowAttendTellModel(DecoderModel):
         # FIXME return attns for viz
         return torch.cat(seq, 1).data, torch.cat(logprobs, 1).data
 
-
-    def forward_old(self, fc_feats, att_feats, seq):
-        batch_size = fc_feats.size(0)
-        state = self.init_hidden(batch_size)
-        outputs = []
-        for i in range(seq.size(1)):
-            if i == 0:
-                # MLP(mean(att_feats))
-                mean_region = torch.mean(att_feats.view(batch_size, -1, self.att_feat_size), dim=1)
-                # print('mean feat shape:', mean_region.size())
-                xt = self.img_embed(mean_region)
-            else:
-                if i >= 2 and self.ss_prob > 0.0: # otherwiste no need to sample
-                    sample_prob = fc_feats.data.new(batch_size).uniform_(0, 1)
-                    sample_mask = sample_prob < self.ss_prob
-                    if sample_mask.sum() == 0:
-                        it = seq[:, i-1].clone()
-                    else:
-                        sample_ind = sample_mask.nonzero().view(-1)
-                        it = seq[:, i-1].data.clone()
-                        #prob_prev = torch.exp(outputs[-1].data.index_select(0, sample_ind)) # fetch prev distribution: shape Nx(M+1)
-                        #it.index_copy_(0, sample_ind, torch.multinomial(prob_prev, 1).view(-1))
-                        prob_prev = torch.exp(outputs[-1].data) # fetch prev distribution: shape Nx(M+1)
-                        it.index_copy_(0, sample_ind, torch.multinomial(prob_prev, 1).view(-1).index_select(0, sample_ind))
-                        it = Variable(it, requires_grad=False)
-                else:
-                    it = seq[:, i-1].clone()
-                # break if all the sequences end
-                if i >= 2 and seq[:, i-1].data.sum() == 0:
-                    break
-                # The word embedding
-                xt = self.embed(it)
-                # -------------------------------------------------------------------------------
-                # The context embedding
-                ctx = self.get_ctx(att_feats, state)
-                # Concat xt and weighted_ctx:
-                xt += ctx
-                xt = self.drop_x_lm(xt)
-            output, state = self.core(xt.unsqueeze(0), state)
-            output = F.log_softmax(self.logit(output.squeeze(0)))
-            outputs.append(output)
-        return torch.cat([_.unsqueeze(1) for _ in outputs[1:]], 1).contiguous()
 
     def sample_beam(self, fc_feats, att_feats, opt={}):
         beam_size = opt.get('beam_size', 10)

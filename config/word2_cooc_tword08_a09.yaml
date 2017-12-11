@@ -1,6 +1,6 @@
 # Generic
 # -------------------------
-modelname : word2_cooc_tword015_a09
+modelname : word2_cooc_tword08_a09
 restart : 1
 
 caption_model : show_tell
@@ -20,7 +20,7 @@ learning_rate_decay_every: 3
 # Loss:
 sample_cap: 1
 loss_version : word2
-tau_word : 0.15
+tau_word : 0.8
 alpha_word : 0.9
 similarity_matrix: data/coco/coocurrencs10_coco.pkl
 use_cooc : 1

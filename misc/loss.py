@@ -92,7 +92,7 @@ class LanguageModelCriterion(nn.Module):
             row_scores = scores.unsqueeze(1).repeat(1, seq_length)
             # print('mask:', mask.size(), 'row_scores:', row_scores.size())
             mask = torch.mul(mask, row_scores)
-        # print('in:', input.data[0,0,:])
+        print('probs:', input.data[0,0,:30])
         input = to_contiguous(input).view(-1, input.size(2))
         target = to_contiguous(target).view(-1, 1)
         mask = to_contiguous(mask).view(-1, 1)
@@ -242,7 +242,8 @@ class WordSmoothCriterion2(nn.Module):
         self.tau_word = opt.tau_word
         # Load the similarity matrix:
         M = pickle.load(open(opt.similarity_matrix, 'rb'), encoding='iso-8859-1')
-        M = M - 1
+        if not self.use_cooc:
+            M = M - 1
         if opt.rare_tfidf:
             IDF = pickle.load(open('data/coco/idf_coco.pkl', 'rb'))
             M += self.tau_word * IDF  # old versions IDF/1.8
