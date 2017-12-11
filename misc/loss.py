@@ -92,7 +92,7 @@ class LanguageModelCriterion(nn.Module):
             row_scores = scores.unsqueeze(1).repeat(1, seq_length)
             # print('mask:', mask.size(), 'row_scores:', row_scores.size())
             mask = torch.mul(mask, row_scores)
-        print('probs:', input.data[0,0,:30])
+        # print('probs:', input.data[0,0,:30])
         input = to_contiguous(input).view(-1, input.size(2))
         target = to_contiguous(target).view(-1, 1)
         mask = to_contiguous(mask).view(-1, 1)
