@@ -81,6 +81,8 @@ def add_loss_params(parser):
                default=0, help='Clip and scale the sentence scores')
     parser.add('--similarity_matrix', type=str,
                default='data/Glove/cocotalk_similarities_v2.pkl', help='path to the pre-computed similarity matrix between the vocab words')
+    parser.add('--use_cooc', type=int, default=0,
+               help='Use cooccurrences matrix instead')
     parser.add('--loss_version', type=str,
                default="word", help='Version of loss smoothing')
     parser.add('--sentence_loss_version', type=int,

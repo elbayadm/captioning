@@ -231,6 +231,7 @@ class WordSmoothCriterion2(nn.Module):
         self.add_entropy = opt.word_add_entropy
         self.normalize_batch = opt.normalize_batch
         self.scale_wl = opt.scale_wl
+        self.use_cooc = opt.use_cooc
         if self.clip_sim:
             self.margin = opt.margin
             self.logger.warn('Clipping similarities below %.2f' % self.margin)
@@ -241,12 +242,14 @@ class WordSmoothCriterion2(nn.Module):
         self.tau_word = opt.tau_word
         # Load the similarity matrix:
         M = pickle.load(open(opt.similarity_matrix, 'rb'), encoding='iso-8859-1')
-        M = M - 1
-        if opt.rare_tfidf:
-            IDF = pickle.load(open('data/coco/idf_coco.pkl', 'rb'))
-            M += self.tau_word * IDF  # old versions IDF/1.8
+        if not self.use_cooc:
+            M = M - 1
+            if opt.rare_tfidf:
+                IDF = pickle.load(open('data/coco/idf_coco.pkl', 'rb'))
+                M += self.tau_word * IDF  # old versions IDF/1.8
         M = M.astype(np.float32)
         n, d = M.shape
+        print('Sim matrix:', n, 'x', d, ' V=', opt.vocab_size)
         assert n == d and n == opt.vocab_size, 'Similarity matrix has incompatible shape'
         self.vocab_size = opt.vocab_size
         M = Variable(torch.from_numpy(M)).cuda()
@@ -281,7 +284,10 @@ class WordSmoothCriterion2(nn.Module):
             input = input.gather(1, indices_vocab)
 
         if self.tau_word:
-            smooth_target = torch.exp(torch.mul(sim, 1/self.tau_word))
+            if self.use_cooc:
+                smooth_target = torch.mul(sim, math.exp(1/self.tau_word))
+            else:
+                smooth_target = torch.exp(torch.mul(sim, 1/self.tau_word))
         else:
             # Do not exponentiate
             smooth_target = sim
