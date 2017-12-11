@@ -4,7 +4,7 @@ modelname : fncnn_baseline_noskip
 start_from : save/baseline
 start_from_best : 1
 restart : 1
-
+max_epochs : 25
 caption_model : show_tell
 cnn_model : resnet50
 cnn_learning_rate : 1.0
