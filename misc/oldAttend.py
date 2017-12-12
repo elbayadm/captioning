@@ -1,99 +1,126 @@
-import pickle
-import numpy as np
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import *
-
+import misc.utils as utils
 from misc.Decoder import DecoderModel
+from misc.lstm import MultiLayerLSTMCells, LSTMAttnDecoder
+_BOS = 0
+_EOS = 0
 
-class ShowTellModel(DecoderModel):
+class ShowAttendTellModel(DecoderModel):
     def __init__(self, opt):
-        super(ShowTellModel, self).__init__(opt)
-        # Network definition
-        self.img_embed = nn.Linear(self.fc_feat_size, self.input_encoding_size)
-        #TODO add dropout on rnn input.
-        self.core = getattr(nn, self.rnn_type.upper())(self.input_encoding_size,
+        super(ShowAttendTellModel, self).__init__(opt)
+        # Encoder
+        self.img_embed = nn.Conv2d(self.att_feat_size, self.rnn_size, kernel_size=1)
+        # Word embedding:
+        self.embed_1 = nn.Embedding(self.vocab_size, self.input_encoding_size)
+        self.embed = nn.Sequential(self.embed_1,
+                                   nn.Dropout(p=opt.drop_x_lm))
+        # intialize LSTM states:
+        self.init_h = nn.Linear(self.rnn_size, self.rnn_size)
+        self.init_c = nn.Linear(self.rnn_size, self.rnn_size)
+
+        self.core = getattr(nn, self.rnn_type.upper())(self.input_encoding_size + self.rnn_size,
                                                        self.rnn_size,
                                                        self.num_layers,
                                                        bias=(opt.rnn_bias == 1),
                                                        dropout=self.drop_prob_lm)
-        self.embed = nn.Embedding(self.vocab_size, self.input_encoding_size)
-        self.drop_x_lm = nn.Dropout(p=opt.drop_x_lm)
+
+        # Attention
+        self.attend = nn.Linear(self.rnn_size,
+                                self.rnn_size)
+        self.project = nn.Linear(self.input_encoding_size + 2 * self.rnn_size,
+                                 self.input_encoding_size)
         self.logit = nn.Linear(self.rnn_size, self.vocab_size)
+        self.decoder = LSTMAttnDecoder(self.embed,
+                                       self.core,  # self.decoder_lstm,
+                                       self.attend,
+                                       self.project,
+                                       self.logit)
+
+        # self.Softmax = nn.Softmax()
+        # self.logit = nn.Linear(self.rnn_size, self.vocab_size)
         self.init_weights()
-        opt.logger.warn('Show & Tell : %s' % str(self._modules))
+        opt.logger.warn('Show, attend & Tell : %s' % str(self._modules))
+
 
     def init_weights(self):
         initrange = 0.1
         if self.W is not None:
-            self.embed.weight = nn.Parameter(torch.from_numpy(self.W),
+            self.embed_1.weight = nn.Parameter(torch.from_numpy(self.W),
                                              requires_grad=self.require_W_grad)
         else:
-            self.embed.weight.data.uniform_(-initrange, initrange)
-        self.logit.bias.data.fill_(0)
-        self.logit.weight.data.uniform_(-initrange, initrange)
+            self.embed_1.weight.data.uniform_(-initrange, initrange)
+
+        self.init_h.bias.data.fill_(0)
+        self.init_h.weight.data.uniform_(-initrange, initrange)
+        self.init_c.bias.data.fill_(0)
+        self.init_c.weight.data.uniform_(-initrange, initrange)
+
+        self.attend.bias.data.fill_(0)
+        self.attend.weight.data.uniform_(-initrange, initrange)
+
+        self.project.bias.data.fill_(0)
+        self.project.weight.data.uniform_(-initrange, initrange)
+
         self.img_embed.bias.data.fill_(0)
         self.img_embed.weight.data.uniform_(-initrange, initrange)
 
-    def init_hidden(self, bsz):
-        weight = next(self.parameters()).data
-        if self.rnn_type == 'lstm':
-            return (Variable(weight.new(self.num_layers, bsz, self.rnn_size).zero_()),
-                    Variable(weight.new(self.num_layers, bsz, self.rnn_size).zero_()))
-        else:
-            return Variable(weight.new(self.num_layers, bsz, self.rnn_size).zero_())
+        self.logit.bias.data.fill_(0)
+        self.logit.weight.data.uniform_(-initrange, initrange)
+
+    def encode(self, att_feats):
+        att_feats = self.img_embed(att_feats)
+        # print('Attention feats:', att_feats.size())
+        # print(att_feats[0,0], att_feats[1,0])
+        avg_attn = att_feats.mean(dim=3,
+                                  keepdim=False).mean(dim=2, keepdim=False)
+        # print('avg:', avg_attn.size())
+        # print('avg(0):', avg_attn[0,:10], "avg(1):", avg_attn[1,:10])
+        N = att_feats.size(0)
+        L = self.num_layers
+        D = self.rnn_size
+        init_states = (self.init_h(avg_attn).unsqueeze(0).expand(L, N, D),
+                       self.init_c(avg_attn).unsqueeze(0).expand(L, N, D))
+        return att_feats, init_states
 
     def forward(self, fc_feats, att_feats, seq):
-        batch_size = fc_feats.size(0)
-        state = self.init_hidden(batch_size)
-        outputs = []
-        sample_vocab = np.unique(seq.cpu().data.numpy())
+        att_feats, init_states = self.encode(att_feats)
+        logit = self.decoder(att_feats, seq, init_states)  # [:, 1:, :]
+        return logit
 
-        for i in range(seq.size(1)):
-            if i == 0:
-                xt = self.img_embed(fc_feats)
-            else:
-                if i >= 2 and self.ss_prob > 0.0: # otherwiste no need to sample
-                    sample_prob = fc_feats.data.new(batch_size).uniform_(0, 1)
-                    sample_mask = sample_prob < self.ss_prob
-                    if sample_mask.sum() == 0:
-                        it = seq[:, i-1].clone()
-                    else:
-                        sample_ind = sample_mask.nonzero().view(-1)
-                        it = seq[:, i-1].data.clone()
-                        #prob_prev = torch.exp(outputs[-1].data.index_select(0, sample_ind)) # fetch prev distribution: shape Nx(M+1)
-                        #it.index_copy_(0, sample_ind, torch.multinomial(prob_prev, 1).view(-1))
-                        prob_prev = torch.exp(outputs[-1].data) # fetch prev distribution: shape Nx(M+1)
-                        if self.ss_vocab:
-                            for token in sample_vocab:
-                                prob_prev[:, token] += 0.5
-                        it.index_copy_(0, sample_ind, torch.multinomial(prob_prev, 1).view(-1).index_select(0, sample_ind))
-                        it = Variable(it, requires_grad=False)
-                else:
-                    it = seq[:, i-1].clone()
-                # break if all the sequences end
-                if i >= 2 and seq[:, i-1].data.sum() == 0:
-                    break
-                xt = self.embed(it)
-                xt = self.drop_x_lm(xt)
-            output, state = self.core(xt.unsqueeze(0), state)
-            output = F.log_softmax(self.logit(output.squeeze(0)))
-            outputs.append(output)
+    def sample(self, fc_feats, att_feats, opt={}):
+        """
+        Sampling without beam search
+        """
+        batch_size = att_feats.size(0)
+        att_feats, init_states = self.encode(att_feats)
+        tok = Variable(torch.LongTensor([[_BOS] for i in range(batch_size)])).cuda()
+        seq = []
+        logprobs = []
+        attns = []
+        states = init_states
+        for _ in range(self.seq_length):
+            out, prob, states, attn = self.decoder.decode_step(tok, states, att_feats)
+            if out.data[0, 0] == _EOS and _:  #FIXME may be the index as is
+                break
+            seq.append(out)
+            logprobs.append(prob)
+            attns.append(attn)
+            tok = out
+        # FIXME return attns for viz
+        return torch.cat(seq, 1).data, torch.cat(logprobs, 1).data
 
-        return torch.cat([_.unsqueeze(1) for _ in outputs[1:]], 1).contiguous()
-
-    def get_logprobs_state(self, it, state):
-        xt = self.embed(it)
-        output, state = self.core(xt.unsqueeze(0), state)
-        logprobs = F.log_softmax(self.logit(self.dropout(output.squeeze(0))))
-        return logprobs, state
 
     def sample_beam(self, fc_feats, att_feats, opt={}):
-        beam_size = opt.get('beam_size', 3)
+        beam_size = opt.get('beam_size', 10)
         batch_size = fc_feats.size(0)
-        forbid_unk = opt.get('forbid_unk', 1)
+        assert beam_size <= self.vocab_size + 1, 'lets assume this for now, otherwise this corner case causes a few headaches down the road. can be dealt with in future if needed'
         seq = torch.LongTensor(self.seq_length, batch_size).zero_()
         seqLogprobs = torch.FloatTensor(self.seq_length, batch_size)
         # lets process every image independently for now, for simplicity
@@ -101,12 +128,17 @@ class ShowTellModel(DecoderModel):
         self.done_beams = [[] for _ in range(batch_size)]
         for k in range(batch_size):
             state = self.init_hidden(beam_size)
+
             beam_seq = torch.LongTensor(self.seq_length, beam_size).zero_()
             beam_seq_logprobs = torch.FloatTensor(self.seq_length, beam_size).zero_()
-            beam_logprobs_sum = torch.zeros(beam_size)  # running sum of logprobs for each beam
+            beam_logprobs_sum = torch.zeros(beam_size) # running sum of logprobs for each beam
             for t in range(self.seq_length + 2):
                 if t == 0:
-                    xt = self.img_embed(fc_feats[k:k+1]).expand(beam_size, self.input_encoding_size)
+                    # MLP(mean(att_feats))
+                    mean_regions = torch.mean(att_feats[k:k+1].view(batch_size, -1, self.att_feat_size), dim=1)
+                    # print('mean feat shape:', mean_regions.size())
+                    xt = self.img_embed(mean_regions).expand(beam_size, self.input_encoding_size)
+                    # xt = self.img_embed(fc_feats[k:k+1]).expand(beam_size, 2 * self.input_encoding_size)
                 elif t == 1: # input <bos>
                     it = fc_feats.data.new(beam_size).long().zero_()
                     xt = self.embed(Variable(it, requires_grad=False))
@@ -115,8 +147,8 @@ class ShowTellModel(DecoderModel):
                     for every previous beam we now many new possibilities to branch out
                     we need to resort our beams to maintain the loop invariant of keeping
                     the top beam_size most likely sequences."""
-                    logprobsf = logprobs.float()  # lets go to CPU for more efficiency in indexing operations
-                    ys, ix = torch.sort(logprobsf, 1, True)  # sorted array of logprobs along each previous beam (last true = descending)
+                    logprobsf = logprobs.float() # lets go to CPU for more efficiency in indexing operations
+                    ys,ix = torch.sort(logprobsf,1,True) # sorted array of logprobs along each previous beam (last true = descending)
                     candidates = []
                     cols = min(beam_size, ys.size(1))
                     rows = beam_size
@@ -125,7 +157,7 @@ class ShowTellModel(DecoderModel):
                     for c in range(cols):
                         for q in range(rows):
                             # compute logprob of expanding beam q with word in (sorted) position c
-                            local_logprob = ys[q, c]
+                            local_logprob = ys[q,c]
                             candidate_logprob = beam_logprobs_sum[q] + local_logprob
                             candidates.append({'c':ix.data[q,c], 'q':q, 'p':candidate_logprob.data[0], 'r':local_logprob.data[0]})
                     candidates = sorted(candidates, key=lambda x: -x['p'])
@@ -163,16 +195,14 @@ class ShowTellModel(DecoderModel):
                     # encode as vectors
                     it = beam_seq[t-2]
                     xt = self.embed(Variable(it.cuda()))
+                    weighted_ctx = self.get_ctx(att_feats, state)
+                    xt += weighted_ctx
 
                 if t >= 2:
                     state = new_state
-                #  print "State:", state
 
                 output, state = self.core(xt.unsqueeze(0), state)
                 logprobs = F.log_softmax(self.logit(output.squeeze(0)))
-                if forbid_unk:
-                    logprobs = logprobs[:, :-1]
-
 
             self.done_beams[k] = sorted(self.done_beams[k], key=lambda x: -x['p'])
             seq[:, k] = self.done_beams[k][0]['seq'] # the first beam has highest cumulative score
@@ -180,20 +210,22 @@ class ShowTellModel(DecoderModel):
         # return the samples and their log likelihoods
         return seq.transpose(0, 1), seqLogprobs.transpose(0, 1)
 
-    def sample(self, fc_feats, att_feats, opt={}):
+    def sample_old(self, fc_feats, att_feats, opt={}):
         sample_max = opt.get('sample_max', 1)
         beam_size = opt.get('beam_size', 1)
         temperature = opt.get('temperature', 1.0)
-        forbid_unk = opt.get('forbid_unk', 1)
         if beam_size > 1:
             return self.sample_beam(fc_feats, att_feats, opt)
+
         batch_size = fc_feats.size(0)
         state = self.init_hidden(batch_size)
         seq = []
         seqLogprobs = []
         for t in range(self.seq_length + 2):
             if t == 0:
-                xt = self.img_embed(fc_feats)
+                mean_region = torch.mean(att_feats.view(batch_size, -1, self.att_feat_size), dim=1)
+                # print('mean feat shape:', mean_region.size())
+                xt = self.img_embed(mean_region)
             else:
                 if t == 1: # input <bos>
                     it = fc_feats.data.new(batch_size).long().zero_()
@@ -211,7 +243,9 @@ class ShowTellModel(DecoderModel):
                     it = it.view(-1).long() # and flatten indices for downstream processing
 
                 xt = self.embed(Variable(it, requires_grad=False))
-
+                # The context embedding
+                weighted_ctx = self.get_ctx(att_feats, state)
+                xt += weighted_ctx
             if t >= 2:
                 # stop when all finished
                 if t == 2:
@@ -226,12 +260,5 @@ class ShowTellModel(DecoderModel):
 
             output, state = self.core(xt.unsqueeze(0), state)
             logprobs = F.log_softmax(self.logit(output.squeeze(0)))
-            if forbid_unk:
-                logprobs = logprobs[:, :-1]
 
-
-        try:
-            return torch.cat([_.unsqueeze(1) for _ in seq], 1), torch.cat([_.unsqueeze(1) for _ in seqLogprobs], 1).data
-        except:  # Fix issue with Variable v. Tensor depending on the mode.
-            return torch.cat([_.unsqueeze(1) for _ in seq], 1), torch.cat([_.unsqueeze(1) for _ in seqLogprobs], 1)
-
+        return torch.cat([_.unsqueeze(1) for _ in seq], 1), torch.cat([_.unsqueeze(1) for _ in seqLogprobs], 1)
