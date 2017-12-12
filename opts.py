@@ -327,6 +327,9 @@ def add_generic(parser):
                default=512, help='the hidden size of the attention MLP; only useful in show_attend_tell; 0 if not using hidden layer')
     parser.add('--att_feat_size', type=int,
                default=2048, help='2048 for resnet, 512 for vgg')
+    parser.add_argument('--att_hid_size', type=int, default=512,
+                    help='the hidden size of the attention MLP; only useful in show_attend_tell; 0 if not using hidden layer')
+
     return parser
 
 
