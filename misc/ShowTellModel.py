@@ -63,13 +63,14 @@ class ShowTellModel(DecoderModel):
                     else:
                         sample_ind = sample_mask.nonzero().view(-1)
                         it = seq[:, i-1].data.clone()
-                        #prob_prev = torch.exp(outputs[-1].data.index_select(0, sample_ind)) # fetch prev distribution: shape Nx(M+1)
-                        #it.index_copy_(0, sample_ind, torch.multinomial(prob_prev, 1).view(-1))
-                        prob_prev = torch.exp(outputs[-1].data) # fetch prev distribution: shape Nx(M+1)
+                        # fetch prev distribution: shape Nx(M+1)
+                        prob_prev = torch.exp(outputs[-1].data)
                         if self.ss_vocab:
                             for token in sample_vocab:
                                 prob_prev[:, token] += 0.5
-                        it.index_copy_(0, sample_ind, torch.multinomial(prob_prev, 1).view(-1).index_select(0, sample_ind))
+                        it.index_copy_(0, sample_ind,
+                                       torch.multinomial(prob_prev,
+                                                         1).view(-1).index_select(0, sample_ind))
                         it = Variable(it, requires_grad=False)
                 else:
                     it = seq[:, i-1].clone()

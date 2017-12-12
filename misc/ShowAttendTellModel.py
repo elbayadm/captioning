@@ -16,7 +16,8 @@ class ShowAttendTellModel(DecoderModel):
         self.att_feat_size = opt.att_feat_size
         self.att_hid_size = opt.att_hid_size
 
-        self.embed = nn.Sequential(nn.Embedding(self.vocab_size, self.input_encoding_size),
+        self.embed_1 = nn.Embedding(self.vocab_size, self.input_encoding_size)
+        self.embed = nn.Sequential(self.embed_1,
                                    nn.ReLU(),
                                    nn.Dropout(self.drop_prob_lm))
         self.fc_embed = nn.Sequential(nn.Linear(self.fc_feat_size, self.rnn_size),
@@ -33,10 +34,10 @@ class ShowAttendTellModel(DecoderModel):
     def init_weights(self):
         initrange = 0.1
         if self.W is not None:
-            self.embed.weight = nn.Parameter(torch.from_numpy(self.W),
+            self.embed_1.weight = nn.Parameter(torch.from_numpy(self.W),
                                              requires_grad=self.require_W_grad)
         else:
-            self.embed.weight.data.uniform_(-initrange, initrange)
+            self.embed_1.weight.data.uniform_(-initrange, initrange)
         # self.logit.bias.data.fill_(0)
         # self.logit.weight.data.uniform_(-initrange, initrange)
 
@@ -48,18 +49,22 @@ class ShowAttendTellModel(DecoderModel):
     def forward(self, fc_feats, att_feats, seq):
         batch_size = fc_feats.size(0)
         state = self.init_hidden(batch_size)
-
         outputs = []
-
         # embed fc and att feats
+        print('Fc feats:', fc_feats.size())
+        print('Att feats:', att_feats.size())
         fc_feats = self.fc_embed(fc_feats)
+        print("Embedded fc feats:", fc_feats.size())
         _att_feats = self.att_embed(att_feats.view(-1, self.att_feat_size))
+        print('fak att feats:', _att_feats.size())
+        # FIXME att_feats are not really used
         att_feats = _att_feats.view(*(att_feats.size()[:-1] + (self.rnn_size,)))
-
+        print('Reformatted:', att_feats.size())
         # Project the attention feats first to reduce memory and computation comsumptions.
         p_att_feats = self.ctx2att(att_feats.view(-1, self.rnn_size))
+        print('Projecting:', p_att_feats.size())
         p_att_feats = p_att_feats.view(*(att_feats.size()[:-1] + (self.att_hid_size,)))
-
+        print('Reformatted:', p_att_feats.size())
         for i in range(seq.size(1) - 1):
             if self.training and i >= 1 and self.ss_prob > 0.0: # otherwiste no need to sample
                 sample_prob = fc_feats.data.new(batch_size).uniform_(0, 1)
@@ -69,10 +74,12 @@ class ShowAttendTellModel(DecoderModel):
                 else:
                     sample_ind = sample_mask.nonzero().view(-1)
                     it = seq[:, i].data.clone()
-                    #prob_prev = torch.exp(outputs[-1].data.index_select(0, sample_ind)) # fetch prev distribution: shape Nx(M+1)
-                    #it.index_copy_(0, sample_ind, torch.multinomial(prob_prev, 1).view(-1))
-                    prob_prev = torch.exp(outputs[-1].data) # fetch prev distribution: shape Nx(M+1)
-                    it.index_copy_(0, sample_ind, torch.multinomial(prob_prev, 1).view(-1).index_select(0, sample_ind))
+                    # fetch prev distribution: shape Nx(M+1)
+                    prob_prev = torch.exp(outputs[-1].data)
+                    it.index_copy_(0,
+                                   sample_ind,
+                                   torch.multinomial(prob_prev,
+                                                     1).view(-1).index_select(0, sample_ind))
                     it = Variable(it, requires_grad=False)
             else:
                 it = seq[:, i].clone()
