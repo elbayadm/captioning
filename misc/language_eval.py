@@ -15,6 +15,8 @@ def captions_creativity(caps, minfreq):
     print('Minfreq == %d' % minfreq)
     creativity = {}
     tmp = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(6))
+    os.makedirs('tmp', exist_ok=True)
+    tmp  = 'tmp/' + tmp
     with open('%s_tmp.txt' % tmp, 'w') as f:
         for cp in caps:
             f.write('%s\n' % cp)
