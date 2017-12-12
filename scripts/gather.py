@@ -265,10 +265,14 @@ if __name__ == "__main__":
     # print(tab.get_string(fields=FIELDS, sortby="Sorter"))
     # print(tab.get_html_string(fields=FIELDS, sortby="Sorter"))
 
+    save = 0
     if len(sys.argv) > 1:
         filter = sys.argv[1]
         if len(sys.argv) > 2:
             exc = sys.argv[2]
+            if exc == 1:
+                save = 1
+                exc = None
         else:
             exc = None
     else:
@@ -276,9 +280,10 @@ if __name__ == "__main__":
     tab, dump = crawl_results(filter, exc)
     print(tab.get_string(sortby='CIDEr', reversesort=True))
     filename = "Results/res%s_%s" % (filter, socket.gethostname())
-    with open(filename+'.html', 'w') as f:
-        ss = tab.get_html_string(sortby="CIDEr", reversesort=True)
-        # print(ss)
-        f.write(ss)
-    pickle.dump(dump, open(filename+".res", 'wb'))
+    if save:
+        with open(filename+'.html', 'w') as f:
+            ss = tab.get_html_string(sortby="CIDEr", reversesort=True)
+            # print(ss)
+            f.write(ss)
+        pickle.dump(dump, open(filename+".res", 'wb'))
 
