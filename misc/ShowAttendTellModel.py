@@ -215,20 +215,20 @@ class ShowAttendTellModel(DecoderModel):
         state = self.init_hidden(batch_size)
         outputs = []
         # embed fc and att feats
-        print('Fc feats:', fc_feats.size())
-        print('Att feats:', att_feats.size())
+        # print('Fc feats:', fc_feats.size())
+        # print('Att feats:', att_feats.size())
         fc_feats = self.fc_embed(fc_feats)
-        print("Embedded fc feats:", fc_feats.size())
+        # print("Embedded fc feats:", fc_feats.size())
         _att_feats = self.att_embed(att_feats.view(-1, self.att_feat_size))
-        print('fak att feats:', _att_feats.size())
-        # FIXME att_feats are not really used
+        # print('Embedded att feats:', _att_feats.size())
+        # print('Resizing into:', att_feats.size()[:-1], self.rnn_size)
         att_feats = _att_feats.view(*(att_feats.size()[:-1] + (self.rnn_size,)))
-        print('Reformatted:', att_feats.size())
+        # print('Reformatted:', att_feats.size())
         # Project the attention feats first to reduce memory and computation comsumptions.
         p_att_feats = self.ctx2att(att_feats.view(-1, self.rnn_size))
-        print('Projecting:', p_att_feats.size())
+        # print('Projecting:', p_att_feats.size())
         p_att_feats = p_att_feats.view(*(att_feats.size()[:-1] + (self.att_hid_size,)))
-        print('Reformatted:', p_att_feats.size())
+        # print('Reformatted:', p_att_feats.size())
         for i in range(seq.size(1) - 1):
             if self.training and i >= 1 and self.ss_prob > 0.0: # otherwiste no need to sample
                 sample_prob = fc_feats.data.new(batch_size).uniform_(0, 1)
@@ -274,7 +274,7 @@ class ShowAttendTellModel(DecoderModel):
 
         # embed fc and att feats
         fc_feats = self.fc_embed(fc_feats)
-        _att_feats = self.att_embed(att_feats.view(-1, self.att_feat_size))
+        _att_feats = self.att_embed(att_feats.contiguous().view(-1, self.att_feat_size))
         att_feats = _att_feats.view(*(att_feats.size()[:-1] + (self.rnn_size,)))
 
         # Project the attention feats first to reduce memory and computation comsumptions.

@@ -323,8 +323,8 @@ def add_generic(parser):
     # Special for atention
     parser.add('--attend_mode', type=str,
                default='concat', help='Concat, product: how to combine the hidden state with the region embedding to predict the weighing scales')
-    parser.add('--num_regions', type=int,
-               default=512, help='the hidden size of the attention MLP; only useful in show_attend_tell; 0 if not using hidden layer')
+    parser.add('--region_size', type=int,
+               default=14, help='the hidden size of the attention MLP; only useful in show_attend_tell; 0 if not using hidden layer')
     parser.add('--att_feat_size', type=int,
                default=2048, help='2048 for resnet, 512 for vgg')
     parser.add_argument('--att_hid_size', type=int, default=512,

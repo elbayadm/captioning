@@ -1,14 +1,10 @@
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 from math import exp
 import numpy as np
 import time
 import os
 import os.path as osp
 import sys
-from six.moves import cPickle as pickle
+import pickle
 
 
 def train(opt):
@@ -133,7 +129,8 @@ def train(opt):
         start = time.time()
         images = data['images']
         images = Variable(torch.from_numpy(images), requires_grad=False).cuda()
-        att_feats, fc_feats = cnn_model.forward_caps(images, opt.seq_per_img)
+        att_feats, fc_feats = cnn_model.forward_caps(images, opt.seq_per_img,
+                                                     region_size=opt.region_size)
         ml_loss, loss, stats = model.step(data, att_feats, fc_feats,
                                           iteration, epoch)
         for optimizer in optimizers:

@@ -2,6 +2,7 @@ import os.path as osp
 import torch
 import torch.nn as nn
 import torch.nn.init as init
+import torch.nn.functional as F
 import torchvision.models as models
 from torchvision.models.vgg import make_layers
 import torch.utils.model_zoo as model_zoo
@@ -67,29 +68,32 @@ class ResNetModel(models.ResNet):
         opt.logger.warn('Finetuning up from %d modules in the cnn' % opt.finetune_cnn_slice)
         self.to_finetune = list(self._modules.values())[opt.finetune_cnn_slice:] #less = 6, otherwise 5
 
-    def forward(self, x):
+    def forward(self, x, att_size=14):
         x = self.conv1(x)
         x = self.bn1(x)
-        x = self.relu(x) # should I remove it FIXME
+        x = self.relu(x)  # should I remove it FIXME
         x = self.maxpool(x)
 
         x = self.layer1(x)
         x = self.layer2(x)
         x = self.layer3(x)
         x = self.layer4(x)
-        att_feats = x
-        #  x = x.mean(2).mean(3).squeeze(2).squeeze(2)
-        x = self.avgpool(x)
+        att_feats = F.adaptive_avg_pool2d(x,
+                                          [att_size,
+                                           att_size])
+        N, D, _, _ = att_feats.size()
+        att_feats = att_feats.view(N, D, -1)
+        att_feats = att_feats.permute(0, 2, 1)
+        #  fc_feats = x.mean(2).mean(3).squeeze(2).squeeze(2)
+        fc_feats = self.avgpool(x)
         if self.opt.norm_feat:
             # x = self.norm2(x)
-            x = torch.nn.functional.normalize(x, dim=1)
-        x = x.view(x.size(0), -1)
-        #  x = self.fc(x)
-        # TODO: add norm2 to the fc_feat.
-        return att_feats, x
+            fc_feats = torch.nn.functional.normalize(fc_feats, dim=1)
+        fc_feats = fc_feats.view(N, -1)
+        return att_feats, fc_feats
 
-    def forward_caps(self, x, seq_per_img, return_unique=False):
-        att_feats, fc_feats = self.forward(x)
+    def forward_caps(self, x, seq_per_img, region_size=14, return_unique=False):
+        att_feats, fc_feats = self.forward(x, att_size=region_size)
         att_feats_unique = att_feats
         fc_feats_unique = fc_feats
         # Duplicate for caps per image

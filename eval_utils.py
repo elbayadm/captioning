@@ -124,6 +124,7 @@ def eval_split(cnn_model, model, loader, logger, eval_kwargs={}):
     forbid_unk = eval_kwargs.get('forbid_unk', 1)
 
     seq_per_img = eval_kwargs.get('seq_per_img')
+    region_size = model.region_size
     # Make sure to be in the evaluation mode
     cnn_model.eval()
     model.eval()
@@ -142,6 +143,7 @@ def eval_split(cnn_model, model, loader, logger, eval_kwargs={}):
         images = Variable(torch.from_numpy(images), requires_grad=False).cuda()
         att_feats, fc_feats, att_unique, fc_unique = cnn_model.forward_caps(images,
                                                                             seq_per_img,
+                                                                            region_size=region_size,
                                                                             return_unique=True)
         ml_loss, loss, stats = model.step(data, att_feats, fc_feats, train=False)
         # print('Scores : ', stats)

@@ -3,10 +3,11 @@ from shutil import copy2
 import glob
 from six.moves import cPickle as pickle
 import os.path as osp
+
 import torch
 import torch.optim as optim
+
 from misc.ShowTellModel import ShowTellModel
-from misc.ShowTellModel_RAML import ShowTellModel_RAML
 from misc.ShowTellVAEModel import ShowTellVAEModel
 from misc.ShowAttendTellModel import ShowAttendTellModel
 
