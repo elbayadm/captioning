@@ -14,10 +14,15 @@ def get_results(model, split='val'):
     model_dir = model
     # Read training results:
     if osp.exists('%s/infos-best.pkl' % model_dir):
-        infos = pickle.load(open('%s/infos-best.pkl' % model_dir, 'rb'))
+        infos = pickle.load(open('%s/infos.pkl' % model_dir, 'rb'))
         tr_res = infos['val_result_history']
-        tr_res = tr_res[max(list(tr_res))]
+        iters = list(tr_res)
+        cids = [tr_res[it]['lang_stats']['CIDEr'] for it in iters]
+        best_iter = iters[cids.index(max(cids))]
+        last_iter = max(iters)
+        tr_res = tr_res[best_iter]
         out = tr_res['lang_stats']
+        out['best/last'] = '%dk / %dk' % (best_iter/1000, last_iter/1000)
         try:
             out['ml_loss'] = tr_res['ml_loss']
         except:
@@ -95,7 +100,10 @@ def parse_name_clean(params):
     combine_loss = params.get('combine_loss', 0)
     multi = alter_loss + sum_loss + combine_loss
     loss_version = params['loss_version']
-    modelname = None
+    finetuning = params.get('finetune_cnn_after', -1)
+    fnslice = params.get('finetune_cnn_slice', -1)  # or 6
+
+    modelname = ""
     if "alpha" in params:
         alpha = (params['alpha'], params['alpha'])
     else:
@@ -120,7 +128,9 @@ def parse_name_clean(params):
         elif sample_reward:
             modelname = 'SampleR, r=%s, $\\tau=%.2f$, $\\alpha=%.1f$' % (loss_version, tau_sent, alpha[0])
         else:
-            print('Model: %s - unknown unique loss mode ' % params['modelname'])
+            # print('Model: %s - assuming baseline loss' % params['modelname'])
+            # modelname = " ".join(params['modelname'].split('_'))
+            modelname = "baseline"
     else:
         wl = get_wl(params)
         if alter_loss:
@@ -133,6 +143,8 @@ def parse_name_clean(params):
             modelname = "Combining losses, %s w/ SampleR, r=%s $\\tau=%.2f$, $\\alpha=%.1f$" \
                          % (wl, loss_version, tau_sent, alpha[0])
 
+    if finetuning > -1:
+        modelname += " +cnn(%d:)" % fnslice
     if not modelname:
         modelname = " ".join(params['modelname'].split('/')[-1].split('_'))
         print('Couldnt name ', params['modelname'])
@@ -218,7 +230,7 @@ def crawl_results(filter='', exc=None):
         # Exclude models containg exc:
         models = [model for model in models if exc not in model]
     # print("Found:", models)
-    fields = ["Model", 'Beam', 'CIDEr', 'Bleu4', 'Perplexity']
+    fields = ["Model", 'Beam', 'CIDEr', 'Bleu4', 'Perplexity', 'best/last']
     recap = {}
     tab = PrettyTable()
     tab.field_names = fields
@@ -243,7 +255,7 @@ def crawl_results(filter='', exc=None):
                         perpl = 1.
                     tab.add_row([modelname,
                                  p['beam_size'],
-                                 cid, bl, perpl])
+                                 cid, bl, perpl, res['best/last']])
     return tab, dump
 
 
