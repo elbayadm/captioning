@@ -68,7 +68,8 @@ class ShowTellModel(DecoderModel):
                         if self.ss_vocab:
                             for token in sample_vocab:
                                 prob_prev[:, token] += 0.5
-                        it.index_copy_(0, sample_ind,
+                        it.index_copy_(0,
+                                       sample_ind,
                                        torch.multinomial(prob_prev,
                                                          1).view(-1).index_select(0, sample_ind))
                         it = Variable(it, requires_grad=False)
