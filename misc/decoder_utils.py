@@ -8,20 +8,15 @@ import torch
 import torch.optim as optim
 
 from misc.ShowTellModel import ShowTellModel
-from misc.ShowTellVAEModel import ShowTellVAEModel
-from misc.ShowAttendTellModel import ShowAttendTellModel
+from misc.AdaptiveAttentionModel import AdaptiveAttentionModel
 
 
 def select_model(opt):
     select = opt.caption_model
     if select == 'show_tell':
         model = ShowTellModel(opt)
-    elif select == 'show_tell_vae':
-        model = ShowTellVAEModel(opt)
-    elif select == 'show_tell_raml':
-        model = ShowTellModel_RAML(opt)
-    elif select == 'show_attend_tell':
-        model = ShowAttendTellModel(opt)
+    elif select == 'adaptive_attention':
+        model = AdaptiveAttentionModel(opt)
     else:
         raise ValueError("Caption model not supported: {}".format(select))
     return model

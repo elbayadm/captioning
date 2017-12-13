@@ -211,12 +211,14 @@ class DecoderModel(nn.Module):
                 # #FIXME add the scaling as parameter
 
         stats = None
-        if opt.caption_model == "show_attend_tell":
-            seq = labels
-            msk = masks
-        else:
-            seq = labels[:, 1:]
-            msk = masks[:, 1:]
+        # if opt.caption_model == "show_attend_tell":
+            # seq = labels
+            # msk = masks
+        # else:
+            # seq = labels[:, 1:]
+            # msk = masks[:, 1:]
+        seq = labels[:, 1:]
+        msk = masks[:, 1:]
         # FIXME Deprecated
         if opt.caption_model == 'show_tell_raml':
             probs, reward = self.forward(fc_feats, att_feats, labels)
