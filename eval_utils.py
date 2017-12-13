@@ -174,7 +174,7 @@ def eval_split(cnn_model, model, loader, logger, eval_kwargs={}):
             else:
                 entry = {'image_id': data['infos'][k]['id'], 'caption': sent}
                 predictions.append(entry)
-            # print_sampled(entry['image_id'], entry['caption'])
+            print_sampled(entry['image_id'], entry['caption'])
         ix0 = data['bounds']['it_pos_now']
         ix1 = data['bounds']['it_max']
         if val_images_use != -1:

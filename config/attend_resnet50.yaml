@@ -12,8 +12,7 @@ cnn_model : resnet50
 
 fc_feat_size : 2048
 att_feat_size : 2048
-num_regions : 512
-
+region_size : 7
 rnn_size : 512
 
 batch_size : 10
@@ -24,3 +23,5 @@ learning_rate : 1e-4
 learning_rate_decay_start : 5
 learning_rate_decay_rate : 0.6
 learning_rate_decay_every: 3
+
+beam_size : 1
