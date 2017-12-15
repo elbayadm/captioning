@@ -88,7 +88,7 @@ def get_wl(params):
         G += ' +H'
     if params.get('exact_dkl', 0):
         G += ' +ExDKL'
-    modelname = 'Word Level, Sim=%s, $\\tau=%.2f$, $\\alpha=%.1f$' % (G, params['tau_word'], alpha)
+    modelname = ' Word Leve l, Sim=%s, $\\tau=%.2f$, $\\alpha=%.1f$' % (G, params['tau_word'], alpha)
     return modelname
 
 
@@ -112,6 +112,14 @@ def parse_name_clean(params):
     tau_word = params['tau_word']
     rare = params.get('rare_tfidf', 0)
     sub = params.get('sub_idf', 0)
+    version = params['caption_model']
+    if version == "show_tell":
+        modelname = 'Show \& Tell'
+    elif version == "adaptive_attention":
+        modelname = 'Adaptive Attention (r=%d, gc=%.2f)' % (params.get('region_size', 14), params.get('grad_clip'))
+    else:
+        modelname = '??'
+        print('Unknwn model')
 
     if 'tfidf' in loss_version:
         loss_version += " n=%d, idf_select=%d, idf_sub=%d" % (params.get('ngram_length', 0), rare, sub)
@@ -119,28 +127,28 @@ def parse_name_clean(params):
         loss_version += " limited=%d" % params.get('limited_vocab_sub', 1)
     if not multi:
         if loss_version == "word2":
-            modelname = get_wl(params)
+            modelname += get_wl(params)
         elif sample_cap:
             if loss_version == "dummy":
                 loss_version = "constant"
             ver = params.get('sentence_loss_version', 1)
-            modelname = 'SampleP, r=%s V%d, $\\tau=%.2f$, $\\alpha=%.1f$' % (loss_version, ver, tau_sent, alpha[0])
+            modelname += ' SampleP, r=%s V%d, $\\tau=%.2f$, $\\alpha=%.1f$' % (loss_version, ver, tau_sent, alpha[0])
         elif sample_reward:
-            modelname = 'SampleR, r=%s, $\\tau=%.2f$, $\\alpha=%.1f$' % (loss_version, tau_sent, alpha[0])
+            modelname += ' SampleR, r=%s, $\\tau=%.2f$, $\\alpha=%.1f$' % (loss_version, tau_sent, alpha[0])
         else:
             # print('Model: %s - assuming baseline loss' % params['modelname'])
             # modelname = " ".join(params['modelname'].split('_'))
-            modelname = "baseline"
+            modelname += " baseline"
     else:
         wl = get_wl(params)
         if alter_loss:
-            modelname = "Alternating losses, %s  w/ SampleR, r=%s $\\tau=%.2f$, $\\alpha=%.1f$, $\\gamma=%.1f$ (mode:%s)" \
+            modelname += " Alternating losses, %s  w/ SampleR, r=%s $\\tau=%.2f$, $\\alpha=%.1f$, $\\gamma=%.1f$ (mode:%s)" \
                          % (wl, loss_version, tau_sent, alpha[0], params.get('gamma', 0), params.get('alter_mode', 'iter'))
         elif sum_loss:
-            modelname = "Sum losses, %s w/ SampleR, r=%s $\\tau=%.2f$, $\\alpha=%.1f$, $\\gamma=%.1f$" \
+            modelname += " Sum losses, %s w/ SampleR, r=%s $\\tau=%.2f$, $\\alpha=%.1f$, $\\gamma=%.1f$" \
                          % (wl, loss_version, tau_sent, alpha[0], params.get('gamma', 0))
         elif combine_loss:
-            modelname = "Combining losses, %s w/ SampleR, r=%s $\\tau=%.2f$, $\\alpha=%.1f$" \
+            modelname += " Combining losses, %s w/ SampleR, r=%s $\\tau=%.2f$, $\\alpha=%.1f$" \
                          % (wl, loss_version, tau_sent, alpha[0])
 
     if finetuning > -1:
@@ -241,21 +249,20 @@ def crawl_results(filter='', exc=None):
             modelname = parse_name_clean(outputs[0][0])
             dump.append(outputs)
             for (p, res) in outputs:
-                if p['beam_size'] > 1:
-                    cid = float(res['CIDEr'] * 100)
-                    try:
-                        recap[p['alpha']] = cid
-                    except:
-                        recap[p['alpha_sent']] = cid
-                        recap[p['alpha_word']] = cid
-                    bl = float(res['Bleu_4'] * 100)
-                    try:
-                        perpl = float(exp(res['ml_loss']))
-                    except:
-                        perpl = 1.
-                    tab.add_row([modelname,
-                                 p['beam_size'],
-                                 cid, bl, perpl, res['best/last']])
+                cid = float(res['CIDEr'] * 100)
+                try:
+                    recap[p['alpha']] = cid
+                except:
+                    recap[p['alpha_sent']] = cid
+                    recap[p['alpha_word']] = cid
+                bl = float(res['Bleu_4'] * 100)
+                try:
+                    perpl = float(exp(res['ml_loss']))
+                except:
+                    perpl = 1.
+                tab.add_row([modelname,
+                             p['beam_size'],
+                             cid, bl, perpl, res['best/last']])
     return tab, dump
 
 
@@ -270,7 +277,8 @@ if __name__ == "__main__":
         filter = sys.argv[1]
         if len(sys.argv) > 2:
             exc = sys.argv[2]
-            if exc == 1:
+            print('exc:', exc)
+            if int(exc) == 1:
                 save = 1
                 exc = None
         else:

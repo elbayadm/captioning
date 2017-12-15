@@ -1,7 +1,7 @@
 # Generic
 # -------------------------
-modelname : attend_resnet50
-caption_model : show_attend_tell
+modelname : word2_coco_idf_tword015_a06_adaatt_r14
+caption_model : adaptive_attention
 
 restart : 1
 val_images_use : -1
@@ -12,16 +12,24 @@ cnn_model : resnet50
 
 fc_feat_size : 2048
 att_feat_size : 2048
-region_size : 7
+region_size : 14
 rnn_size : 512
 
 batch_size : 10
 input_data : data/coco/cocotalk
+similarity_matrix : data/Glove/train_coco_similarities.pkl
 
 grad_clip : 2.
-learning_rate : 1e-4
+learning_rate : 5e-4
 learning_rate_decay_start : 5
 learning_rate_decay_rate : 0.6
 learning_rate_decay_every: 3
 
-beam_size : 1
+# Loss:
+sample_cap: 1
+loss_version : word2
+tau_word : 0.15
+rare_tfidf : 1
+alpha_word : 0.6
+
+beam_size : 3

@@ -1,20 +1,27 @@
 # Generic
 # -------------------------
-modelname : attend_resnet50_lr
-cnn_model : resnet50
-caption_model : show_attend_tell
-save_checkpoint_every : 4000
-fc_feat_size : 2048
-att_feat_size : 2048
-num_regions : 512
-rnn_size : 512
-batch_size : 10
-input_data : data/coco/cocotalk
+modelname : adaatt_resnet50_lr_bs3_clip
+caption_model : adaptive_attention
 
 restart : 1
 val_images_use : -1
+save_checkpoint_every : 4000
+
 finetune_cnn_after : -1
-learning_rate : 0.001
+cnn_model : resnet50
+
+fc_feat_size : 2048
+att_feat_size : 2048
+region_size : 7
+rnn_size : 512
+
+batch_size : 10
+input_data : data/coco/cocotalk
+
+# grad_clip : 2.
+learning_rate : 5e-4
 learning_rate_decay_start : 5
 learning_rate_decay_rate : 0.6
 learning_rate_decay_every: 3
+
+beam_size : 3

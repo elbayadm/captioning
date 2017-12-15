@@ -84,7 +84,7 @@ class ShowAttendLSTM(nn.Module):
 
 class AdaptiveAttentionLSTM(nn.Module):
     def __init__(self, opt, use_maxout=True):
-        super(AdaAtt_lstm, self).__init__()
+        super(AdaptiveAttentionLSTM, self).__init__()
         self.input_encoding_size = opt.input_encoding_size
         #self.rnn_type = opt.rnn_type
         self.rnn_size = opt.rnn_size

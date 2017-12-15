@@ -744,9 +744,8 @@ class RewardSampler(nn.Module):
         if self.combine_loss:
             # Instead of ML(sampled) return WL(sampled)
             self.loss_sampled = WordSmoothCriterion2(opt)
+            self.loss_sampled.alpha = .7
             self.loss_gt = WordSmoothCriterion2(opt)
-            self.loss_gt.log()
-            self.loss_sampled.log()
 
     def forward(self, model, fc_feats, att_feats, labels, mask, scores=None):
         # truncate
@@ -801,8 +800,12 @@ class HammingRewardSampler(RewardSampler):
         RewardSampler.__init__(self, opt, vocab)
 
     def log(self):
-        sl = "ML" if not self.combine_loss else "Word"
-        self.logger.info('Initialized hamming reward sampler tau = %.2f, alpha= %.1f limited=%d sampled loss = %s' % (self.tau, self.alpha, self.limited, sl))
+        self.logger.info('Initialized hamming reward sampler tau = %.2f, alpha= %.1f limited=%d' % (self.tau, self.alpha, self.limited))
+        if self.combine_loss:
+            self.logger.info('GT loss:')
+            self.loss_gt.log()
+            self.logger.info('Sampled loss:')
+            self.loss_sampled.log()
 
     def alter(self, labels):
         N = labels.size(0)

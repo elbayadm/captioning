@@ -111,7 +111,7 @@ class AdaptiveAttentionModel(DecoderModel):
                 it = seq[:, i].clone()
             # break if all the sequences end
             if i >= 2 and seq[:, i].data.sum() == 0:
-                print('Breaking at :', i)
+                # print('Breaking at :', i)
                 break
             xt = self.embed(it)
             output, state = self.core(xt, fc_feats, att_feats, p_att_feats, state)
