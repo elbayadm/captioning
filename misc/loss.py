@@ -744,7 +744,7 @@ class RewardSampler(nn.Module):
         if self.combine_loss:
             # Instead of ML(sampled) return WL(sampled)
             self.loss_sampled = WordSmoothCriterion2(opt)
-            self.loss_sampled.alpha = .7
+            # self.loss_sampled.alpha = .7
             self.loss_gt = WordSmoothCriterion2(opt)
 
     def forward(self, model, fc_feats, att_feats, labels, mask, scores=None):

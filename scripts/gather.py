@@ -23,6 +23,7 @@ def get_results(model, split='val'):
         tr_res = tr_res[best_iter]
         out = tr_res['lang_stats']
         out['best/last'] = '%dk / %dk' % (best_iter/1000, last_iter/1000)
+        print('best.last:', out['best/last'])
         try:
             out['ml_loss'] = tr_res['ml_loss']
         except:
@@ -33,30 +34,31 @@ def get_results(model, split='val'):
         params.update(vars(infos['opt']))
         compiled = [[params, out]]
     else:
+        print('infos-best not found in %s' % model_dir)
         compiled = []
 
     # Read post-results
-    val_results = sorted(glob.glob('%s/val_*.res' % model_dir))
-    for res in val_results:
-        eval_params = res.split('/')[-1].split('_')
-        beam = int(eval_params[1][2:])
-        sample_max = 1 if eval_params[3] == "max" else 0
-        temp = 0
-        if not sample_max:
-            temp = float(eval_params[4])
-            index = 5
-        else:
-            index = 4
-        flip = int(eval_params[index][4])
-        eval_params = {'beam_size': beam, 'sample_max': sample_max,
-                       'temperature': temp, 'flip': flip}
-        if params:
-            params.update(eval_params)
-        else:
-            params = eval_params
-        # Load results:
-        out = pickle.load(open(res, 'rb'))
-        compiled.append([params, out])
+    # val_results = sorted(glob.glob('%s/val_*.res' % model_dir))
+    # for res in val_results:
+        # eval_params = res.split('/')[-1].split('_')
+        # beam = int(eval_params[1][2:])
+        # sample_max = 1 if eval_params[3] == "max" else 0
+        # temp = 0
+        # if not sample_max:
+            # temp = float(eval_params[4])
+            # index = 5
+        # else:
+            # index = 4
+        # flip = int(eval_params[index][4])
+        # eval_params = {'beam_size': beam, 'sample_max': sample_max,
+                       # 'temperature': temp, 'flip': flip}
+        # if params:
+            # params.update(eval_params)
+        # else:
+            # params = eval_params
+        # # Load results:
+        # out = pickle.load(open(res, 'rb'))
+        # compiled.append([params, out])
     return compiled
 
 
