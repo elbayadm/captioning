@@ -1,6 +1,6 @@
 # Generic
 # -------------------------
-modelname : cider2_tsent09_a03
+modelname : cider2_tsent10_a04
 restart : 1
 
 caption_model : show_tell
@@ -21,5 +21,5 @@ learning_rate_decay_every: 3
 sample_cap: 1
 loss_version : cider
 sentence_loss_version : 2
-tau_sent : .9
-alpha_sent : 0.3
+tau_sent : 1.
+alpha_sent : 0.4

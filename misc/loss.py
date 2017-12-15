@@ -575,6 +575,8 @@ class CiderRewardCriterion(RewardCriterion):
             self.DF = DF
             self.DF_len = 40504
 
+    def log(self):
+        self.logger.info('CIDEr sampleP loss, tau=%.3f & alpha=%.2f' % (self.tau_sent, self.alpha))
 
     def get_scores(self, preds, target):
         # The reward loss:
@@ -699,6 +701,9 @@ class HammingRewardCriterion(RewardCriterion):
         self.vocab_size = opt.vocab_size
         assert self.tau_sent > 0, "Hamming requires exponentiation"
 
+    def log(self):
+        self.logger.info('Hamming sampleP loss, tau=%.3f & alpha=%.2f' % (self.tau_sent, self.alpha))
+
     def get_scores(self, preds, target):
         seq_length = target.size(1)
         refs = target.cpu().data.numpy()
@@ -712,11 +717,11 @@ class HammingRewardCriterion(RewardCriterion):
         # Process scores:
         scores = np.exp(scores / self.tau_sent)
         # Normalizing:
-        v = np.unique(target.data.cpu().numpy())
+        # v = np.unique(target.data.cpu().numpy())
         # print('vocab indices: (size):', len(v), v)
-        Z = hamming_Z(seq_length // 2, len(v), self.tau_sent)
-        print('Sum of rewards:', Z)
-        scores /= Z
+        # Z = hamming_Z(seq_length // 2, len(v), self.tau_sent)
+        # print('Sum of rewards:', Z)
+        # scores /= Z
         self.logger.warn('Scores after processing: %s' % str(scores))
         return scores
 

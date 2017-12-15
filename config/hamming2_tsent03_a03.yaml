@@ -1,6 +1,6 @@
 # Generic
 # -------------------------
-modelname : cider2_tsent09_a03
+modelname : hamming2_tsent03_a03
 restart : 1
 
 caption_model : show_tell
@@ -19,7 +19,7 @@ learning_rate_decay_every: 3
 
 # Loss:
 sample_cap: 1
-loss_version : cider
+loss_version : hamming
 sentence_loss_version : 2
-tau_sent : .9
+tau_sent : .3
 alpha_sent : 0.3
