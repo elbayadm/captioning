@@ -130,6 +130,8 @@ def set_optimizer(opt, epoch, model, cnn_model):
     params = filter(lambda p: p.requires_grad, model.parameters())
     optimizer = optim_func(params,
                            lr=opt.learning_rate,
+                           betas=(opt.optim_alpha, opt.optim_beta),
+                           eps=opt.optim_epsilon,
                            weight_decay=opt.weight_decay)
 
     optimizers = [optimizer]

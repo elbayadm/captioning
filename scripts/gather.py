@@ -116,9 +116,11 @@ def parse_name_clean(params):
     sub = params.get('sub_idf', 0)
     version = params['caption_model']
     if version == "show_tell":
-        modelname = 'Show \& Tell'
+        modelname = 'Show \& Tell %s'
     elif version == "adaptive_attention":
-        modelname = 'Adaptive Attention (r=%d, gc=%.2f)' % (params.get('region_size', 14), params.get('grad_clip'))
+        modelname = 'Adaptive Attention %s (r=%d, gc=%.2f)' % (params['cnn_model'],
+                                                               params.get('region_size', 14),
+                                                               params.get('grad_clip'))
     else:
         modelname = '??'
         print('Unknwn model')

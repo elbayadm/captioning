@@ -185,7 +185,7 @@ def add_optim_params(parser):
     parser.add('--optim', type=str,
                default='adam', help='what update to use? rmsprop|sgd|sgdmom|adagrad|adam')
     parser.add('--optim_alpha', type=float,
-               default=0.8, help='alpha for adam')
+               default=0.9, help='alpha for adam')
     parser.add('--optim_beta', type=float,
                default=0.999, help='beta used for adam')
     parser.add('--optim_epsilon', type=float,
@@ -319,6 +319,8 @@ def add_generic(parser):
                default=0.5, help='strength of dropout in the Language Model RNN input')
     parser.add('--drop_prob_lm', type=float,
                default=0.5, help='strength of dropout in the Language Model RNN')
+    parser.add('--drop_feat_im', type=float,
+               default=0.5, help='strength of dropout in the Language Model RNN')
 
     # Special for atention
     parser.add('--attend_mode', type=str,
@@ -329,6 +331,8 @@ def add_generic(parser):
                default=2048, help='2048 for resnet, 512 for vgg')
     parser.add_argument('--att_hid_size', type=int, default=512,
                     help='the hidden size of the attention MLP; only useful in show_attend_tell; 0 if not using hidden layer')
+    parser.add('--use_adaptive_pooling', type=int,
+               default=1, help='get a pooled region of size region_size')
 
     return parser
 

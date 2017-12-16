@@ -1,6 +1,6 @@
 # Generic
 # -------------------------
-modelname : debug
+modelname : adaatt_resnet50_pap_cstlr
 caption_model : adaptive_attention
 
 restart : 1
@@ -10,7 +10,7 @@ save_checkpoint_every : 4000
 optim_alpha : 0.8
 
 finetune_cnn_after : -1
-cnn_model : resnet152
+cnn_model : resnet50
 
 fc_feat_size : 2048
 att_feat_size : 2048

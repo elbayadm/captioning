@@ -90,6 +90,7 @@ class AdaptiveAttentionLSTM(nn.Module):
         self.rnn_size = opt.rnn_size
         self.num_layers = opt.num_layers
         self.drop_prob_lm = opt.drop_prob_lm
+        self.drop_x_lm = opt.drop_x_lm
         self.fc_feat_size = opt.fc_feat_size
         self.att_feat_size = opt.att_feat_size
         self.att_hid_size = opt.att_hid_size
@@ -126,7 +127,7 @@ class AdaptiveAttentionLSTM(nn.Module):
                 i2h = self.w2h(x) + self.v2h(img_fc)
             else:
                 x = hs[-1]
-                x = F.dropout(x, self.drop_prob_lm, self.training)
+                x = F.dropout(x, self.drop_x_lm, self.training)
                 i2h = self.i2h[L-1](x)
 
             all_input_sums = i2h+self.h2h[L](prev_h)

@@ -28,17 +28,20 @@ class AdaptiveAttentionModel(DecoderModel):
         super(AdaptiveAttentionModel, self).__init__(opt)
         self.att_feat_size = opt.att_feat_size
         self.att_hid_size = opt.att_hid_size
+        self.drop_feat_im = opt.drop_feat_im
 
+        # Word embedding:
         self.embed_1 = nn.Embedding(self.vocab_size, self.input_encoding_size)
         self.embed = nn.Sequential(self.embed_1,
                                    nn.ReLU(),
-                                   nn.Dropout(self.drop_prob_lm))
+                                   nn.Dropout(self.drop_x_lm))
+        # image embedding
         self.fc_embed = nn.Sequential(nn.Linear(self.fc_feat_size, self.rnn_size),
                                       nn.ReLU(),
-                                      nn.Dropout(self.drop_prob_lm))
+                                      nn.Dropout(self.drop_feat_im))
         self.att_embed = nn.Sequential(nn.Linear(self.att_feat_size, self.rnn_size),
                                        nn.ReLU(),
-                                       nn.Dropout(self.drop_prob_lm))
+                                       nn.Dropout(self.drop_feat_im))
         # The core RNN
         self.core = AdaAttCore(opt)
 

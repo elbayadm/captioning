@@ -143,7 +143,6 @@ def eval_split(cnn_model, model, loader, logger, eval_kwargs={}):
         images = Variable(torch.from_numpy(images), requires_grad=False).cuda()
         att_feats, fc_feats, att_unique, fc_unique = cnn_model.forward_caps(images,
                                                                             seq_per_img,
-                                                                            region_size=region_size,
                                                                             return_unique=True)
         ml_loss, loss, stats = model.step(data, att_feats, fc_feats, train=False)
         # print('Scores : ', stats)

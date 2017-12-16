@@ -10,13 +10,15 @@ import torch.utils.model_zoo as model_zoo
 model_urls = {
     'resnet50': 'https://download.pytorch.org/models/resnet50-19c8e357.pth',
     'resnet101': 'https://download.pytorch.org/models/resnet101-5d3b4d8f.pth',
+    'resnet152': 'https://download.pytorch.org/models/resnet152-b121ed2d.pth',
     'vgg16': 'https://download.pytorch.org/models/vgg16-397923af.pth',
     'vgg19': 'https://download.pytorch.org/models/vgg19-dcbb9e9d.pth'
 }
 
 model_configs = {
-    'resnet50' : [3, 4, 6, 3],
-    'resnet101' : [3, 4, 23, 3],
+    'resnet50': [3, 4, 6, 3],
+    'resnet101': [3, 4, 23, 3],
+    'resnet152': [3, 8, 36, 3],
     'vgg16': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 512, 512, 'M', 512, 512, 512, 'M'],
     'vgg19': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 256, 'M', 512, 512, 512, 512, 'M', 512, 512, 512, 512, 'M']
 }
@@ -47,6 +49,8 @@ class ResNetModel(models.ResNet):
     """
     def __init__(self, opt):
         self.opt = opt
+        self.adaptive_pooling = opt.use_adaptive_pooling
+        self.region_size = opt.region_size
         spec = opt.cnn_model
         flag = False
         super(ResNetModel, self).__init__(models.resnet.Bottleneck, model_configs[spec])
@@ -68,7 +72,7 @@ class ResNetModel(models.ResNet):
         opt.logger.warn('Finetuning up from %d modules in the cnn' % opt.finetune_cnn_slice)
         self.to_finetune = list(self._modules.values())[opt.finetune_cnn_slice:] #less = 6, otherwise 5
 
-    def forward(self, x, att_size=14):
+    def forward(self, x):
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)  # should I remove it FIXME
@@ -78,9 +82,12 @@ class ResNetModel(models.ResNet):
         x = self.layer2(x)
         x = self.layer3(x)
         x = self.layer4(x)
-        att_feats = F.adaptive_avg_pool2d(x,
-                                          [att_size,
-                                           att_size])
+        if self.adaptive_pooling:
+            att_feats = F.adaptive_avg_pool2d(x,
+                                              [self.region_size,
+                                               self.region_size])
+        else:
+            att_feats = x
         N, D, _, _ = att_feats.size()
         att_feats = att_feats.view(N, D, -1)
         att_feats = att_feats.permute(0, 2, 1)
@@ -90,10 +97,11 @@ class ResNetModel(models.ResNet):
             # x = self.norm2(x)
             fc_feats = torch.nn.functional.normalize(fc_feats, dim=1)
         fc_feats = fc_feats.view(N, -1)
+        print('fc_feats:', fc_feats.size(), 'att_feats:', att_feats.size())
         return att_feats, fc_feats
 
-    def forward_caps(self, x, seq_per_img, region_size=14, return_unique=False):
-        att_feats, fc_feats = self.forward(x, att_size=region_size)
+    def forward_caps(self, x, seq_per_img, return_unique=False):
+        att_feats, fc_feats = self.forward(x)
         att_feats_unique = att_feats
         fc_feats_unique = fc_feats
         # Duplicate for caps per image

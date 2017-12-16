@@ -1,6 +1,6 @@
 # Generic
 # -------------------------
-modelname : debug
+modelname : adaatt_resnet152_pap_cstlr_bs20
 caption_model : adaptive_attention
 
 restart : 1
@@ -19,7 +19,7 @@ use_adaptive_pooling : 0
 rnn_size : 512
 drop_feat_im : 0
 
-batch_size : 10
+batch_size : 20
 input_data : data/coco/cocotalk
 
 grad_clip : .1

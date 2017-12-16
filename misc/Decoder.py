@@ -28,6 +28,7 @@ class DecoderModel(nn.Module):
         self.rnn_size = opt.rnn_size
         self.num_layers = opt.num_layers
         self.drop_prob_lm = opt.drop_prob_lm
+        self.drop_x_lm = opt.drop_x_lm
         self.seq_length = opt.seq_length
         self.fc_feat_size = opt.fc_feat_size
         self.region_size = opt.region_size

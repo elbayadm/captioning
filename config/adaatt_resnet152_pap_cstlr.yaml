@@ -1,6 +1,6 @@
 # Generic
 # -------------------------
-modelname : debug
+modelname : adaatt_resnet152_pap_cstlr
 caption_model : adaptive_attention
 
 restart : 1
