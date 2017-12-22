@@ -97,7 +97,7 @@ class ResNetModel(models.ResNet):
             # x = self.norm2(x)
             fc_feats = torch.nn.functional.normalize(fc_feats, dim=1)
         fc_feats = fc_feats.view(N, -1)
-        print('fc_feats:', fc_feats.size(), 'att_feats:', att_feats.size())
+        # print('fc_feats:', fc_feats.size(), 'att_feats:', att_feats.size())
         return att_feats, fc_feats
 
     def forward_caps(self, x, seq_per_img, return_unique=False):

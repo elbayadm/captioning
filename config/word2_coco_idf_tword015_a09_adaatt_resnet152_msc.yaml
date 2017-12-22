@@ -1,6 +1,6 @@
 # Generic
 # -------------------------
-modelname : adaatt_resnet152_pap_cstlr_bs20
+modelname : word2_coco_idf_tword015_a09_adaatt_resnet152_msc
 caption_model : adaptive_attention
 
 restart : 1
@@ -19,14 +19,21 @@ use_adaptive_pooling : 0
 rnn_size : 512
 drop_feat_im : 0
 
-batch_size : 20
+batch_size : 10
 input_data : data/coco/cocotalk
+similarity_matrix : data/Glove/train_coco_similarities.pkl
 
 grad_clip : .1
 learning_rate : 4e-4
-learning_rate_decay_start : -1
+learning_rate_decay_start : 5
 learning_rate_decay_rate : 0.6
 learning_rate_decay_every: 3
 
+# Loss:
+sample_cap: 1
+loss_version : word2
+tau_word : 0.15
+rare_tfidf : 1
+alpha_word : 0.9
+
 beam_size : 3
-max_epochs : 30

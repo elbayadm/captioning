@@ -185,7 +185,7 @@ def add_optim_params(parser):
     parser.add('--optim', type=str,
                default='adam', help='what update to use? rmsprop|sgd|sgdmom|adagrad|adam')
     parser.add('--optim_alpha', type=float,
-               default=0.9, help='alpha for adam')
+               default=0.8, help='alpha for adam')
     parser.add('--optim_beta', type=float,
                default=0.999, help='beta used for adam')
     parser.add('--optim_epsilon', type=float,
@@ -195,9 +195,9 @@ def add_optim_params(parser):
 
     ## LR and its scheme
     parser.add('--learning_rate', type=float,
-               default=4e-4, help='learning rate')
+               default=5e-4, help='learning rate')
     parser.add('--learning_rate_decay_start', type=int,
-               default=-1, help='at what iteration to start decaying learning rate? (-1 = dont) (in epoch)')
+               default=5, help='at what iteration to start decaying learning rate? (-1 = dont) (in epoch)')
     parser.add('--lr_patience', type=int,
                default=2, help='Epochs after overfitting before decreasing the lr')
     parser.add('--lr_strategy', type=str,
@@ -205,7 +205,7 @@ def add_optim_params(parser):
     parser.add('--learning_rate_decay_every', type=int,
                default=3, help='every how many iterations thereafter to drop LR?(in epoch)')
     parser.add('--learning_rate_decay_rate', type=float,
-               default=0.8, help='every how many iterations thereafter to drop LR?(in epoch)')
+               default=0.6, help='every how many iterations thereafter to drop LR?(in epoch)')
 
     ## CNN optimizer
     parser.add('--cnn_optim', type=str,
@@ -320,7 +320,7 @@ def add_generic(parser):
     parser.add('--drop_prob_lm', type=float,
                default=0.5, help='strength of dropout in the Language Model RNN')
     parser.add('--drop_feat_im', type=float,
-               default=0.5, help='strength of dropout in the Language Model RNN')
+               default=0., help='strength of dropout in the Language Model RNN')
 
     # Special for atention
     parser.add('--attend_mode', type=str,

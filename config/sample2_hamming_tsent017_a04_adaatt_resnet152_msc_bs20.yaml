@@ -1,6 +1,4 @@
-# Generic
-# -------------------------
-modelname : adaatt_resnet152_pap_cstlr_bs20
+modelname : sample2_hamming_tsent017_a04_adaatt_resnet152_msc_bs20
 caption_model : adaptive_attention
 
 restart : 1
@@ -24,9 +22,15 @@ input_data : data/coco/cocotalk
 
 grad_clip : .1
 learning_rate : 4e-4
-learning_rate_decay_start : -1
+learning_rate_decay_start : 5
 learning_rate_decay_rate : 0.6
 learning_rate_decay_every: 3
 
+# Loss:
+sample_reward: 1
+sentence_loss_version : 2
+loss_version : hamming
+tau_sent : .17
+alpha_sent : 0.4
+
 beam_size : 3
-max_epochs : 30

@@ -13,7 +13,7 @@ FIELDS = ['Beam', 'Temperature', 'CIDEr', 'Bleu4', 'Perplexity']
 def get_results(model, split='val'):
     model_dir = model
     # Read training results:
-    if osp.exists('%s/infos-best.pkl' % model_dir):
+    if osp.exists('%s/infos.pkl' % model_dir):
         infos = pickle.load(open('%s/infos.pkl' % model_dir, 'rb'))
         tr_res = infos['val_result_history']
         iters = list(tr_res)
@@ -23,7 +23,7 @@ def get_results(model, split='val'):
         tr_res = tr_res[best_iter]
         out = tr_res['lang_stats']
         out['best/last'] = '%dk / %dk' % (best_iter/1000, last_iter/1000)
-        print('best.last:', out['best/last'])
+        # print('best.last:', out['best/last'])
         try:
             out['ml_loss'] = tr_res['ml_loss']
         except:
@@ -34,7 +34,7 @@ def get_results(model, split='val'):
         params.update(vars(infos['opt']))
         compiled = [[params, out]]
     else:
-        print('infos-best not found in %s' % model_dir)
+        print('infos not found in %s' % model_dir)
         compiled = []
 
     # Read post-results
@@ -116,11 +116,22 @@ def parse_name_clean(params):
     sub = params.get('sub_idf', 0)
     version = params['caption_model']
     if version == "show_tell":
-        modelname = 'Show \& Tell %s'
+        modelname = 'Show \& Tell %s' % params['cnn_model']
+        modelname += ' blr: %.2e decay: %d, b: %.3f, batch: %d' % (params['learning_rate'],
+                                                                   params['learning_rate_decay_start'],
+                                                                   params['optim_alpha'],
+                                                                   params['batch_size'])
     elif version == "adaptive_attention":
-        modelname = 'Adaptive Attention %s (r=%d, gc=%.2f)' % (params['cnn_model'],
-                                                               params.get('region_size', 14),
-                                                               params.get('grad_clip'))
+        modelname = 'Adaptive Attention %s (r=%d, gc=%.2f, adapt=%d, drop=%.1f)' % (params['cnn_model'],
+                                                                                    params.get('region_size', 14),
+                                                                                    params.get('grad_clip'),
+                                                                                    params.get('use_adaptive_pooling', 1),
+                                                                                    params.get('drop_feat_im', 0.5))
+        modelname += ' blr: %.2e decay: %d, b: %.3f, batch: %d' % (params['learning_rate'],
+                                                                   params['learning_rate_decay_start'],
+                                                                   params['optim_alpha'],
+                                                                   params['batch_size'])
+
     else:
         modelname = '??'
         print('Unknwn model')
@@ -288,7 +299,7 @@ if __name__ == "__main__":
         else:
             exc = None
     else:
-        filter= ''
+        filter = ''
     tab, dump = crawl_results(filter, exc)
     print(tab.get_string(sortby='CIDEr', reversesort=True))
     filename = "Results/res%s_%s" % (filter, socket.gethostname())

@@ -1,32 +1,33 @@
-# Generic
-# -------------------------
-modelname : adaatt_resnet152_pap_cstlr_bs20
-caption_model : adaptive_attention
-
+modelname : fncnn6_adaatt_resnet152_pap_cstlr_bs20_clr1
+start_from : save/adaatt_resnet152_pap_cstlr_bs20
+start_from_best : 1
 restart : 1
+
+caption_model : adaptive_attention
+cnn_model : resnet152
+cnn_learning_rate: 1.
+
 val_images_use : -1
 save_checkpoint_every : 4000
 
 optim_alpha : 0.8
-
-finetune_cnn_after : -1
-cnn_model : resnet152
-
 fc_feat_size : 2048
 att_feat_size : 2048
 region_size : 7
 use_adaptive_pooling : 0
 rnn_size : 512
 drop_feat_im : 0
-
 batch_size : 20
 input_data : data/coco/cocotalk
 
 grad_clip : .1
-learning_rate : 4e-4
+
+finetune_cnn_after : 0
+finetune_cnn_slice : 6
+learning_rate : 1e-5
 learning_rate_decay_start : -1
 learning_rate_decay_rate : 0.6
 learning_rate_decay_every: 3
 
 beam_size : 3
-max_epochs : 30
+max_epochs : 40

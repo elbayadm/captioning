@@ -109,6 +109,9 @@ def get_ml_loss(input, target, mask, norm=True):
     """
     Compute the usual ML loss
     """
+    target = target[:, :input.size(1)]
+    mask = mask[:, :input.size(1)]
+    # print('input:', input.size(), target.size(), mask.size())
     input = to_contiguous(input).view(-1, input.size(2))
     target = to_contiguous(target).view(-1, 1)
     mask = to_contiguous(mask).view(-1, 1)
@@ -781,6 +784,8 @@ class RewardSampler(nn.Module):
                 # print('GT:', s, '\nSA:', ss)
             # Forward the sampled captions
             sample_input = model.forward(fc_feats, att_feats, preds_matrix)
+            if model.opt.caption_model == 'adaptive_attention':
+                sample_input = sample_input[:, 1:]
             if self.combine_loss:
                 ml_sampled, wl_sampled, stats_sampled = self.loss_sampled(sample_input, preds_matrix[:, 1:], mask)
                 stats.update(stats_sampled)
