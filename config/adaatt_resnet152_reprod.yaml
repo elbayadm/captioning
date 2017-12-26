@@ -1,4 +1,4 @@
-modelname : debug
+modelname : adaatt_resnet152_repord
 caption_model : adaptive_attention
 
 restart : 1
@@ -18,7 +18,7 @@ drop_feat_im : 0
 
 batch_size : 10
 input_data : data/coco/cocotalk_seq18
-add_fc_img : 0
+
 grad_clip : .1
 learning_rate : 5e-4
 learning_rate_decay_start : -1

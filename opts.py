@@ -222,42 +222,6 @@ def add_optim_params(parser):
                default=0.1, help='learning rate for the CNN = factor * learning_rate')
     return parser
 
-
-def create_logger(log_file=None, debug=True):
-    """
-    Initialize global logger and return it.
-    :param log_file: log to this file, besides console output
-    :return: created logger
-    """
-    logging.basicConfig(level=5,
-                        format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
-                        datefmt='%m-%d %H:%M')
-    logging.root.handlers = []
-    if debug:
-        chosen_level = 5
-    else:
-        chosen_level = logging.INFO
-    logger = logging.getLogger(__name__)
-    formatter = logging.Formatter(fmt='%(asctime)s %(message)s', datefmt='%m/%d %H:%M:%S')
-    if log_file is not None:
-        log_dir = osp.dirname(log_file)
-        if log_dir:
-            print('Parsed log dir', log_dir)
-            if not osp.exists(log_dir):
-                os.makedirs(log_dir)
-        # cerate file handler
-        fh = logging.FileHandler(log_file)
-        fh.setLevel(chosen_level)
-        fh.setFormatter(formatter)
-        logger.addHandler(fh)
-    # Colored stream handler
-    sh = ColorStreamHandler()
-    sh.setLevel(chosen_level)
-    sh.setFormatter(formatter)
-    logger.addHandler(sh)
-    return logger
-
-
 def add_generic(parser):
     parser.add('-c', '--config', is_config_file=True, help='Config file path')
     parser.add('--modelname', type=str,
@@ -321,6 +285,9 @@ def add_generic(parser):
                default=0.5, help='strength of dropout in the Language Model RNN')
     parser.add('--drop_feat_im', type=float,
                default=0., help='strength of dropout in the Language Model RNN')
+    parser.add('--drop_sentinel', type=float,
+               default=0.5, help='strength of dropout in the Language Model RNN')
+
 
     # Special for atention
     parser.add('--attend_mode', type=str,
@@ -330,11 +297,51 @@ def add_generic(parser):
     parser.add('--att_feat_size', type=int,
                default=2048, help='2048 for resnet, 512 for vgg')
     parser.add_argument('--att_hid_size', type=int, default=512,
-                    help='the hidden size of the attention MLP; only useful in show_attend_tell; 0 if not using hidden layer')
+                        help='the hidden size of the attention MLP; only useful in show_attend_tell; 0 if not using hidden layer')
     parser.add('--use_adaptive_pooling', type=int,
                default=1, help='get a pooled region of size region_size')
+    parser.add('--use_maxout', type=int,
+               default=0, help='use maxout')
+    parser.add('--add_fc_img', type=int,
+               default=1, help='add image feature to x_t every step')
 
     return parser
+
+
+def create_logger(log_file=None, debug=True):
+    """
+    Initialize global logger and return it.
+    :param log_file: log to this file, besides console output
+    :return: created logger
+    """
+    logging.basicConfig(level=5,
+                        format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+                        datefmt='%m-%d %H:%M')
+    logging.root.handlers = []
+    if debug:
+        chosen_level = 5
+    else:
+        chosen_level = logging.INFO
+    logger = logging.getLogger(__name__)
+    formatter = logging.Formatter(fmt='%(asctime)s %(message)s', datefmt='%m/%d %H:%M:%S')
+    if log_file is not None:
+        log_dir = osp.dirname(log_file)
+        if log_dir:
+            print('Parsed log dir', log_dir)
+            if not osp.exists(log_dir):
+                os.makedirs(log_dir)
+        # cerate file handler
+        fh = logging.FileHandler(log_file)
+        fh.setLevel(chosen_level)
+        fh.setFormatter(formatter)
+        logger.addHandler(fh)
+    # Colored stream handler
+    sh = ColorStreamHandler()
+    sh.setLevel(chosen_level)
+    sh.setFormatter(formatter)
+    logger.addHandler(sh)
+    return logger
+
 
 
 def parse_opt():

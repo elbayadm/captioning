@@ -344,7 +344,7 @@ class DecoderModel(nn.Module):
             # encode as vectors
             it = beam_seq[t]
             # TODO check that every submodel has get_logprobs defined
-            logprobs, state = self.get_logprobs_state(Variable(it.cuda()), *(args + (state,)))
+            logprobs, state = self.get_logprobs_state(Variable(it.cuda()), *(args + (state,)), t)
 
         done_beams = sorted(done_beams, key=lambda x: -x['p'])[:beam_size]
         return done_beams

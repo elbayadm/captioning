@@ -520,7 +520,7 @@ def main(params):
     ################################################################################################################
     if params['gen'] == '':
         L, label_start_ix, label_end_ix, label_length = encode_captions(imgs, params, wtoi)
-        Scores = []
+        Scores = Cid = BL2 = BL3 = BL4 = Infer = []
     else:
         #  L, Scores, label_start_ix, label_end_ix, label_length = encode_extra_captions(imgs, params, wtoi)
         # L, Scores, label_start_ix, label_end_ix, label_length = encode_extra_scored_captions(imgs, params, wtoi)

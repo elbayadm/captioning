@@ -83,7 +83,7 @@ class ShowAttendLSTM(nn.Module):
 
 
 class AdaptiveAttentionLSTM(nn.Module):
-    def __init__(self, opt, use_maxout=True):
+    def __init__(self, opt):
         super(AdaptiveAttentionLSTM, self).__init__()
         self.input_encoding_size = opt.input_encoding_size
         #self.rnn_type = opt.rnn_type
@@ -91,18 +91,26 @@ class AdaptiveAttentionLSTM(nn.Module):
         self.num_layers = opt.num_layers
         self.drop_prob_lm = opt.drop_prob_lm
         self.drop_x_lm = opt.drop_x_lm
+        self.drop_sentinel = opt.drop_sentinel
         self.fc_feat_size = opt.fc_feat_size
         self.att_feat_size = opt.att_feat_size
         self.att_hid_size = opt.att_hid_size
-
-        self.use_maxout = use_maxout
+        self.use_maxout = opt.use_maxout
+        self.add_fc_img = opt.add_fc_img
 
         # Build a LSTM
-        self.w2h = nn.Linear(self.input_encoding_size, (4+(use_maxout==True)) * self.rnn_size)
-        self.v2h = nn.Linear(self.rnn_size, (4+(use_maxout==True)) * self.rnn_size)
-
-        self.i2h = nn.ModuleList([nn.Linear(self.rnn_size, (4+(use_maxout==True)) * self.rnn_size) for _ in range(self.num_layers - 1)])
-        self.h2h = nn.ModuleList([nn.Linear(self.rnn_size, (4+(use_maxout==True)) * self.rnn_size) for _ in range(self.num_layers)])
+        self.w2h = nn.Linear(self.input_encoding_size,
+                             (4 + self.use_maxout) * self.rnn_size)
+        self.v2h = nn.Linear(self.rnn_size,
+                             (4 + self.use_maxout) * self.rnn_size)
+        self.i2h = nn.ModuleList([nn.Linear(self.rnn_size,
+                                            (4 + self.use_maxout) *
+                                            self.rnn_size)
+                                  for _ in range(self.num_layers - 1)])
+        self.h2h = nn.ModuleList([nn.Linear(self.rnn_size,
+                                            (4 + self.use_maxout) *
+                                            self.rnn_size)
+                                  for _ in range(self.num_layers)])
 
         # Layers for getting the fake region
         if self.num_layers == 1:
@@ -113,7 +121,11 @@ class AdaptiveAttentionLSTM(nn.Module):
         self.r_h2h = nn.Linear(self.rnn_size, self.rnn_size)
 
 
-    def forward(self, xt, img_fc, state):
+    def forward(self, xt, img_fc, state, step):
+        """
+        A standard LSTM where x_t = [w_t, img_fc]
+        yields updated states (h_t, c_t) with drop(last_ht) and sentinel outout s_t
+        """
 
         hs = []
         cs = []
@@ -124,7 +136,14 @@ class AdaptiveAttentionLSTM(nn.Module):
             # the input to this layer
             if L == 0:
                 x = xt
-                i2h = self.w2h(x) + self.v2h(img_fc)
+                x = F.dropout(x, self.drop_x_lm, self.training)  # Maha to match Show&Tell
+                if self.add_fc_img:
+                    i2h = self.w2h(x) + self.v2h(img_fc)
+                else:
+                    if step:
+                        i2h = self.w2h(x)
+                    else:  # add the image only at t=0
+                        i2h = self.w2h(x) + self.v2h(img_fc)
             else:
                 x = hs[-1]
                 x = F.dropout(x, self.drop_x_lm, self.training)
@@ -151,42 +170,44 @@ class AdaptiveAttentionLSTM(nn.Module):
             # gated cells form the output
             tanh_nex_c = F.tanh(next_c)
             next_h = out_gate * tanh_nex_c
+            # -------------- Visual sentinel: get g_t & s_t = fake region
             if L == self.num_layers-1:
                 if L == 0:
                     i2h = self.r_w2h(x) + self.r_v2h(img_fc)
                 else:
                     i2h = self.r_i2h(x)
                 n5 = i2h+self.r_h2h(prev_h)
-                fake_region = F.sigmoid(n5) * tanh_nex_c
+                sentinel = F.sigmoid(n5) * tanh_nex_c
 
             cs.append(next_c)
             hs.append(next_h)
 
         # set up the decoder
         top_h = hs[-1]
-        top_h = F.dropout(top_h, self.drop_prob_lm, self.training)
-        fake_region = F.dropout(fake_region, self.drop_prob_lm, self.training)
-
+        # top_h = F.dropout(top_h, self.drop_prob_lm, self.training)
+        # sentinel = F.dropout(sentinel, self.drop_sentinel, self.training)
         state = (torch.cat([_.unsqueeze(0) for _ in hs], 0),
-                torch.cat([_.unsqueeze(0) for _ in cs], 0))
-        return top_h, fake_region, state
+                 torch.cat([_.unsqueeze(0) for _ in cs], 0))
+        return top_h, sentinel, state
 
 
 class AdaptiveAttention(nn.Module):
     def __init__(self, opt):
         super(AdaptiveAttention, self).__init__()
+        self.logger = opt.logger
         self.input_encoding_size = opt.input_encoding_size
-        #self.rnn_type = opt.rnn_type
+        # self.rnn_type = opt.rnn_type
         self.rnn_size = opt.rnn_size
         self.drop_prob_lm = opt.drop_prob_lm
+        self.drop_sentinel = opt.drop_sentinel
         self.att_hid_size = opt.att_hid_size
 
-        # fake region embed
-        self.fr_linear = nn.Sequential(
+        # sentinel embed
+        self.sentinel_linear = nn.Sequential(
             nn.Linear(self.rnn_size, self.input_encoding_size),
             nn.ReLU(),
-            nn.Dropout(self.drop_prob_lm))
-        self.fr_embed = nn.Linear(self.input_encoding_size, self.att_hid_size)
+            nn.Dropout(self.drop_sentinel))
+        self.sentinel_embed = nn.Linear(self.input_encoding_size, self.att_hid_size)
 
         # h out embed
         self.ho_linear = nn.Sequential(
@@ -198,36 +219,32 @@ class AdaptiveAttention(nn.Module):
         self.alpha_net = nn.Linear(self.att_hid_size, 1)
         self.att2h = nn.Linear(self.rnn_size, self.rnn_size)
 
-    def forward(self, h_out, fake_region, conv_feat, conv_feat_embed):
-
+    def forward(self, top_h, sentinel, conv_feat, conv_feat_embed):
+        # conv_feat : att_feats
+        # conv_feat_embed : p_att_feats
         # View into three dimensions
-        att_size = conv_feat.numel() // conv_feat.size(0) // self.rnn_size
-        conv_feat = conv_feat.view(-1, att_size, self.rnn_size)
-        conv_feat_embed = conv_feat_embed.view(-1, att_size, self.att_hid_size)
-
-        # view neighbor from bach_size * neighbor_num x rnn_size to bach_size x rnn_size * neighbor_num
-        fake_region = self.fr_linear(fake_region)
-        fake_region_embed = self.fr_embed(fake_region)
-
-        h_out_linear = self.ho_linear(h_out)
+        num_regions = conv_feat.size(1)
+        # print('num_regions:', num_regions)
+        # conv_feat = conv_feat.view(-1, num_regions, self.rnn_size)
+        # conv_feat_embed = conv_feat_embed.view(-1, num_regions, self.att_hid_size)
+        # print('Conv_feat and conv_feat_embed shapes:', conv_feat.size(), conv_feat_embed.size())
+        sentinel = self.sentinel_linear(sentinel)
+        sentinel_embed = self.sentinel_embed(sentinel)
+        h_out_linear = self.ho_linear(top_h)
         h_out_embed = self.ho_embed(h_out_linear)
-
-        txt_replicate = h_out_embed.unsqueeze(1).expand(h_out_embed.size(0), att_size + 1, h_out_embed.size(1))
-
-        img_all = torch.cat([fake_region.view(-1,1,self.input_encoding_size), conv_feat], 1)
-        img_all_embed = torch.cat([fake_region_embed.view(-1,1,self.input_encoding_size), conv_feat_embed], 1)
-
+        txt_replicate = h_out_embed.unsqueeze(1).expand(h_out_embed.size(0), num_regions + 1, h_out_embed.size(1))
+        # img_all = torch.cat([sentinel.view(-1,1,self.input_encoding_size), conv_feat], 1)
+        img_all = torch.cat([sentinel.unsqueeze(1), conv_feat], 1)
+        # img_all_embed = torch.cat([sentinel_embed.view(-1,1,self.input_encoding_size), conv_feat_embed], 1)
+        img_all_embed = torch.cat([sentinel_embed.unsqueeze(1), conv_feat_embed], 1)
         hA = F.tanh(img_all_embed + txt_replicate)
         hA = F.dropout(hA,self.drop_prob_lm, self.training)
-
         hAflat = self.alpha_net(hA.view(-1, self.att_hid_size))
-        PI = F.softmax(hAflat.view(-1, att_size + 1))
-
+        PI = F.softmax(hAflat.view(-1, num_regions + 1))
+        # self.logger.warn('betas: %s', str(PI.data[:, 0].squeeze(0).cpu().numpy()))
         visAtt = torch.bmm(PI.unsqueeze(1), img_all)
         visAttdim = visAtt.squeeze(1)
-
         atten_out = visAttdim + h_out_linear
-
         h = F.tanh(self.att2h(atten_out))
         h = F.dropout(h, self.drop_prob_lm, self.training)
         return h

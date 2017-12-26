@@ -139,7 +139,10 @@ def set_optimizer(opt, epoch, model, cnn_model):
         cnn_params = [p for module in cnn_model.to_finetune for p in module.parameters()]
         cnn_optimizer = optim_func(cnn_params,
                                    lr=opt.learning_rate * opt.cnn_learning_rate,
+                                   betas=(opt.optim_alpha, opt.optim_beta),
+                                   eps=opt.optim_epsilon,
                                    weight_decay=opt.weight_decay)
+
         optimizers.append(cnn_optimizer)
         opt.logger.warn('Cnn finetuning flag ON')
         model.cnn_finetuning = 1

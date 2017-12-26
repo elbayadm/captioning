@@ -11,14 +11,14 @@ from misc.lstm import AdaptiveAttentionLSTM, AdaptiveAttention
 
 
 class AdaAttCore(nn.Module):
-    def __init__(self, opt, use_maxout=False):
+    def __init__(self, opt):
         super(AdaAttCore, self).__init__()
-        self.lstm = AdaptiveAttentionLSTM(opt, use_maxout)
+        self.lstm = AdaptiveAttentionLSTM(opt)
         self.attention = AdaptiveAttention(opt)
 
-    def forward(self, xt, fc_feats, att_feats, p_att_feats, state):
-        h_out, p_out, state = self.lstm(xt, fc_feats, state)
-        atten_out = self.attention(h_out, p_out, att_feats, p_att_feats)
+    def forward(self, xt, fc_feats, att_feats, p_att_feats, state, step):
+        top_h, sentinel, state = self.lstm(xt, fc_feats, state, step)
+        atten_out = self.attention(top_h, sentinel, att_feats, p_att_feats)
         return atten_out, state
 
 
@@ -88,12 +88,11 @@ class AdaptiveAttentionModel(DecoderModel):
         # print('Embedded att feats:', _att_feats.size())
         # print('Resizing into:', att_feats.size()[:-1], self.rnn_size)
         att_feats = _att_feats.view(*(att_feats.size()[:-1] + (self.rnn_size,)))
-        # print('Reformatted:', att_feats.size())
-        # Project the attention feats first to reduce memory and computation comsumptions.
+        # print('Embedded att feats:', att_feats.size())
         p_att_feats = self.ctx2att(att_feats.view(-1, self.rnn_size))
-        # print('Projecting:', p_att_feats.size())
+        # print('Projecting into p_att_feats:', p_att_feats.size())
         p_att_feats = p_att_feats.view(*(att_feats.size()[:-1] + (self.att_hid_size,)))
-        # print('Reformatted:', p_att_feats.size())
+        # print('Reformatted p_att:', p_att_feats.size())
         for i in range(seq.size(1)):
             if self.training and i >= 2 and self.ss_prob > 0.0:
                 sample_prob = fc_feats.data.new(batch_size).uniform_(0, 1)
@@ -117,20 +116,20 @@ class AdaptiveAttentionModel(DecoderModel):
                 # print('Breaking at :', i)
                 break
             xt = self.embed(it)
-            output, state = self.core(xt, fc_feats, att_feats, p_att_feats, state)
+            # print('token w:', xt.size())
+            output, state = self.core(xt, fc_feats, att_feats, p_att_feats, state, i)
             output = F.log_softmax(self.logit(output))
             outputs.append(output)
 
         return torch.cat([_.unsqueeze(1) for _ in outputs], 1).contiguous()
 
-    def get_logprobs_state(self, it, tmp_fc_feats, tmp_att_feats, tmp_p_att_feats, state):
+    def get_logprobs_state(self, it, tmp_fc_feats, tmp_att_feats, tmp_p_att_feats, state, step):
         """
         Required by beam_search (cf DecoderModel)
         """
         # 'it' is Variable contraining a word index
         xt = self.embed(it)
-
-        output, state = self.core(xt, tmp_fc_feats, tmp_att_feats, tmp_p_att_feats, state)
+        output, state = self.core(xt, tmp_fc_feats, tmp_att_feats, tmp_p_att_feats, state, step)
         logprobs = F.log_softmax(self.logit(output))
 
         return logprobs, state
@@ -164,7 +163,7 @@ class AdaptiveAttentionModel(DecoderModel):
                     it = fc_feats.data.new(beam_size).long().zero_()
                     xt = self.embed(Variable(it, requires_grad=False))
 
-                output, state = self.core(xt, tmp_fc_feats, tmp_att_feats, tmp_p_att_feats, state)
+                output, state = self.core(xt, tmp_fc_feats, tmp_att_feats, tmp_p_att_feats, state, t)
                 logprobs = F.log_softmax(self.logit(output))
 
             self.done_beams[k] = self.beam_search(state, logprobs, tmp_fc_feats, tmp_att_feats, tmp_p_att_feats, opt=opt)
@@ -225,7 +224,7 @@ class AdaptiveAttentionModel(DecoderModel):
 
                 seqLogprobs.append(sampleLogprobs.view(-1))
 
-            output, state = self.core(xt, fc_feats, att_feats, p_att_feats, state)
+            output, state = self.core(xt, fc_feats, att_feats, p_att_feats, state, t)
             logprobs = F.log_softmax(self.logit(output))
 
         return torch.cat([_.unsqueeze(1) for _ in seq], 1), torch.cat([_.unsqueeze(1) for _ in seqLogprobs], 1)

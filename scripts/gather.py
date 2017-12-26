@@ -122,15 +122,18 @@ def parse_name_clean(params):
                                                                    params['optim_alpha'],
                                                                    params['batch_size'])
     elif version == "adaptive_attention":
-        modelname = 'Adaptive Attention %s (r=%d, gc=%.2f, adapt=%d, drop=%.1f)' % (params['cnn_model'],
-                                                                                    params.get('region_size', 14),
-                                                                                    params.get('grad_clip'),
-                                                                                    params.get('use_adaptive_pooling', 1),
-                                                                                    params.get('drop_feat_im', 0.5))
-        modelname += ' blr: %.2e decay: %d, b: %.3f, batch: %d' % (params['learning_rate'],
-                                                                   params['learning_rate_decay_start'],
-                                                                   params['optim_alpha'],
-                                                                   params['batch_size'])
+        modelname = 'Adaptive Attention %s (r=%d, gc=%.2f, adapt=%d, drop=%.1f, maxout: %d, w+im : %d)' % (params['cnn_model'],
+                                                                                                           params.get('region_size', 14),
+                                                                                                           params.get('grad_clip'),
+                                                                                                           params.get('use_adaptive_pooling', 1),
+                                                                                                           params.get('drop_feat_im', 0.5),
+                                                                                                           params.get('use_maxout', 0),
+                                                                                                           params.get('add_fc_img', 1))
+        modelname += ' blr: %.2e decay: %d, b: %.3f, batch: %d seqlen: %d' % (params['learning_rate'],
+                                                                              params['learning_rate_decay_start'],
+                                                                              params['optim_alpha'],
+                                                                              params['batch_size'],
+                                                                              params['seq_length'] )
 
     else:
         modelname = '??'
@@ -292,10 +295,13 @@ if __name__ == "__main__":
         filter = sys.argv[1]
         if len(sys.argv) > 2:
             exc = sys.argv[2]
-            print('exc:', exc)
-            if int(exc) == 1:
-                save = 1
-                exc = None
+            # print('exc:', exc)
+            try:
+                if int(exc) == 1:
+                    save = 1
+                    exc = None
+            except:
+                pass
         else:
             exc = None
     else:

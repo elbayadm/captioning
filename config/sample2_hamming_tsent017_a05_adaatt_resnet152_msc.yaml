@@ -1,4 +1,4 @@
-modelname : debug
+modelname : sample2_hamming_tsent017_a05_adaatt_resnet152_msc
 caption_model : adaptive_attention
 
 restart : 1
@@ -7,6 +7,7 @@ save_checkpoint_every : 4000
 
 optim_alpha : 0.8
 
+finetune_cnn_after : -1
 cnn_model : resnet152
 
 fc_feat_size : 2048
@@ -17,16 +18,19 @@ rnn_size : 512
 drop_feat_im : 0
 
 batch_size : 10
-input_data : data/coco/cocotalk_seq18
-add_fc_img : 0
+input_data : data/coco/cocotalk
+
 grad_clip : .1
-learning_rate : 5e-4
-learning_rate_decay_start : -1
+learning_rate : 4e-4
+learning_rate_decay_start : 5
 learning_rate_decay_rate : 0.6
 learning_rate_decay_every: 3
 
-finetune_cnn_after : 20
-cnn_learning_rate : .02
-finetune_cnn_slice : 6
-max_epochs : 50
+# Loss:
+sample_reward: 1
+sentence_loss_version : 2
+loss_version : hamming
+tau_sent : .17
+alpha_sent : 0.5
+
 beam_size : 3

@@ -784,8 +784,9 @@ class RewardSampler(nn.Module):
                 # print('GT:', s, '\nSA:', ss)
             # Forward the sampled captions
             sample_input = model.forward(fc_feats, att_feats, preds_matrix)
+            # print('Sample input:', sample_input.size(), 'labels:', preds_matrix.size())
             if model.opt.caption_model == 'adaptive_attention':
-                sample_input = sample_input[:, 1:]
+                sample_input = sample_input[:, :-1]
             if self.combine_loss:
                 ml_sampled, wl_sampled, stats_sampled = self.loss_sampled(sample_input, preds_matrix[:, 1:], mask)
                 stats.update(stats_sampled)
@@ -818,6 +819,7 @@ class HammingRewardSampler(RewardSampler):
             self.loss_sampled.log()
 
     def alter(self, labels):
+        print('Altering:', labels.size())
         N = labels.size(0)
         seq_length = labels.size(1)
         # get batch vocab size
@@ -857,6 +859,7 @@ class HammingRewardSampler(RewardSampler):
         preds[rows, change_index] = select_index
         preds_matrix = np.hstack((np.zeros((N, 1)), preds))  # padd <BOS>
         preds_matrix = Variable(torch.from_numpy(preds_matrix)).cuda().type_as(labels)
+        print('yielding:', preds_matrix.size())
         return preds_matrix, stats
 
 

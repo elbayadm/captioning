@@ -262,6 +262,8 @@ class DataLoader(object):
                     infer = self.h5_file['infersent'][ixl: ixl + seq_per_img]
 
                 except:
+                    scores = None
+                if not scores:
                     scores = np.ones([seq_per_img,], dtype='float32')
                     ciders = np.ones([seq_per_img,], dtype='float32')
                     bleus4 = np.ones([seq_per_img,], dtype='float32')
