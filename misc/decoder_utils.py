@@ -9,6 +9,8 @@ import torch.optim as optim
 
 from misc.ShowTellModel import ShowTellModel
 from misc.AdaptiveAttentionModel import AdaptiveAttentionModel
+from misc.TopDownModel import TopDownModel
+from misc.SelfCriticalModel import SelfCriticalModel
 
 
 def select_model(opt):
@@ -17,6 +19,10 @@ def select_model(opt):
         model = ShowTellModel(opt)
     elif select == 'adaptive_attention':
         model = AdaptiveAttentionModel(opt)
+    elif select == 'self_critical':
+        model = SelfCriticalModel(opt)
+    elif select == 'top_down':
+        model = TopDownModel(opt)
     else:
         raise ValueError("Caption model not supported: {}".format(select))
     return model
