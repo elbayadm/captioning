@@ -14,42 +14,6 @@
     <tr>
         <td>adaptive_attention</td>
         <td>resnet152</td>
-        <td> base lr: 1.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
-        <td> Word Level, Sim=Coco, $\tau=0.17$, $\alpha=0.4$</td>
-        <td>RNN + 1.0 x cnn(6:)</td>
-        <td>3</td>
-        <td>100.99</td>
-        <td>32.32</td>
-        <td>15.08</td>
-        <td>204k / 256k</td>
-    </tr>
-    <tr>
-        <td>adaptive_attention</td>
-        <td>resnet152</td>
-        <td> base lr: 1.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
-        <td> Word Level, Sim=Coco, $\tau=0.17$, $\alpha=0.3$</td>
-        <td>RNN + 1.0 x cnn(6:)</td>
-        <td>3</td>
-        <td>97.46</td>
-        <td>31.76</td>
-        <td>13.29</td>
-        <td>172k / 232k</td>
-    </tr>
-    <tr>
-        <td>adaptive_attention</td>
-        <td>resnet152</td>
-        <td> base lr: 1.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
-        <td> Word Level, Sim=Coco, $\tau=0.15$, $\alpha=0.5$</td>
-        <td>RNN + 1.0 x cnn(6:)</td>
-        <td>3</td>
-        <td>97.07</td>
-        <td>31.34</td>
-        <td>18.80</td>
-        <td>200k / 256k</td>
-    </tr>
-    <tr>
-        <td>adaptive_attention</td>
-        <td>resnet152</td>
         <td> base lr: 4.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
         <td> Word Level, Sim=Coco, $\tau=0.17$, $\alpha=0.5$</td>
         <td>RNN</td>
@@ -226,5 +190,29 @@
         <td>28.12</td>
         <td>93.96</td>
         <td>128k / 168k</td>
+    </tr>
+    <tr>
+        <td>adaptive_attention</td>
+        <td>resnet152</td>
+        <td> base lr: 4.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> Word Level, Sim=Coco, $\tau=0.17$, $\alpha=0.7$</td>
+        <td>RNN</td>
+        <td>3</td>
+        <td>64.37</td>
+        <td>21.63</td>
+        <td>63.28</td>
+        <td>4k / 4k</td>
+    </tr>
+    <tr>
+        <td>adaptive_attention</td>
+        <td>resnet152</td>
+        <td> base lr: 4.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> Word Level, Sim=Coco, $\tau=0.17$, $\alpha=0.6$</td>
+        <td>RNN</td>
+        <td>3</td>
+        <td>63.85</td>
+        <td>21.29</td>
+        <td>47.80</td>
+        <td>4k / 4k</td>
     </tr>
 </table>

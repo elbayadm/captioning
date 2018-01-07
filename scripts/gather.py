@@ -237,11 +237,11 @@ def highlight(score, tresh):
         return '%.2f' % score
 
 def crawl_results(filter='', exc=None):
-    models = sorted(glob.glob('save/*%s*' % filter))
+    models = sorted(glob.glob('save/%s*' % filter))
     if exc:
         # Exclude models containg exc:
         models = [model for model in models if exc not in model]
-    # print("Found:", models)
+    print("Found:", models)
     fields = ["Model", "CNN", "params", 'loss', 'weights', 'Beam', 'CIDEr', 'Bleu4', 'Perplexity', 'best/last']
     recap = {}
     tab = PrettyTable()
