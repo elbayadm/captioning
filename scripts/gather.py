@@ -97,7 +97,7 @@ def get_wl(params):
 def parse_name_clean(params):
     modelparams = ""
     # get the model parameters
-    modelparams = ' base lr: %.2e decay: %d, Adam(%.3f,%.3f), batch: %d, seq: %d' % (params['learning_rate'],
+    modelparams = ' base lr: %.1e decay: %d, Adam(%.1f,%.3f), batch: %d, seq: %d' % (params['learning_rate'],
                                                                                    params['learning_rate_decay_start'],
                                                                                    params['optim_alpha'],
                                                                                    params['optim_beta'],
