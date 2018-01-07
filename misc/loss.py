@@ -785,7 +785,7 @@ class RewardSampler(nn.Module):
             # Forward the sampled captions
             sample_input = model.forward(fc_feats, att_feats, preds_matrix)
             # print('Sample input:', sample_input.size(), 'labels:', preds_matrix.size())
-            if model.opt.caption_model == 'adaptive_attention':
+            if model.opt.caption_model in ['adaptive_attention', 'top_down']:
                 sample_input = sample_input[:, :-1]
             if self.combine_loss:
                 ml_sampled, wl_sampled, stats_sampled = self.loss_sampled(sample_input, preds_matrix[:, 1:], mask)

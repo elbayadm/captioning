@@ -25,7 +25,7 @@ class AdaAttCore(nn.Module):
 class AdaptiveAttentionModel(AttentionModel):
 
     def __init__(self, opt):
-        AttentionModel.__init__(opt)
+        AttentionModel.__init__(self, opt)
 
         self.fc_embed = nn.Sequential(nn.Linear(self.fc_feat_size, self.rnn_size),
                                       nn.ReLU(),

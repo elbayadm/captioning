@@ -137,7 +137,7 @@ def eval_split(cnn_model, model, loader, logger, eval_kwargs={}):
     loss_evals = 0
     predictions = []
     while True:
-        data = loader.get_batch(split, seq_per_img=seq_per_img)
+        data = loader.get_batch(split, batch_size=5, seq_per_img=seq_per_img)
         n = n + loader.batch_size
         images = data['images']
         images = Variable(torch.from_numpy(images), requires_grad=False).cuda()

@@ -1,0 +1,33 @@
+# Generic
+# -------------------------
+modelname : complete_combine_word2_tword015_coco_idf_a07_hamming_tsent017_a04_topdown
+restart : 1
+
+caption_model : top_down
+cnn_model : resnet152
+
+batch_size : 10
+input_data : data/coco/cocotalk
+val_images_use : -1
+save_checkpoint_every : 4000
+
+finetune_cnn_after : -1
+learning_rate : 5e-4
+learning_rate_decay_start : 5
+learning_rate_decay_rate : 0.6
+learning_rate_decay_every: 3
+
+# Loss:
+combine_loss : 1
+
+sample_reward: 1
+loss_version : hamming
+
+tau_sent : .17
+alpha_sent : 0.4
+
+tau_word: 0.15
+rare_tfidf : 1
+similarity_matrix : data/Glove/train_coco_similarities.pkl
+alpha_word : 0.7
+

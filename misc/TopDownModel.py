@@ -9,8 +9,20 @@ from misc.lstm import Attention
 from misc.AttentionModel import AttentionModel
 
 
+class TopDownModel(AttentionModel):
+    def __init__(self, opt):
+        AttentionModel.__init__(self, opt)
+        self.num_layers = 2
+        self.fc_embed = nn.Sequential(nn.Linear(self.fc_feat_size, self.rnn_size),
+                                      nn.ReLU(),
+                                      nn.Dropout(self.drop_feat_im))
+
+        self.core = TopDownCore(opt)
+        opt.logger.warn('Top Down : %s' % str(self._modules))
+
+
 class TopDownCore(nn.Module):
-    def __init__(self, opt, use_maxout=False):
+    def __init__(self, opt):
         super(TopDownCore, self).__init__()
         self.drop_prob_lm = opt.drop_prob_lm
 
@@ -18,7 +30,7 @@ class TopDownCore(nn.Module):
         self.lang_lstm = nn.LSTMCell(opt.rnn_size * 2, opt.rnn_size) # h^1_t, \hat v
         self.attention = Attention(opt)
 
-    def forward(self, xt, fc_feats, att_feats, p_att_feats, state):
+    def forward(self, xt, fc_feats, att_feats, p_att_feats, state, step):
         prev_h = state[0][-1]
         att_lstm_input = torch.cat([prev_h, fc_feats, xt], 1)
 
@@ -36,14 +48,4 @@ class TopDownCore(nn.Module):
         return output, state
 
 
-class TopDownModel(AttentionModel):
-    def __init__(self, opt):
-        AttentionModel.__init__(opt)
-        self.num_layers = 2
-        self.fc_embed = nn.Sequential(nn.Linear(self.fc_feat_size, self.rnn_size),
-                                      nn.ReLU(),
-                                      nn.Dropout(self.drop_feat_im))
-
-        self.core = TopDownCore(opt)
-        opt.logger.warn('Top Down : %s' % str(self._modules))
 

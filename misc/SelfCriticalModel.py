@@ -4,11 +4,12 @@ import torch.nn.functional as F
 from torch.autograd import *
 import misc.utils as utils
 from misc.AttentionModel import AttentionModel
+from misc.lstm import Attention
 
 
 class SelfCriticalModel(AttentionModel):
     def __init__(self, opt):
-        AttentionModel.__init__(opt)
+        AttentionModel.__init__(self, opt)
         self.fc_embed = lambda x : x
         self.core = SelfCriticalCore(opt)
         opt.logger.warn('Self critical : %s' % str(self._modules))
@@ -33,7 +34,7 @@ class SelfCriticalCore(nn.Module):
 
         self.attention = Attention(opt)
 
-    def forward(self, xt, fc_feats, att_feats, p_att_feats, state):
+    def forward(self, xt, fc_feats, att_feats, p_att_feats, state, step):
         att_res = self.attention(state[0][-1], att_feats, p_att_feats)
 
         all_input_sums = self.i2h(xt) + self.h2h(state[0][-1])

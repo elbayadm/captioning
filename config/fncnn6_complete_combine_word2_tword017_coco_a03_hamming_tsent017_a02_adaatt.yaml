@@ -1,0 +1,36 @@
+modelname : fncnn6_complete_combine_word2_tword017_coco_a03_hamming_tsent017_a02_adaatt
+start_from : save/complete_combine_word2_tword017_coco_a03_hamming_tsent017_a02_adaatt
+start_from_best : 1
+restart : 1
+
+caption_model : adaptive_attention
+cnn_model : resnet152
+
+batch_size : 10
+input_data : data/coco/cocotalk
+val_images_use : -1
+save_checkpoint_every : 4000
+
+cnn_learning_rate : 1.
+finetune_cnn_after : 0
+finetune_cnn_slice : 6
+learning_rate : 1e-4
+learning_rate_decay_start : 5
+learning_rate_decay_rate : 0.8
+learning_rate_decay_every: 4
+max_epochs : 30
+
+# Loss:
+combine_loss : 1
+
+sample_reward: 1
+loss_version : hamming
+
+tau_sent : .17
+alpha_sent : 0.2
+
+tau_word: 0.17
+rare_tfidf : 0
+similarity_matrix : data/Glove/train_coco_similarities.pkl
+alpha_word : 0.3
+

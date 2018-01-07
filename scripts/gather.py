@@ -122,7 +122,17 @@ def parse_name_clean(params):
                                                                    params['optim_alpha'],
                                                                    params['batch_size'])
     elif version == "adaptive_attention":
-        modelname = 'Adaptive Attention %s (r=%d, gc=%.2f, adapt=%d, drop=%.1f, maxout: %d, w+im : %d)' % (params['cnn_model'],
+        modelname = 'Adaptive Attention %s (maxout: %d, w+im : %d)' % (params['cnn_model'],
+                                                                       params.get('use_maxout', 0),
+                                                                       params.get('add_fc_img', 1))
+        modelname += ' blr: %.2e decay: %d, b: %.3f, batch: %d seqlen: %d' % (params['learning_rate'],
+                                                                              params['learning_rate_decay_start'],
+                                                                              params['optim_alpha'],
+                                                                              params['batch_size'],
+                                                                              params['seq_length'] )
+
+    elif version == "self_critical":
+        modelname = 'Self critical %s (r=%d, gc=%.2f, adapt=%d, drop=%.1f, maxout: %d, w+im : %d)' % (params['cnn_model'],
                                                                                                            params.get('region_size', 14),
                                                                                                            params.get('grad_clip'),
                                                                                                            params.get('use_adaptive_pooling', 1),
@@ -134,6 +144,23 @@ def parse_name_clean(params):
                                                                               params['optim_alpha'],
                                                                               params['batch_size'],
                                                                               params['seq_length'] )
+
+    elif version == "top_down":
+        data = params.get('input_data')
+        augment = ''
+        if 'gen' in data:
+            print('Using data augmentation')
+            augment = 'augment = 1'
+        modelname = 'Top Down %s (maxout: %d, w+im : %d)' % (params['cnn_model'],
+                                                             params.get('use_maxout', 0),
+                                                             params.get('add_fc_img', 1))
+        modelname += ' blr: %.2e decay: %d, b: %.3f, batch: %d seqlen: %d %s' % (params['learning_rate'],
+                                                                                 params['learning_rate_decay_start'],
+                                                                                 params['optim_alpha'],
+                                                                                 params['batch_size'],
+                                                                                 params['seq_length'],
+                                                                                 augment)
+
 
     else:
         modelname = '??'

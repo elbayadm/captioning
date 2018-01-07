@@ -12,7 +12,7 @@ from misc.Decoder import DecoderModel
 class AttentionModel(DecoderModel):
 
     def __init__(self, opt):
-        DecoderModel.__init__(opt)
+        DecoderModel.__init__(self, opt)
         self.att_feat_size = opt.att_feat_size
         self.att_hid_size = opt.att_hid_size
         self.drop_feat_im = opt.drop_feat_im

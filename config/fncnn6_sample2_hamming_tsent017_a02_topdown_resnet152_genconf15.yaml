@@ -1,0 +1,43 @@
+modelname : fncnn6_sample2_hamming_tsent017_a02_topdown_resnet152_genconf15
+start_from : save/sample2_hamming_tsent017_a02_topdown_resnet152_genconf15
+start_from_best : 1
+caption_model : top_down
+
+restart : 1
+val_images_use : -1
+save_checkpoint_every : 4000
+
+optim_alpha : 0.8
+
+cnn_learning_rate : 1.
+cnn_model : resnet152
+
+fc_feat_size : 2048
+att_feat_size : 2048
+region_size : 7
+use_adaptive_pooling : 0
+rnn_size : 512
+drop_feat_im : 0
+
+input_data : data/coco/genConf_cocotalk
+batch_size : 10
+seq_per_img : 15
+
+finetune_cnn_after : 0
+finetune_cnn_slice : 6
+learning_rate : 1e-4
+learning_rate_decay_start : 5
+learning_rate_decay_rate : 0.8
+learning_rate_decay_every: 4
+max_epochs : 30
+
+grad_clip : .1
+beam_size : 3
+# Loss:
+sample_reward: 1
+sentence_loss_version : 2
+loss_version : hamming
+tau_sent : .17
+alpha_sent : 0.2
+
+
