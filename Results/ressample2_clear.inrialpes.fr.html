@@ -1,0 +1,590 @@
+<table>
+    <tr>
+        <th>Model</th>
+        <th>CNN</th>
+        <th>params</th>
+        <th>loss</th>
+        <th>weights</th>
+        <th>Beam</th>
+        <th>CIDEr</th>
+        <th>Bleu4</th>
+        <th>Perplexity</th>
+        <th>best/last</th>
+    </tr>
+    <tr>
+        <td>top_down</td>
+        <td>resnet152</td>
+        <td> base lr: 1.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16 Augment</td>
+        <td> SampleR, r=hamming limited=1, $\tau=0.17$, $\alpha=0.2$</td>
+        <td>RNN + 1.0 x cnn(6:)</td>
+        <td>3</td>
+        <td>103.24</td>
+        <td>33.11</td>
+        <td>11.58</td>
+        <td>216k / 256k</td>
+    </tr>
+    <tr>
+        <td>top_down</td>
+        <td>resnet152</td>
+        <td> base lr: 1.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> SampleR, r=hamming limited=1, $\tau=0.17$, $\alpha=0.2$</td>
+        <td>RNN + 1.0 x cnn(6:)</td>
+        <td>3</td>
+        <td>100.65</td>
+        <td>32.47</td>
+        <td>9.65</td>
+        <td>240k / 256k</td>
+    </tr>
+    <tr>
+        <td>top_down</td>
+        <td>resnet152</td>
+        <td> base lr: 1.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> SampleR, r=hamming limited=1, $\tau=0.17$, $\alpha=0.6$</td>
+        <td>RNN + 1.0 x cnn(6:)</td>
+        <td>3</td>
+        <td>100.57</td>
+        <td>32.08</td>
+        <td>10.48</td>
+        <td>168k / 192k</td>
+    </tr>
+    <tr>
+        <td>top_down</td>
+        <td>resnet152</td>
+        <td> base lr: 1.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> SampleR, r=hamming limited=1, $\tau=0.17$, $\alpha=0.4$</td>
+        <td>RNN + 1.0 x cnn(6:)</td>
+        <td>3</td>
+        <td>100.13</td>
+        <td>31.76</td>
+        <td>9.93</td>
+        <td>156k / 156k</td>
+    </tr>
+    <tr>
+        <td>adaptive_attention</td>
+        <td>resnet152</td>
+        <td> base lr: 1.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> SampleR, r=hamming limited=1, $\tau=0.17$, $\alpha=0.4$</td>
+        <td>RNN + 1.0 x cnn(6:)</td>
+        <td>3</td>
+        <td>99.75</td>
+        <td>31.52</td>
+        <td>10.25</td>
+        <td>224k / 256k</td>
+    </tr>
+    <tr>
+        <td>top_down</td>
+        <td>resnet152</td>
+        <td> base lr: 1.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> SampleR, r=hamming limited=1, $\tau=0.17$, $\alpha=0.5$</td>
+        <td>RNN + 1.0 x cnn(6:)</td>
+        <td>3</td>
+        <td>99.47</td>
+        <td>31.92</td>
+        <td>10.20</td>
+        <td>176k / 256k</td>
+    </tr>
+    <tr>
+        <td>adaptive_attention</td>
+        <td>resnet152</td>
+        <td> base lr: 1.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> SampleR, r=hamming limited=1, $\tau=0.17$, $\alpha=0.3$</td>
+        <td>RNN + 1.0 x cnn(6:)</td>
+        <td>3</td>
+        <td>99.44</td>
+        <td>31.20</td>
+        <td>10.11</td>
+        <td>256k / 256k</td>
+    </tr>
+    <tr>
+        <td>top_down</td>
+        <td>resnet152</td>
+        <td> base lr: 4.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> SampleR, r=hamming limited=1, $\tau=0.17$, $\alpha=0.4$</td>
+        <td>RNN</td>
+        <td>3</td>
+        <td>98.71</td>
+        <td>31.44</td>
+        <td>10.25</td>
+        <td>100k / 172k</td>
+    </tr>
+    <tr>
+        <td>adaptive_attention</td>
+        <td>resnet152</td>
+        <td> base lr: 1.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> SampleR, r=hamming limited=1, $\tau=0.17$, $\alpha=0.2$</td>
+        <td>RNN + 1.0 x cnn(6:)</td>
+        <td>3</td>
+        <td>98.61</td>
+        <td>32.01</td>
+        <td>10.07</td>
+        <td>160k / 196k</td>
+    </tr>
+    <tr>
+        <td>adaptive_attention</td>
+        <td>resnet152</td>
+        <td> base lr: 1.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> SampleR, r=hamming limited=1, $\tau=0.17$, $\alpha=0.5$</td>
+        <td>RNN + 1.0 x cnn(6:)</td>
+        <td>3</td>
+        <td>98.56</td>
+        <td>31.97</td>
+        <td>10.57</td>
+        <td>200k / 256k</td>
+    </tr>
+    <tr>
+        <td>top_down</td>
+        <td>resnet152</td>
+        <td> base lr: 4.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16 Augment</td>
+        <td> SampleR, r=hamming limited=1, $\tau=0.17$, $\alpha=0.2$</td>
+        <td>RNN</td>
+        <td>3</td>
+        <td>98.39</td>
+        <td>32.32</td>
+        <td>12.06</td>
+        <td>108k / 172k</td>
+    </tr>
+    <tr>
+        <td>top_down</td>
+        <td>resnet152</td>
+        <td> base lr: 4.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> SampleR, r=hamming limited=1, $\tau=0.17$, $\alpha=0.6$</td>
+        <td>RNN</td>
+        <td>3</td>
+        <td>98.06</td>
+        <td>30.97</td>
+        <td>10.77</td>
+        <td>96k / 172k</td>
+    </tr>
+    <tr>
+        <td>top_down</td>
+        <td>resnet152</td>
+        <td> base lr: 4.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> SampleR, r=hamming limited=1, $\tau=0.13$, $\alpha=0.5$</td>
+        <td>RNN</td>
+        <td>3</td>
+        <td>97.99</td>
+        <td>31.21</td>
+        <td>9.93</td>
+        <td>132k / 172k</td>
+    </tr>
+    <tr>
+        <td>top_down</td>
+        <td>resnet152</td>
+        <td> base lr: 4.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> SampleR, r=hamming limited=1, $\tau=0.13$, $\alpha=0.4$</td>
+        <td>RNN</td>
+        <td>3</td>
+        <td>97.95</td>
+        <td>31.02</td>
+        <td>9.90</td>
+        <td>144k / 172k</td>
+    </tr>
+    <tr>
+        <td>top_down</td>
+        <td>resnet152</td>
+        <td> base lr: 4.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> SampleR, r=hamming limited=1, $\tau=0.17$, $\alpha=0.7$</td>
+        <td>RNN</td>
+        <td>3</td>
+        <td>97.75</td>
+        <td>31.34</td>
+        <td>11.22</td>
+        <td>96k / 172k</td>
+    </tr>
+    <tr>
+        <td>top_down</td>
+        <td>resnet152</td>
+        <td> base lr: 4.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> SampleR, r=hamming limited=1, $\tau=0.13$, $\alpha=0.6$</td>
+        <td>RNN</td>
+        <td>3</td>
+        <td>97.41</td>
+        <td>30.81</td>
+        <td>9.94</td>
+        <td>104k / 172k</td>
+    </tr>
+    <tr>
+        <td>top_down</td>
+        <td>resnet152</td>
+        <td> base lr: 4.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> SampleR, r=hamming limited=1, $\tau=0.17$, $\alpha=0.3$</td>
+        <td>RNN</td>
+        <td>3</td>
+        <td>97.19</td>
+        <td>30.55</td>
+        <td>10.13</td>
+        <td>116k / 172k</td>
+    </tr>
+    <tr>
+        <td>top_down</td>
+        <td>resnet152</td>
+        <td> base lr: 4.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> SampleR, r=hamming limited=1, $\tau=0.13$, $\alpha=0.2$</td>
+        <td>RNN</td>
+        <td>3</td>
+        <td>97.18</td>
+        <td>31.19</td>
+        <td>9.97</td>
+        <td>92k / 160k</td>
+    </tr>
+    <tr>
+        <td>top_down</td>
+        <td>resnet152</td>
+        <td> base lr: 4.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> SampleR, r=hamming limited=1, $\tau=0.13$, $\alpha=0.3$</td>
+        <td>RNN</td>
+        <td>3</td>
+        <td>97.10</td>
+        <td>30.81</td>
+        <td>9.89</td>
+        <td>108k / 172k</td>
+    </tr>
+    <tr>
+        <td>top_down</td>
+        <td>resnet152</td>
+        <td> base lr: 4.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> SampleR, r=hamming limited=1, $\tau=0.17$, $\alpha=0.5$</td>
+        <td>RNN</td>
+        <td>3</td>
+        <td>97.03</td>
+        <td>31.41</td>
+        <td>10.50</td>
+        <td>100k / 156k</td>
+    </tr>
+    <tr>
+        <td>top_down</td>
+        <td>resnet152</td>
+        <td> base lr: 4.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> SampleR, r=hamming limited=1, $\tau=0.17$, $\alpha=0.2$</td>
+        <td>RNN</td>
+        <td>3</td>
+        <td>96.78</td>
+        <td>31.09</td>
+        <td>10.04</td>
+        <td>120k / 172k</td>
+    </tr>
+    <tr>
+        <td>adaptive_attention</td>
+        <td>resnet152</td>
+        <td> base lr: 4.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> SampleR, r=hamming limited=1, $\tau=0.17$, $\alpha=0.5$</td>
+        <td>RNN</td>
+        <td>3</td>
+        <td>95.03</td>
+        <td>30.76</td>
+        <td>10.89</td>
+        <td>108k / 172k</td>
+    </tr>
+    <tr>
+        <td>adaptive_attention</td>
+        <td>resnet152</td>
+        <td> base lr: 4.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> SampleR, r=hamming limited=1, $\tau=0.17$, $\alpha=0.4$</td>
+        <td>RNN</td>
+        <td>3</td>
+        <td>94.37</td>
+        <td>29.81</td>
+        <td>10.59</td>
+        <td>132k / 172k</td>
+    </tr>
+    <tr>
+        <td>adaptive_attention</td>
+        <td>resnet152</td>
+        <td> base lr: 4.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> SampleR, r=hamming limited=1, $\tau=0.17$, $\alpha=0.2$</td>
+        <td>RNN</td>
+        <td>3</td>
+        <td>94.11</td>
+        <td>30.31</td>
+        <td>10.31</td>
+        <td>112k / 172k</td>
+    </tr>
+    <tr>
+        <td>adaptive_attention</td>
+        <td>resnet152</td>
+        <td> base lr: 4.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> SampleR, r=hamming limited=1, $\tau=0.17$, $\alpha=0.3$</td>
+        <td>RNN</td>
+        <td>3</td>
+        <td>93.97</td>
+        <td>30.21</td>
+        <td>10.46</td>
+        <td>96k / 172k</td>
+    </tr>
+    <tr>
+        <td>show_tell</td>
+        <td>resnet50</td>
+        <td> base lr: 1.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> SampleR, r=hamming limited=1, $\tau=0.17$, $\alpha=0.4$</td>
+        <td>RNN + 1.0 x cnn(3:)</td>
+        <td>3</td>
+        <td>90.97</td>
+        <td>30.45</td>
+        <td>11.74</td>
+        <td>184k / 212k</td>
+    </tr>
+    <tr>
+        <td>show_tell</td>
+        <td>resnet50</td>
+        <td> base lr: 5.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> Alternating losses,  Word Level, Sim=Glove-Wiki xIDF, $\tau=0.20$, $\alpha=0.7$  w/ SampleR, r=tfidf n=0, idf_select=1, idf_sub=0 $\tau=5.00$, $\alpha=0.7$, $\gamma=0.0$ (mode:iter)</td>
+        <td>RNN</td>
+        <td>3</td>
+        <td>87.61</td>
+        <td>28.95</td>
+        <td>16.76</td>
+        <td>112k / 172k</td>
+    </tr>
+    <tr>
+        <td>show_tell</td>
+        <td>resnet50</td>
+        <td> base lr: 5.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> SampleR, r=hamming limited=1, $\tau=0.17$, $\alpha=0.4$</td>
+        <td>RNN</td>
+        <td>3</td>
+        <td>87.52</td>
+        <td>29.19</td>
+        <td>12.80</td>
+        <td>108k / 172k</td>
+    </tr>
+    <tr>
+        <td>show_tell</td>
+        <td>resnet50</td>
+        <td> base lr: 5.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> SampleR, r=hamming limited=1, $\tau=0.19$, $\alpha=0.3$</td>
+        <td>RNN</td>
+        <td>3</td>
+        <td>87.50</td>
+        <td>29.09</td>
+        <td>12.92</td>
+        <td>116k / 148k</td>
+    </tr>
+    <tr>
+        <td>show_tell</td>
+        <td>resnet50</td>
+        <td> base lr: 5.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> SampleR, r=hamming limited=0, $\tau=0.10$, $\alpha=0.4$</td>
+        <td>RNN</td>
+        <td>3</td>
+        <td>87.42</td>
+        <td>28.59</td>
+        <td>12.42</td>
+        <td>100k / 172k</td>
+    </tr>
+    <tr>
+        <td>show_tell</td>
+        <td>resnet50</td>
+        <td> base lr: 5.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> SampleR, r=hamming limited=0, $\tau=0.10$, $\alpha=0.3$</td>
+        <td>RNN</td>
+        <td>3</td>
+        <td>87.25</td>
+        <td>28.81</td>
+        <td>11.95</td>
+        <td>120k / 172k</td>
+    </tr>
+    <tr>
+        <td>show_tell</td>
+        <td>resnet50</td>
+        <td> base lr: 5.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> SampleR, r=tfidf n=2, idf_select=1, idf_sub=0, $\tau=5.00$, $\alpha=0.9$</td>
+        <td>RNN</td>
+        <td>3</td>
+        <td>86.84</td>
+        <td>28.85</td>
+        <td>10.63</td>
+        <td>112k / 172k</td>
+    </tr>
+    <tr>
+        <td>show_tell</td>
+        <td>resnet50</td>
+        <td> base lr: 5.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> SampleR, r=hamming limited=1, $\tau=0.20$, $\alpha=0.3$</td>
+        <td>RNN</td>
+        <td>3</td>
+        <td>86.53</td>
+        <td>28.64</td>
+        <td>13.13</td>
+        <td>108k / 172k</td>
+    </tr>
+    <tr>
+        <td>show_tell</td>
+        <td>resnet50</td>
+        <td> base lr: 5.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> SampleR, r=tfidf n=2, idf_select=1, idf_sub=0, $\tau=8.00$, $\alpha=0.9$</td>
+        <td>RNN</td>
+        <td>3</td>
+        <td>86.51</td>
+        <td>28.73</td>
+        <td>10.67</td>
+        <td>92k / 172k</td>
+    </tr>
+    <tr>
+        <td>show_tell</td>
+        <td>resnet50</td>
+        <td> base lr: 5.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> SampleR, r=tfidf n=4, idf_select=1, idf_sub=0, $\tau=5.00$, $\alpha=0.9$</td>
+        <td>RNN</td>
+        <td>3</td>
+        <td>86.48</td>
+        <td>28.89</td>
+        <td>11.05</td>
+        <td>144k / 172k</td>
+    </tr>
+    <tr>
+        <td>show_tell</td>
+        <td>resnet50</td>
+        <td> base lr: 5.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> SampleR, r=hamming limited=1, $\tau=0.15$, $\alpha=0.3$</td>
+        <td>RNN</td>
+        <td>3</td>
+        <td>86.41</td>
+        <td>28.15</td>
+        <td>11.20</td>
+        <td>92k / 172k</td>
+    </tr>
+    <tr>
+        <td>show_tell</td>
+        <td>resnet50</td>
+        <td> base lr: 5.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> SampleR, r=hamming limited=1, $\tau=0.17$, $\alpha=0.4$</td>
+        <td>RNN</td>
+        <td>3</td>
+        <td>86.27</td>
+        <td>28.03</td>
+        <td>10.48</td>
+        <td>108k / 116k</td>
+    </tr>
+    <tr>
+        <td>show_tell</td>
+        <td>resnet50</td>
+        <td> base lr: 5.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> SampleR, r=tfidf n=1, idf_select=1, idf_sub=0, $\tau=5.00$, $\alpha=0.9$</td>
+        <td>RNN</td>
+        <td>3</td>
+        <td>86.21</td>
+        <td>28.14</td>
+        <td>10.60</td>
+        <td>112k / 172k</td>
+    </tr>
+    <tr>
+        <td>show_tell</td>
+        <td>resnet50</td>
+        <td> base lr: 5.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> SampleR, r=hamming limited=0, $\tau=0.09$, $\alpha=0.4$</td>
+        <td>RNN</td>
+        <td>3</td>
+        <td>86.19</td>
+        <td>28.15</td>
+        <td>10.89</td>
+        <td>96k / 172k</td>
+    </tr>
+    <tr>
+        <td>show_tell</td>
+        <td>resnet50</td>
+        <td> base lr: 5.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> SampleR, r=hamming limited=0, $\tau=0.09$, $\alpha=0.3$</td>
+        <td>RNN</td>
+        <td>3</td>
+        <td>86.18</td>
+        <td>28.24</td>
+        <td>10.80</td>
+        <td>100k / 172k</td>
+    </tr>
+    <tr>
+        <td>show_tell</td>
+        <td>resnet50</td>
+        <td> base lr: 5.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> SampleR, r=tfidf n=1, idf_select=1, idf_sub=0, $\tau=8.00$, $\alpha=0.9$</td>
+        <td>RNN</td>
+        <td>3</td>
+        <td>86.15</td>
+        <td>28.37</td>
+        <td>10.62</td>
+        <td>116k / 172k</td>
+    </tr>
+    <tr>
+        <td>show_tell</td>
+        <td>resnet50</td>
+        <td> base lr: 5.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> SampleR, r=hamming limited=1, $\tau=0.17$, $\alpha=0.4$</td>
+        <td>RNN</td>
+        <td>3</td>
+        <td>86.12</td>
+        <td>28.34</td>
+        <td>10.47</td>
+        <td>140k / 144k</td>
+    </tr>
+    <tr>
+        <td>show_tell</td>
+        <td>resnet50</td>
+        <td> base lr: 5.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> SampleR, r=tfidf n=2, idf_select=1, idf_sub=0, $\tau=5.00$, $\alpha=0.7$</td>
+        <td>RNN</td>
+        <td>3</td>
+        <td>86.09</td>
+        <td>28.19</td>
+        <td>10.27</td>
+        <td>104k / 172k</td>
+    </tr>
+    <tr>
+        <td>show_tell</td>
+        <td>resnet50</td>
+        <td> base lr: 5.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> SampleR, r=tfidf n=2, idf_select=1, idf_sub=0, $\tau=8.00$, $\alpha=0.7$</td>
+        <td>RNN</td>
+        <td>3</td>
+        <td>86.03</td>
+        <td>28.40</td>
+        <td>10.26</td>
+        <td>100k / 172k</td>
+    </tr>
+    <tr>
+        <td>show_tell</td>
+        <td>resnet50</td>
+        <td> base lr: 5.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> SampleR, r=tfidf n=3, idf_select=1, idf_sub=0, $\tau=5.00$, $\alpha=0.9$</td>
+        <td>RNN</td>
+        <td>3</td>
+        <td>85.76</td>
+        <td>28.57</td>
+        <td>10.86</td>
+        <td>92k / 152k</td>
+    </tr>
+    <tr>
+        <td>show_tell</td>
+        <td>resnet50</td>
+        <td> base lr: 5.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> SampleR, r=hamming limited=1, $\tau=0.17$, $\alpha=0.3$</td>
+        <td>RNN</td>
+        <td>3</td>
+        <td>85.53</td>
+        <td>28.21</td>
+        <td>10.37</td>
+        <td>104k / 172k</td>
+    </tr>
+    <tr>
+        <td>show_tell</td>
+        <td>resnet50</td>
+        <td> base lr: 5.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> SampleR, r=tfidf n=1, idf_select=1, idf_sub=0, $\tau=10.00$, $\alpha=0.9$</td>
+        <td>RNN</td>
+        <td>3</td>
+        <td>85.13</td>
+        <td>27.93</td>
+        <td>10.58</td>
+        <td>104k / 172k</td>
+    </tr>
+    <tr>
+        <td>show_tell</td>
+        <td>resnet50</td>
+        <td> base lr: 5.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> Alternating losses,  Word Level, Sim=Glove-Wiki xIDF, $\tau=0.20$, $\alpha=0.9$  w/ SampleR, r=tfidf n=0, idf_select=1, idf_sub=0 $\tau=5.00$, $\alpha=0.9$, $\gamma=0.0$ (mode:iter)</td>
+        <td>RNN</td>
+        <td>3</td>
+        <td>84.62</td>
+        <td>28.31</td>
+        <td>45.79</td>
+        <td>120k / 172k</td>
+    </tr>
+</table>
