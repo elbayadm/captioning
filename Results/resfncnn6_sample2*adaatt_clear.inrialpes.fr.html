@@ -1,0 +1,62 @@
+<table>
+    <tr>
+        <th>Model</th>
+        <th>CNN</th>
+        <th>params</th>
+        <th>loss</th>
+        <th>weights</th>
+        <th>Beam</th>
+        <th>CIDEr</th>
+        <th>Bleu4</th>
+        <th>Perplexity</th>
+        <th>best/last</th>
+    </tr>
+    <tr>
+        <td>adaptive_attention</td>
+        <td>resnet152</td>
+        <td> base lr: 1.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> SampleR, r=hamming limited=1, $\tau=0.17$, $\alpha=0.4$</td>
+        <td>RNN + 1.0 x cnn(6:)</td>
+        <td>3</td>
+        <td>99.75</td>
+        <td>31.52</td>
+        <td>10.25</td>
+        <td>224k / 256k</td>
+    </tr>
+    <tr>
+        <td>adaptive_attention</td>
+        <td>resnet152</td>
+        <td> base lr: 1.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> SampleR, r=hamming limited=1, $\tau=0.17$, $\alpha=0.3$</td>
+        <td>RNN + 1.0 x cnn(6:)</td>
+        <td>3</td>
+        <td>99.44</td>
+        <td>31.20</td>
+        <td>10.11</td>
+        <td>256k / 256k</td>
+    </tr>
+    <tr>
+        <td>adaptive_attention</td>
+        <td>resnet152</td>
+        <td> base lr: 1.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> SampleR, r=hamming limited=1, $\tau=0.17$, $\alpha=0.2$</td>
+        <td>RNN + 1.0 x cnn(6:)</td>
+        <td>3</td>
+        <td>98.61</td>
+        <td>32.01</td>
+        <td>10.07</td>
+        <td>160k / 196k</td>
+    </tr>
+    <tr>
+        <td>adaptive_attention</td>
+        <td>resnet152</td>
+        <td> base lr: 1.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> SampleR, r=hamming limited=1, $\tau=0.17$, $\alpha=0.5$</td>
+        <td>RNN + 1.0 x cnn(6:)</td>
+        <td>3</td>
+        <td>98.56</td>
+        <td>31.97</td>
+        <td>10.57</td>
+        <td>200k / 256k</td>
+    </tr>
+</table>

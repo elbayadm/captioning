@@ -290,7 +290,7 @@ if __name__ == "__main__":
     save = 0
     if len(sys.argv) > 1:
         filter = sys.argv[1]
-        if len(sys.argv) > 2:
+        if len(sys.argv) == 3:
             exc = sys.argv[2]
             # print('exc:', exc)
             try:
@@ -299,10 +299,12 @@ if __name__ == "__main__":
                     exc = None
             except:
                 pass
-        else:
-            exc = None
+        elif len(sys.argv) == 4:
+            exc = sys.argv[2]
+            save = 1
     else:
         filter = ''
+    print('filter:', filter, 'exclude:', exc, 'saving:', save)
     tab, dump = crawl_results(filter, exc)
     print(tab.get_string(sortby='CIDEr', reversesort=True))
     filename = "Results/res%s_%s" % (filter, socket.gethostname())
