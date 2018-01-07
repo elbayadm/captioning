@@ -1,6 +1,10 @@
 <table>
     <tr>
         <th>Model</th>
+        <th>CNN</th>
+        <th>params</th>
+        <th>loss</th>
+        <th>weights</th>
         <th>Beam</th>
         <th>CIDEr</th>
         <th>Bleu4</th>
@@ -8,7 +12,11 @@
         <th>best/last</th>
     </tr>
     <tr>
-        <td>Adaptive Attention resnet152 (maxout: 0, w+im : 1) blr: 1.00e-04 decay: 5, b: 0.800, batch: 10 seqlen: 16 Combining losses,  Word Leve l, Sim=Coco, $\tau=0.17$, $\alpha=0.3$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.2$ +cnn(6:)</td>
+        <td>adaptive_attention</td>
+        <td>resnet152</td>
+        <td> base lr: 1.00e-04 decay: 5, Adam(0.800,0.999), batch: 10, seq: 16</td>
+        <td> Combining losses,  Word Level, Sim=Coco, $\tau=0.17$, $\alpha=0.3$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.2$</td>
+        <td>RNN + 1.0 x cnn(6:)</td>
         <td>3</td>
         <td>99.12</td>
         <td>31.71</td>
@@ -16,7 +24,11 @@
         <td>176k / 248k</td>
     </tr>
     <tr>
-        <td>Top Down resnet152 (maxout: 0, w+im : 1) blr: 5.00e-04 decay: 5, b: 0.800, batch: 10 seqlen: 16  Combining losses,  Word Leve l, Sim=Coco, $\tau=0.09$, $\alpha=0.2$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.2$</td>
+        <td>top_down</td>
+        <td>resnet152</td>
+        <td> base lr: 5.00e-04 decay: 5, Adam(0.800,0.999), batch: 10, seq: 16</td>
+        <td> Combining losses,  Word Level, Sim=Coco, $\tau=0.09$, $\alpha=0.2$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.2$</td>
+        <td>RNN</td>
         <td>3</td>
         <td>96.94</td>
         <td>30.45</td>
@@ -24,7 +36,11 @@
         <td>92k / 148k</td>
     </tr>
     <tr>
-        <td>Top Down resnet152 (maxout: 0, w+im : 1) blr: 5.00e-04 decay: 5, b: 0.800, batch: 10 seqlen: 16  Combining losses,  Word Leve l, Sim=Coco xIDF, $\tau=0.15$, $\alpha=0.7$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.4$</td>
+        <td>top_down</td>
+        <td>resnet152</td>
+        <td> base lr: 5.00e-04 decay: 5, Adam(0.800,0.999), batch: 10, seq: 16</td>
+        <td> Combining losses,  Word Level, Sim=Coco xIDF, $\tau=0.15$, $\alpha=0.7$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.4$</td>
+        <td>RNN</td>
         <td>3</td>
         <td>96.03</td>
         <td>31.27</td>
@@ -32,7 +48,11 @@
         <td>92k / 172k</td>
     </tr>
     <tr>
-        <td>Top Down resnet152 (maxout: 0, w+im : 1) blr: 5.00e-04 decay: 5, b: 0.800, batch: 10 seqlen: 16  Combining losses,  Word Leve l, Sim=Coco, $\tau=0.17$, $\alpha=0.3$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.2$</td>
+        <td>top_down</td>
+        <td>resnet152</td>
+        <td> base lr: 5.00e-04 decay: 5, Adam(0.800,0.999), batch: 10, seq: 16</td>
+        <td> Combining losses,  Word Level, Sim=Coco, $\tau=0.17$, $\alpha=0.3$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.2$</td>
+        <td>RNN</td>
         <td>3</td>
         <td>95.55</td>
         <td>30.82</td>
@@ -40,7 +60,11 @@
         <td>112k / 172k</td>
     </tr>
     <tr>
-        <td>Adaptive Attention resnet152 (maxout: 0, w+im : 1) blr: 5.00e-04 decay: 5, b: 0.800, batch: 10 seqlen: 16 Combining losses,  Word Leve l, Sim=Coco, $\tau=0.17$, $\alpha=0.4$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.5$</td>
+        <td>adaptive_attention</td>
+        <td>resnet152</td>
+        <td> base lr: 5.00e-04 decay: 5, Adam(0.800,0.999), batch: 10, seq: 16</td>
+        <td> Combining losses,  Word Level, Sim=Coco, $\tau=0.17$, $\alpha=0.4$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.5$</td>
+        <td>RNN</td>
         <td>3</td>
         <td>94.05</td>
         <td>30.18</td>
@@ -48,7 +72,11 @@
         <td>104k / 172k</td>
     </tr>
     <tr>
-        <td>Adaptive Attention resnet152 (maxout: 0, w+im : 1) blr: 5.00e-04 decay: 5, b: 0.800, batch: 10 seqlen: 16 Combining losses,  Word Leve l, Sim=Coco, $\tau=0.17$, $\alpha=0.3$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.5$</td>
+        <td>adaptive_attention</td>
+        <td>resnet152</td>
+        <td> base lr: 5.00e-04 decay: 5, Adam(0.800,0.999), batch: 10, seq: 16</td>
+        <td> Combining losses,  Word Level, Sim=Coco, $\tau=0.17$, $\alpha=0.3$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.5$</td>
+        <td>RNN</td>
         <td>3</td>
         <td>93.58</td>
         <td>29.98</td>
@@ -56,7 +84,11 @@
         <td>100k / 172k</td>
     </tr>
     <tr>
-        <td>Adaptive Attention resnet152 (maxout: 0, w+im : 1) blr: 5.00e-04 decay: 5, b: 0.800, batch: 10 seqlen: 16 Combining losses,  Word Leve l, Sim=Coco, $\tau=0.17$, $\alpha=0.5$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.5$</td>
+        <td>adaptive_attention</td>
+        <td>resnet152</td>
+        <td> base lr: 5.00e-04 decay: 5, Adam(0.800,0.999), batch: 10, seq: 16</td>
+        <td> Combining losses,  Word Level, Sim=Coco, $\tau=0.17$, $\alpha=0.5$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.5$</td>
+        <td>RNN</td>
         <td>3</td>
         <td>92.74</td>
         <td>29.64</td>
@@ -64,7 +96,11 @@
         <td>108k / 172k</td>
     </tr>
     <tr>
-        <td>Adaptive Attention resnet152 (maxout: 0, w+im : 1) blr: 5.00e-04 decay: 5, b: 0.800, batch: 10 seqlen: 16 Combining losses,  Word Leve l, Sim=Coco, $\tau=0.17$, $\alpha=0.3$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.2$</td>
+        <td>adaptive_attention</td>
+        <td>resnet152</td>
+        <td> base lr: 5.00e-04 decay: 5, Adam(0.800,0.999), batch: 10, seq: 16</td>
+        <td> Combining losses,  Word Level, Sim=Coco, $\tau=0.17$, $\alpha=0.3$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.2$</td>
+        <td>RNN</td>
         <td>3</td>
         <td>92.56</td>
         <td>30.04</td>
@@ -72,7 +108,11 @@
         <td>124k / 172k</td>
     </tr>
     <tr>
-        <td>Show \&amp; Tell resnet50 blr: 1.00e-04 decay: 5, b: 0.800, batch: 10 Combining losses,  Word Leve l, Sim=Coco xIDF, $\tau=0.15$, $\alpha=0.7$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.4$ +cnn(6:)</td>
+        <td>show_tell</td>
+        <td>resnet50</td>
+        <td> base lr: 1.00e-04 decay: 5, Adam(0.800,0.999), batch: 10, seq: 16</td>
+        <td> Combining losses,  Word Level, Sim=Coco xIDF, $\tau=0.15$, $\alpha=0.7$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.4$</td>
+        <td>RNN + 1.0 x cnn(6:)</td>
         <td>3</td>
         <td>92.38</td>
         <td>30.59</td>
@@ -80,7 +120,11 @@
         <td>200k / 212k</td>
     </tr>
     <tr>
-        <td>Adaptive Attention resnet152 (maxout: 0, w+im : 1) blr: 5.00e-04 decay: 5, b: 0.800, batch: 10 seqlen: 16 Combining losses,  Word Leve l, Sim=Coco xIDF, $\tau=0.15$, $\alpha=0.7$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.4$</td>
+        <td>adaptive_attention</td>
+        <td>resnet152</td>
+        <td> base lr: 5.00e-04 decay: 5, Adam(0.800,0.999), batch: 10, seq: 16</td>
+        <td> Combining losses,  Word Level, Sim=Coco xIDF, $\tau=0.15$, $\alpha=0.7$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.4$</td>
+        <td>RNN</td>
         <td>3</td>
         <td>90.97</td>
         <td>29.58</td>
@@ -88,7 +132,11 @@
         <td>100k / 172k</td>
     </tr>
     <tr>
-        <td>Show \&amp; Tell resnet50 blr: 5.00e-04 decay: 5, b: 0.800, batch: 10 Combining losses,  Word Leve l, Sim=Coco xIDF, $\tau=0.15$, $\alpha=0.7$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.4$</td>
+        <td>show_tell</td>
+        <td>resnet50</td>
+        <td> base lr: 5.00e-04 decay: 5, Adam(0.800,0.999), batch: 10, seq: 16</td>
+        <td> Combining losses,  Word Level, Sim=Coco xIDF, $\tau=0.15$, $\alpha=0.7$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.4$</td>
+        <td>RNN</td>
         <td>3</td>
         <td>89.65</td>
         <td>29.50</td>
@@ -96,7 +144,11 @@
         <td>100k / 172k</td>
     </tr>
     <tr>
-        <td>Show \&amp; Tell resnet50 blr: 5.00e-04 decay: 5, b: 0.800, batch: 10 Combining losses,  Word Leve l, Sim=Coco xIDF, $\tau=0.15$, $\alpha=0.9$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.4$</td>
+        <td>show_tell</td>
+        <td>resnet50</td>
+        <td> base lr: 5.00e-04 decay: 5, Adam(0.800,0.999), batch: 10, seq: 16</td>
+        <td> Combining losses,  Word Level, Sim=Coco xIDF, $\tau=0.15$, $\alpha=0.9$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.4$</td>
+        <td>RNN</td>
         <td>3</td>
         <td>88.86</td>
         <td>29.26</td>
@@ -104,7 +156,11 @@
         <td>92k / 172k</td>
     </tr>
     <tr>
-        <td>Show \&amp; Tell resnet50 blr: 5.00e-04 decay: 5, b: 0.800, batch: 10 Combining losses,  Word Leve l, Sim=Coco xIDF, $\tau=0.15$, $\alpha=0.8$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.6$</td>
+        <td>show_tell</td>
+        <td>resnet50</td>
+        <td> base lr: 5.00e-04 decay: 5, Adam(0.800,0.999), batch: 10, seq: 16</td>
+        <td> Combining losses,  Word Level, Sim=Coco xIDF, $\tau=0.15$, $\alpha=0.8$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.6$</td>
+        <td>RNN</td>
         <td>3</td>
         <td>88.84</td>
         <td>29.54</td>
@@ -112,7 +168,11 @@
         <td>100k / 172k</td>
     </tr>
     <tr>
-        <td>Show \&amp; Tell resnet50 blr: 5.00e-04 decay: 5, b: 0.800, batch: 10 Combining losses,  Word Leve l, Sim=Coco xIDF, $\tau=0.15$, $\alpha=0.8$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.5$</td>
+        <td>show_tell</td>
+        <td>resnet50</td>
+        <td> base lr: 5.00e-04 decay: 5, Adam(0.800,0.999), batch: 10, seq: 16</td>
+        <td> Combining losses,  Word Level, Sim=Coco xIDF, $\tau=0.15$, $\alpha=0.8$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.5$</td>
+        <td>RNN</td>
         <td>3</td>
         <td>88.81</td>
         <td>29.25</td>
@@ -120,7 +180,11 @@
         <td>104k / 172k</td>
     </tr>
     <tr>
-        <td>Show \&amp; Tell resnet50 blr: 5.00e-04 decay: 5, b: 0.800, batch: 10 Combining losses,  Word Leve l, Sim=Coco xIDF, $\tau=0.15$, $\alpha=0.8$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.4$</td>
+        <td>show_tell</td>
+        <td>resnet50</td>
+        <td> base lr: 5.00e-04 decay: 5, Adam(0.800,0.999), batch: 10, seq: 16</td>
+        <td> Combining losses,  Word Level, Sim=Coco xIDF, $\tau=0.15$, $\alpha=0.8$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.4$</td>
+        <td>RNN</td>
         <td>3</td>
         <td>88.62</td>
         <td>29.05</td>
@@ -128,7 +192,11 @@
         <td>112k / 172k</td>
     </tr>
     <tr>
-        <td>Show \&amp; Tell resnet50 blr: 5.00e-04 decay: 5, b: 0.800, batch: 10 Combining losses,  Word Leve l, Sim=Coco xIDF, $\tau=0.15$, $\alpha=0.9$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.2$</td>
+        <td>show_tell</td>
+        <td>resnet50</td>
+        <td> base lr: 5.00e-04 decay: 5, Adam(0.800,0.999), batch: 10, seq: 16</td>
+        <td> Combining losses,  Word Level, Sim=Coco xIDF, $\tau=0.15$, $\alpha=0.9$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.2$</td>
+        <td>RNN</td>
         <td>3</td>
         <td>88.55</td>
         <td>29.18</td>
@@ -136,7 +204,11 @@
         <td>92k / 172k</td>
     </tr>
     <tr>
-        <td>Show \&amp; Tell resnet50 blr: 5.00e-04 decay: 5, b: 0.800, batch: 10 Combining losses,  Word Leve l, Sim=Coco xIDF, $\tau=0.15$, $\alpha=0.7$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.5$</td>
+        <td>show_tell</td>
+        <td>resnet50</td>
+        <td> base lr: 5.00e-04 decay: 5, Adam(0.800,0.999), batch: 10, seq: 16</td>
+        <td> Combining losses,  Word Level, Sim=Coco xIDF, $\tau=0.15$, $\alpha=0.7$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.5$</td>
+        <td>RNN</td>
         <td>3</td>
         <td>88.50</td>
         <td>29.20</td>
@@ -144,7 +216,11 @@
         <td>92k / 172k</td>
     </tr>
     <tr>
-        <td>Show \&amp; Tell resnet50 blr: 5.00e-04 decay: 5, b: 0.800, batch: 10 Combining losses,  Word Leve l, Sim=Coco xIDF, $\tau=0.15$, $\alpha=0.7$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.6$</td>
+        <td>show_tell</td>
+        <td>resnet50</td>
+        <td> base lr: 5.00e-04 decay: 5, Adam(0.800,0.999), batch: 10, seq: 16</td>
+        <td> Combining losses,  Word Level, Sim=Coco xIDF, $\tau=0.15$, $\alpha=0.7$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.6$</td>
+        <td>RNN</td>
         <td>3</td>
         <td>88.47</td>
         <td>29.23</td>
@@ -152,7 +228,11 @@
         <td>96k / 144k</td>
     </tr>
     <tr>
-        <td>Show \&amp; Tell resnet50 blr: 5.00e-04 decay: 5, b: 0.800, batch: 10 Combining losses,  Word Leve l, Sim=Coco xIDF, $\tau=0.15$, $\alpha=0.9$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.3$</td>
+        <td>show_tell</td>
+        <td>resnet50</td>
+        <td> base lr: 5.00e-04 decay: 5, Adam(0.800,0.999), batch: 10, seq: 16</td>
+        <td> Combining losses,  Word Level, Sim=Coco xIDF, $\tau=0.15$, $\alpha=0.9$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.3$</td>
+        <td>RNN</td>
         <td>3</td>
         <td>88.38</td>
         <td>29.26</td>
@@ -160,7 +240,11 @@
         <td>112k / 172k</td>
     </tr>
     <tr>
-        <td>Show \&amp; Tell resnet50 blr: 5.00e-04 decay: 5, b: 0.800, batch: 10 Combining losses,  Word Leve l, Sim=Coco xIDF, $\tau=0.15$, $\alpha=0.6$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.6$</td>
+        <td>show_tell</td>
+        <td>resnet50</td>
+        <td> base lr: 5.00e-04 decay: 5, Adam(0.800,0.999), batch: 10, seq: 16</td>
+        <td> Combining losses,  Word Level, Sim=Coco xIDF, $\tau=0.15$, $\alpha=0.6$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.6$</td>
+        <td>RNN</td>
         <td>3</td>
         <td>88.30</td>
         <td>29.45</td>
@@ -168,7 +252,11 @@
         <td>96k / 172k</td>
     </tr>
     <tr>
-        <td>Show \&amp; Tell resnet50 blr: 5.00e-04 decay: 5, b: 0.800, batch: 10 Combining losses,  Word Leve l, Sim=Coco xIDF, $\tau=0.15$, $\alpha=0.9$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.4$</td>
+        <td>show_tell</td>
+        <td>resnet50</td>
+        <td> base lr: 5.00e-04 decay: 5, Adam(0.800,0.999), batch: 10, seq: 16</td>
+        <td> Combining losses,  Word Level, Sim=Coco xIDF, $\tau=0.15$, $\alpha=0.9$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.4$</td>
+        <td>RNN</td>
         <td>3</td>
         <td>88.27</td>
         <td>29.16</td>
@@ -176,7 +264,11 @@
         <td>96k / 172k</td>
     </tr>
     <tr>
-        <td>Show \&amp; Tell resnet50 blr: 5.00e-04 decay: 5, b: 0.800, batch: 10 Combining losses,  Word Leve l, Sim=Coco xIDF, $\tau=0.15$, $\alpha=0.8$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.3$</td>
+        <td>show_tell</td>
+        <td>resnet50</td>
+        <td> base lr: 5.00e-04 decay: 5, Adam(0.800,0.999), batch: 10, seq: 16</td>
+        <td> Combining losses,  Word Level, Sim=Coco xIDF, $\tau=0.15$, $\alpha=0.8$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.3$</td>
+        <td>RNN</td>
         <td>3</td>
         <td>88.16</td>
         <td>29.23</td>
@@ -184,7 +276,11 @@
         <td>112k / 172k</td>
     </tr>
     <tr>
-        <td>Show \&amp; Tell resnet50 blr: 5.00e-04 decay: 5, b: 0.800, batch: 10 Combining losses,  Word Leve l, Sim=Coco xIDF, $\tau=0.15$, $\alpha=0.9$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.5$</td>
+        <td>show_tell</td>
+        <td>resnet50</td>
+        <td> base lr: 5.00e-04 decay: 5, Adam(0.800,0.999), batch: 10, seq: 16</td>
+        <td> Combining losses,  Word Level, Sim=Coco xIDF, $\tau=0.15$, $\alpha=0.9$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.5$</td>
+        <td>RNN</td>
         <td>3</td>
         <td>88.13</td>
         <td>28.97</td>
@@ -192,7 +288,11 @@
         <td>100k / 172k</td>
     </tr>
     <tr>
-        <td>Show \&amp; Tell resnet50 blr: 5.00e-04 decay: 5, b: 0.800, batch: 10 Combining losses,  Word Leve l, Sim=Coco xIDF, $\tau=0.15$, $\alpha=0.6$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.4$</td>
+        <td>show_tell</td>
+        <td>resnet50</td>
+        <td> base lr: 5.00e-04 decay: 5, Adam(0.800,0.999), batch: 10, seq: 16</td>
+        <td> Combining losses,  Word Level, Sim=Coco xIDF, $\tau=0.15$, $\alpha=0.6$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.4$</td>
+        <td>RNN</td>
         <td>3</td>
         <td>88.03</td>
         <td>28.78</td>
@@ -200,7 +300,11 @@
         <td>92k / 172k</td>
     </tr>
     <tr>
-        <td>Show \&amp; Tell resnet50 blr: 5.00e-04 decay: 5, b: 0.800, batch: 10 Combining losses,  Word Leve l, Sim=Coco xIDF, $\tau=0.15$, $\alpha=0.9$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.6$</td>
+        <td>show_tell</td>
+        <td>resnet50</td>
+        <td> base lr: 5.00e-04 decay: 5, Adam(0.800,0.999), batch: 10, seq: 16</td>
+        <td> Combining losses,  Word Level, Sim=Coco xIDF, $\tau=0.15$, $\alpha=0.9$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.6$</td>
+        <td>RNN</td>
         <td>3</td>
         <td>88.00</td>
         <td>29.17</td>
@@ -208,7 +312,11 @@
         <td>100k / 172k</td>
     </tr>
     <tr>
-        <td>Show \&amp; Tell resnet50 blr: 5.00e-04 decay: 5, b: 0.800, batch: 10 Combining losses,  Word Leve l, Sim=Coco xIDF, $\tau=0.15$, $\alpha=0.6$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.5$</td>
+        <td>show_tell</td>
+        <td>resnet50</td>
+        <td> base lr: 5.00e-04 decay: 5, Adam(0.800,0.999), batch: 10, seq: 16</td>
+        <td> Combining losses,  Word Level, Sim=Coco xIDF, $\tau=0.15$, $\alpha=0.6$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.5$</td>
+        <td>RNN</td>
         <td>3</td>
         <td>87.95</td>
         <td>29.05</td>
@@ -216,7 +324,11 @@
         <td>100k / 172k</td>
     </tr>
     <tr>
-        <td>Show \&amp; Tell resnet50 blr: 5.00e-04 decay: 5, b: 0.800, batch: 10 Combining losses,  Word Leve l, Sim=Coco xIDF, $\tau=0.15$, $\alpha=0.6$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.3$</td>
+        <td>show_tell</td>
+        <td>resnet50</td>
+        <td> base lr: 5.00e-04 decay: 5, Adam(0.800,0.999), batch: 10, seq: 16</td>
+        <td> Combining losses,  Word Level, Sim=Coco xIDF, $\tau=0.15$, $\alpha=0.6$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.3$</td>
+        <td>RNN</td>
         <td>3</td>
         <td>87.82</td>
         <td>29.13</td>
@@ -224,7 +336,11 @@
         <td>92k / 172k</td>
     </tr>
     <tr>
-        <td>Show \&amp; Tell resnet50 blr: 5.00e-04 decay: 5, b: 0.800, batch: 10 Combining losses,  Word Leve l, Sim=Coco xIDF, $\tau=0.15$, $\alpha=0.7$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.3$</td>
+        <td>show_tell</td>
+        <td>resnet50</td>
+        <td> base lr: 5.00e-04 decay: 5, Adam(0.800,0.999), batch: 10, seq: 16</td>
+        <td> Combining losses,  Word Level, Sim=Coco xIDF, $\tau=0.15$, $\alpha=0.7$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.3$</td>
+        <td>RNN</td>
         <td>3</td>
         <td>87.62</td>
         <td>28.79</td>

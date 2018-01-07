@@ -90,11 +90,28 @@ def get_wl(params):
         G += ' +H'
     if params.get('exact_dkl', 0):
         G += ' +ExDKL'
-    modelname = ' Word Leve l, Sim=%s, $\\tau=%.2f$, $\\alpha=%.1f$' % (G, params['tau_word'], alpha)
-    return modelname
+    modelparams = ' Word Level, Sim=%s, $\\tau=%.2f$, $\\alpha=%.1f$' % (G, params['tau_word'], alpha)
+    return modelparams
 
 
 def parse_name_clean(params):
+    modelparams = ""
+    # get the model parameters
+    modelparams = ' base lr: %.2e decay: %d, Adam(%.3f,%.3f), batch: %d, seq: %d' % (params['learning_rate'],
+                                                                                   params['learning_rate_decay_start'],
+                                                                                   params['optim_alpha'],
+                                                                                   params['optim_beta'],
+                                                                                   params['batch_size'],
+                                                                                   params["seq_length"])
+    if params['caption_model'] == "adaptive_attention":
+        if params.get('use_maxout', 0):
+            modelparams += " Maxout"
+        if not params.get('add_fc_img', 1):
+            modelparams += " xt = wt"
+    if 'gen' in params.get('input_data'):
+        print('Using data augmentation')
+        modelparams += " Augment"
+    # Get the loss:
     sample_cap = params.get('sample_cap', 0)
     sample_reward = params.get('sample_reward', 0)
     alter_loss = params.get('alter_loss', 0)
@@ -102,10 +119,6 @@ def parse_name_clean(params):
     combine_loss = params.get('combine_loss', 0)
     multi = alter_loss + sum_loss + combine_loss
     loss_version = params['loss_version']
-    finetuning = params.get('finetune_cnn_after', -1)
-    fnslice = params.get('finetune_cnn_slice', -1)  # or 6
-
-    modelname = ""
     if "alpha" in params:
         alpha = (params['alpha'], params['alpha'])
     else:
@@ -114,94 +127,40 @@ def parse_name_clean(params):
     tau_word = params['tau_word']
     rare = params.get('rare_tfidf', 0)
     sub = params.get('sub_idf', 0)
-    version = params['caption_model']
-    if version == "show_tell":
-        modelname = 'Show \& Tell %s' % params['cnn_model']
-        modelname += ' blr: %.2e decay: %d, b: %.3f, batch: %d' % (params['learning_rate'],
-                                                                   params['learning_rate_decay_start'],
-                                                                   params['optim_alpha'],
-                                                                   params['batch_size'])
-    elif version == "adaptive_attention":
-        modelname = 'Adaptive Attention %s (maxout: %d, w+im : %d)' % (params['cnn_model'],
-                                                                       params.get('use_maxout', 0),
-                                                                       params.get('add_fc_img', 1))
-        modelname += ' blr: %.2e decay: %d, b: %.3f, batch: %d seqlen: %d' % (params['learning_rate'],
-                                                                              params['learning_rate_decay_start'],
-                                                                              params['optim_alpha'],
-                                                                              params['batch_size'],
-                                                                              params['seq_length'] )
-
-    elif version == "self_critical":
-        modelname = 'Self critical %s (r=%d, gc=%.2f, adapt=%d, drop=%.1f, maxout: %d, w+im : %d)' % (params['cnn_model'],
-                                                                                                           params.get('region_size', 14),
-                                                                                                           params.get('grad_clip'),
-                                                                                                           params.get('use_adaptive_pooling', 1),
-                                                                                                           params.get('drop_feat_im', 0.5),
-                                                                                                           params.get('use_maxout', 0),
-                                                                                                           params.get('add_fc_img', 1))
-        modelname += ' blr: %.2e decay: %d, b: %.3f, batch: %d seqlen: %d' % (params['learning_rate'],
-                                                                              params['learning_rate_decay_start'],
-                                                                              params['optim_alpha'],
-                                                                              params['batch_size'],
-                                                                              params['seq_length'] )
-
-    elif version == "top_down":
-        data = params.get('input_data')
-        augment = ''
-        if 'gen' in data:
-            print('Using data augmentation')
-            augment = 'augment = 1'
-        modelname = 'Top Down %s (maxout: %d, w+im : %d)' % (params['cnn_model'],
-                                                             params.get('use_maxout', 0),
-                                                             params.get('add_fc_img', 1))
-        modelname += ' blr: %.2e decay: %d, b: %.3f, batch: %d seqlen: %d %s' % (params['learning_rate'],
-                                                                                 params['learning_rate_decay_start'],
-                                                                                 params['optim_alpha'],
-                                                                                 params['batch_size'],
-                                                                                 params['seq_length'],
-                                                                                 augment)
-
-
-    else:
-        modelname = '??'
-        print('Unknwn model')
-
     if 'tfidf' in loss_version:
         loss_version += " n=%d, idf_select=%d, idf_sub=%d" % (params.get('ngram_length', 0), rare, sub)
     elif 'hamming' in loss_version:
         loss_version += " limited=%d" % params.get('limited_vocab_sub', 1)
     if not multi:
         if loss_version == "word2":
-            modelname += get_wl(params)
+            loss_version = get_wl(params)
         elif sample_cap:
             if loss_version == "dummy":
                 loss_version = "constant"
             ver = params.get('sentence_loss_version', 1)
-            modelname += ' SampleP, r=%s V%d, $\\tau=%.2f$, $\\alpha=%.1f$' % (loss_version, ver, tau_sent, alpha[0])
+            loss_version = ' SampleP, r=%s V%d, $\\tau=%.2f$, $\\alpha=%.1f$' % (loss_version, ver, tau_sent, alpha[0])
         elif sample_reward:
-            modelname += ' SampleR, r=%s, $\\tau=%.2f$, $\\alpha=%.1f$' % (loss_version, tau_sent, alpha[0])
+            loss_version = ' SampleR, r=%s, $\\tau=%.2f$, $\\alpha=%.1f$' % (loss_version, tau_sent, alpha[0])
         else:
-            # print('Model: %s - assuming baseline loss' % params['modelname'])
-            # modelname = " ".join(params['modelname'].split('_'))
-            modelname += " baseline"
+            # print('Model: %s - assuming baseline loss' % params['modelparams'])
+            # modelparams = " ".join(params['modelparams'].split('_'))
+            loss_version = " ML"
     else:
         wl = get_wl(params)
         if alter_loss:
-            modelname += " Alternating losses, %s  w/ SampleR, r=%s $\\tau=%.2f$, $\\alpha=%.1f$, $\\gamma=%.1f$ (mode:%s)" \
-                         % (wl, loss_version, tau_sent, alpha[0], params.get('gamma', 0), params.get('alter_mode', 'iter'))
+            loss_version = " Alternating losses, %s  w/ SampleR, r=%s $\\tau=%.2f$, $\\alpha=%.1f$, $\\gamma=%.1f$ (mode:%s)" \
+                           % (wl, loss_version, tau_sent, alpha[0], params.get('gamma', 0), params.get('alter_mode', 'iter'))
         elif sum_loss:
-            modelname += " Sum losses, %s w/ SampleR, r=%s $\\tau=%.2f$, $\\alpha=%.1f$, $\\gamma=%.1f$" \
-                         % (wl, loss_version, tau_sent, alpha[0], params.get('gamma', 0))
+            loss_version = " Sum losses, %s w/ SampleR, r=%s $\\tau=%.2f$, $\\alpha=%.1f$, $\\gamma=%.1f$" \
+                           % (wl, loss_version, tau_sent, alpha[0], params.get('gamma', 0))
         elif combine_loss:
-            modelname += " Combining losses, %s w/ SampleR, r=%s $\\tau=%.2f$, $\\alpha=%.1f$" \
-                         % (wl, loss_version, tau_sent, alpha[0])
+            loss_version = " Combining losses, %s w/ SampleR, r=%s $\\tau=%.2f$, $\\alpha=%.1f$" \
+                            % (wl, loss_version, tau_sent, alpha[0])
 
-    if finetuning > -1:
-        modelname += " +cnn(%d:)" % fnslice
-    if not modelname:
-        modelname = " ".join(params['modelname'].split('/')[-1].split('_'))
-        print('Couldnt name ', params['modelname'])
-    return modelname
+    # finetuning:
+    if not modelparams:
+        print('Couldnt name ', params['modelparams'])
+    return modelparams, loss_version
 
 
 
@@ -211,28 +170,28 @@ def parse_name(model):
         model = model.split('/')[-1]
         # parse parameters from name:
         if model.startswith("word2"):
-            modelname = ['WL v2']
+            modelparams = ['WL v2']
             if 'tsent' in model:
-                modelname.append('& SL')
+                modelparams.append('& SL')
         elif model.startswith('word'):
-            modelname = ['WL']
+            modelparams = ['WL']
             if 'tsent' in model:
-                modelname.append('& SL')
+                modelparams.append('& SL')
         elif model.startswith("sample"):
-            modelname = ['Reward sampling']
+            modelparams = ['Reward sampling']
         elif model.split('_')[0] in rewards:
-            modelname = ['SL']
+            modelparams = ['SL']
         elif model.split('_')[0] in [r+'2' for r in rewards]:
-            modelname = ['SL v2']
+            modelparams = ['SL v2']
         else:
-            modelname = []
+            modelparams = []
 
         chunks = model.split('_')
         for c in chunks:
             if c in rewards:
-                modelname.append(c)
+                modelparams.append(c)
             elif c in [r+'2' for r in rewards]:
-                modelname.append(c[:-1])
+                modelparams.append(c[:-1])
             elif 'tword' in c:
                 tau = c[5:]
                 if tau.startswith('0'):
@@ -244,7 +203,7 @@ def parse_name(model):
                     except:
                         print('Other case:', tau)
                         tau = 0
-                modelname.append('$\\tau(w) = %.2f$' % tau)
+                modelparams.append('$\\tau(w) = %.2f$' % tau)
             elif 'tsent' in c:
                 tau = c[5:]
                 if tau.startswith('0'):
@@ -257,17 +216,17 @@ def parse_name(model):
                         print('Other case:', tau)
                         tau = 0
 
-                modelname.append('$\\tau(s) = %.2f$' % tau)
+                modelparams.append('$\\tau(s) = %.2f$' % tau)
             elif c.startswith('a'):
-                modelname.append('$\\alpha = %.2f$' % (float(c[1:])/10))
+                modelparams.append('$\\alpha = %.2f$' % (float(c[1:])/10))
             elif c in ['word', 'word2', 'sample', 'sample2']:
                 continue
             else:
                 # print('Unknown', c)
-                modelname.append(c)
+                modelparams.append(c)
 
-    if modelname:
-        return ' '.join(modelname)
+    if modelparams:
+        return ' '.join(modelparams)
     else:
         return model
 
@@ -283,7 +242,7 @@ def crawl_results(filter='', exc=None):
         # Exclude models containg exc:
         models = [model for model in models if exc not in model]
     # print("Found:", models)
-    fields = ["Model", 'Beam', 'CIDEr', 'Bleu4', 'Perplexity', 'best/last']
+    fields = ["Model", "CNN", "params", 'loss', 'weights', 'Beam', 'CIDEr', 'Bleu4', 'Perplexity', 'best/last']
     recap = {}
     tab = PrettyTable()
     tab.field_names = fields
@@ -291,9 +250,16 @@ def crawl_results(filter='', exc=None):
     for model in models:
         outputs = get_results(model)
         if len(outputs):
-            modelname = parse_name_clean(outputs[0][0])
+            modelparams, loss_version = parse_name_clean(outputs[0][0])
             dump.append(outputs)
             for (p, res) in outputs:
+                finetuning = p.get('finetune_cnn_after', -1)
+                if finetuning > -1:
+                    finetuning = "RNN + %.1f x cnn(%d:)" % (p.get('cnn_learning_rate'),
+                                                            p.get('finetune_cnn_slice', -1))
+                else:
+                    finetuning = "RNN"
+
                 cid = float(res['CIDEr'] * 100)
                 try:
                     recap[p['alpha']] = cid
@@ -305,7 +271,11 @@ def crawl_results(filter='', exc=None):
                     perpl = float(exp(res['ml_loss']))
                 except:
                     perpl = 1.
-                tab.add_row([modelname,
+                tab.add_row([p['caption_model'],
+                             p['cnn_model'],
+                             modelparams,
+                             loss_version,
+                             finetuning,
                              p['beam_size'],
                              cid, bl, perpl, res['best/last']])
     return tab, dump
