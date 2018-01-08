@@ -81,12 +81,15 @@ if __name__ == "__main__":
     model.define_loss(loader.get_vocab())
     # opt.n_gen = 10
     # opt.score_ground_truth = True
+    eval_kwargs = {'split': 'val',
+                   'dataset': opt.input_data + '.json'}
+    eval_kwargs.update(vars(opt))
     ml_loss, loss, preds, perf = eval_utils.eval_split(cnn_model,
                                                        model,
-                                                       model.crit,
                                                        loader,
                                                        opt.logger,
-                                                       vars(opt))
+                                                       eval_kwargs)
+
     print("Finished evaluation in ", (time.time() - start))
     print('ML loss:', ml_loss)
     print('Training loss:', loss)

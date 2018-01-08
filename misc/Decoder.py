@@ -244,7 +244,19 @@ class DecoderModel(nn.Module):
             c_loss = ml_loss
         return ml_loss, c_loss, stats
 
-    # UNTESTED
+    def step_track(self, data, att_feats, fc_feats):
+        opt = self.opt
+        tmp = [data['labels'], data['masks'], data['scores']]
+        tmp = [Variable(torch.from_numpy(_), requires_grad=False).cuda() for _ in tmp]
+        labels, masks, scores = tmp
+        seq = labels[:, 1:]
+        msk = masks[:, 1:]
+        logprobs = self.forward(fc_feats, att_feats, labels)
+        input, target = self.crit.track(logprobs,
+                                        seq,
+                                        msk)
+        return input, target
+
     def beam_search(self, state, logprobs, *args, **kwargs):
         # args are the miscelleous inputs to the core in addition to embedded word and state
         # kwargs only accept opt

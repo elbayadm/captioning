@@ -24,4 +24,4 @@ loss_version : word2
 tau_word : 0.15
 rare_tfidf : 1
 word_add_entropy : 0
-alpha : 0.9
+alpha_word : 0.9

@@ -237,3 +237,4 @@ class ShowTellModel(DecoderModel):
         except:  # Fix issue with Variable v. Tensor depending on the mode.
             return torch.cat([_.unsqueeze(1) for _ in seq], 1), torch.cat([_.unsqueeze(1) for _ in seqLogprobs], 1)
 
+

@@ -104,6 +104,24 @@ class LanguageModelCriterion(nn.Module):
         stats = None
         return output, output, stats
 
+    def track(self, input, target, mask, scores=None):
+        """
+        input : the decoder logits (N, seq_length, V)
+        target : the ground truth labels (N, seq_length)
+        mask : the ground truth mask to ignore UNK tokens (N, seq_length)
+        scores: scalars to scale the loss of each sentence (N, 1)
+        """
+        # truncate to the same size
+        # print('Logprobs:', input.size(), "labels:", target.size(), mask.size())
+        N = input.size(0)
+        seq_length = input.size(1)
+        target = target[:, :seq_length].data.cpu().numpy()
+        input = torch.exp(input).data.cpu().numpy()
+        target_d = np.zeros_like(input)
+        rows = np.arange(N).reshape(-1, 1).repeat(seq_length, axis=1)
+        cols = np.arange(seq_length).reshape(1, -1).repeat(N, axis=0)
+        target_d[rows, cols, target] = 1
+        return input, target_d
 
 def get_ml_loss(input, target, mask, norm=True):
     """
@@ -340,6 +358,40 @@ class WordSmoothCriterion2(nn.Module):
             output = sc * output
         return ml_output, output, stats
 
+    def track(self, input, target, mask, scores=None):
+        """
+        input : the decoder logits (N, seq_length, V)
+        target : the ground truth labels (N, seq_length)
+        mask : the ground truth mask to ignore UNK tokens (N, seq_length)
+        scores: scalars to scale the loss of each sentence (N, 1)
+        """
+        # truncate to the same size
+        # print('Logprobs:', input.size(), "labels:", target.size(), mask.size())
+        N = input.size(0)
+        seq_length = input.size(1)
+        target = target[:, :seq_length]
+        indices = to_contiguous(target).view(-1, 1).squeeze().data
+        sim = self.Sim_Matrix[indices]
+        # print('raw sim:', sim)
+        if self.clip_sim:
+            # keep only the similarities larger than the margin
+            # self.logger.warn('Clipping the sim')
+            sim = sim * sim.ge(self.margin).float()
+        if self.limited:
+            # self.logger.warn('Limitig smoothing to the gt vocab')
+            indices_vocab = get_indices_vocab(target, self.seq_per_img)
+            sim = sim.gather(1, indices_vocab)
+            input = input.gather(1, indices_vocab)
+
+        if self.tau_word:
+            smooth_target = torch.exp(torch.mul(sim, 1/self.tau_word))
+        else:
+            # Do not exponentiate
+            smooth_target = sim
+        # Normalize the word reward distribution:
+        target_d = normalize_reward(smooth_target).data.cpu().numpy()
+        input = torch.exp(input).data.cpu().numpy()
+        return input, target_d
 
 class SentSmoothCriterion(nn.Module):
     """

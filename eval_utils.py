@@ -108,6 +108,49 @@ def generate_caps(encoder, decoder, crit, loader, eval_kwargs={}):
     decoder.train()
     return 1
 
+def track_rnn(cnn_model, model, loader, logger, eval_kwargs={}):
+    verbose = eval_kwargs.get('verbose', False)
+    dataset = eval_kwargs.get('dataset', 'coco')
+    split = eval_kwargs.get('split', 'val')
+    val_images_use = eval_kwargs.get('val_images_use', -1)
+    lang_eval = eval_kwargs.get('language_eval', 1)
+    language_creativity = eval_kwargs.get('language_creativity', 1)
+    beam_size = eval_kwargs.get('beam_size', 1)
+    sample_max = eval_kwargs.get('sample_max', 1)
+    temperature = eval_kwargs.get('temperature', 0.5)
+    forbid_unk = eval_kwargs.get('forbid_unk', 1)
+
+    seq_per_img = eval_kwargs.get('seq_per_img')
+    region_size = model.region_size
+    # Make sure to be in the evaluation mode
+    cnn_model.eval()
+    model.eval()
+    logger.warn('Evaluating the %s split (%d)' % (split,
+                                                  val_images_use))
+    loader.reset_iterator(split)
+    n = 0
+    rew = []
+    logp = []
+    while True:
+        data = loader.get_batch(split, batch_size=5, seq_per_img=seq_per_img)
+        n = n + loader.batch_size
+        images = data['images']
+        images = Variable(torch.from_numpy(images), requires_grad=False).cuda()
+        att_feats, fc_feats = cnn_model.forward_caps(images, seq_per_img)
+        logprobs, rewards = model.step_track(data, att_feats, fc_feats)
+        rew.append(rewards)
+        logp.append(logprobs)
+        ix0 = data['bounds']['it_pos_now']
+        ix1 = data['bounds']['it_max']
+        if val_images_use != -1:
+            ix1 = min(ix1, val_images_use)
+        if data['bounds']['wrapped']:
+            break
+        if n >= ix1:
+            logger.warn('Evaluated the required samples (%s)' % n)
+            break
+    return rew, logp
+
 
 def eval_split(cnn_model, model, loader, logger, eval_kwargs={}):
     verbose = eval_kwargs.get('verbose', False)

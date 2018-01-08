@@ -388,14 +388,13 @@ def parse_eval_opt():
     """
     # Input arguments and options
     parser = configargparse.ArgParser()
-    parser.add('--verbose', type=int, default=0,
-               help='code verbosity')
     parser.add('--start_from_best', type=int, default=1,
                help="Whether to start from the best saved model (1) or the from the last checkpoint (0)")
 
     # Basic options
     parser = add_generic(parser)
     parser = add_eval_params(parser)
+    parser = add_scheduled_sampling(parser)
     parser = add_optim_params(parser)
     parser = add_loss_params(parser)
     parser.add('--num_images', type=int, default=-1,
