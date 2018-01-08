@@ -389,7 +389,7 @@ class WordSmoothCriterion2(nn.Module):
             # Do not exponentiate
             smooth_target = sim
         # Normalize the word reward distribution:
-        target_d = normalize_reward(smooth_target).data.cpu().numpy()
+        target_d = normalize_reward(smooth_target).view(N, seq_length, -1).data.cpu().numpy()
         input = torch.exp(input).data.cpu().numpy()
         return input, target_d
 
