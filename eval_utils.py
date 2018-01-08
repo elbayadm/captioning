@@ -119,7 +119,7 @@ def track_rnn(cnn_model, model, loader, logger, eval_kwargs={}):
     sample_max = eval_kwargs.get('sample_max', 1)
     temperature = eval_kwargs.get('temperature', 0.5)
     forbid_unk = eval_kwargs.get('forbid_unk', 1)
-
+    add_dirac = eval_kwargs.get('add_dirac', 0)
     seq_per_img = eval_kwargs.get('seq_per_img')
     region_size = model.region_size
     # Make sure to be in the evaluation mode
@@ -137,7 +137,7 @@ def track_rnn(cnn_model, model, loader, logger, eval_kwargs={}):
         images = data['images']
         images = Variable(torch.from_numpy(images), requires_grad=False).cuda()
         att_feats, fc_feats = cnn_model.forward_caps(images, seq_per_img)
-        logprobs, rewards = model.step_track(data, att_feats, fc_feats)
+        logprobs, rewards = model.step_track(data, att_feats, fc_feats, add_dirac)
         rew.append(rewards)
         logp.append(logprobs)
         ix0 = data['bounds']['it_pos_now']

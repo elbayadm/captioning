@@ -14,7 +14,6 @@ import misc.cnn as cnn
 
 if __name__ == "__main__":
     opt = opts.parse_eval_opt()
-    print(vars(opt))
     if opt.start_from_best:
         flag = '-best'
         opt.logger.warn('Starting from the best saved model')
@@ -69,6 +68,7 @@ if __name__ == "__main__":
     eval_kwargs.update(vars(opt))
     eval_kwargs['beam_size'] = 1
     eval_kwargs['val_images_use'] = 5
+    eval_kwargs['add_dirac'] = 1
     rewards, logps = track_rnn(cnn_model,
                                model,
                                loader,
@@ -78,5 +78,5 @@ if __name__ == "__main__":
     print('logp:', logps)
     pickle.dump({"probas": logps,
                  "rewards": rewards},
-                open('Results/%s_track.tr' % opt.modelname.split('/')[-1], 'wb'))
+                open('Results/%s_track_dirac.tr' % opt.modelname.split('/')[-1], 'wb'))
 

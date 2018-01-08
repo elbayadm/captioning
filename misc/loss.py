@@ -104,7 +104,7 @@ class LanguageModelCriterion(nn.Module):
         stats = None
         return output, output, stats
 
-    def track(self, input, target, mask, scores=None):
+    def track(self, input, target, mask, add_dirac=False):
         """
         input : the decoder logits (N, seq_length, V)
         target : the ground truth labels (N, seq_length)
@@ -291,6 +291,7 @@ class WordSmoothCriterion2(nn.Module):
         ml_output = get_ml_loss(input, target, mask,
                                 norm=self.normalize_batch)
         # Get the similarities of the words in the batch (NxL, V)
+        input = to_contiguous(input).view(-1, input.size(2))
         indices = to_contiguous(target).view(-1, 1).squeeze().data
         sim = self.Sim_Matrix[indices]
         # print('raw sim:', sim)
@@ -303,7 +304,6 @@ class WordSmoothCriterion2(nn.Module):
             indices_vocab = get_indices_vocab(target, self.seq_per_img)
             sim = sim.gather(1, indices_vocab)
             input = input.gather(1, indices_vocab)
-
         if self.tau_word:
             smooth_target = torch.exp(torch.mul(sim, 1/self.tau_word))
         else:
@@ -327,7 +327,6 @@ class WordSmoothCriterion2(nn.Module):
         # print('smooth_target:', smooth_target)
         # Format
         mask = to_contiguous(mask).view(-1, 1)
-        input = to_contiguous(input).view(-1, input.size(2))
         # print('in:', input.size(), 'mask:', mask.size(), 'smooth:', smooth_target.size())
         output = - input * mask.repeat(1, sim.size(1)) * smooth_target
 
@@ -358,12 +357,11 @@ class WordSmoothCriterion2(nn.Module):
             output = sc * output
         return ml_output, output, stats
 
-    def track(self, input, target, mask, scores=None):
+    def track(self, input, target, mask, add_dirac=False):
         """
         input : the decoder logits (N, seq_length, V)
         target : the ground truth labels (N, seq_length)
         mask : the ground truth mask to ignore UNK tokens (N, seq_length)
-        scores: scalars to scale the loss of each sentence (N, 1)
         """
         # truncate to the same size
         # print('Logprobs:', input.size(), "labels:", target.size(), mask.size())
@@ -389,7 +387,12 @@ class WordSmoothCriterion2(nn.Module):
             # Do not exponentiate
             smooth_target = sim
         # Normalize the word reward distribution:
-        target_d = normalize_reward(smooth_target).view(N, seq_length, -1).data.cpu().numpy()
+        smooth_target = normalize_reward(smooth_target)
+        if add_dirac and not self.limited:
+            delta = Variable(torch.eye(self.vocab_size)[indices.cpu()]).cuda()
+            smooth_target = torch.mul(smooth_target, self.alpha) + torch.mul(delta, (1 - self.alpha))
+
+        target_d = smooth_target.view(N, seq_length, -1).data.cpu().numpy()
         input = torch.exp(input).data.cpu().numpy()
         return input, target_d
 
