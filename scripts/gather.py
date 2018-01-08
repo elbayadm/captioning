@@ -4,6 +4,7 @@ import socket
 import glob
 import operator
 import pickle
+import argparse
 from math import exp
 from prettytable import PrettyTable
 
@@ -80,8 +81,10 @@ def get_wl(params):
         alpha = params['alpha_word']
     else:
         alpha = params['alpha']
-    if 'train_coco' in params.get('similarity_matrix', ''):
-        G = "Coco"
+    if 'cooc' in params.get('similarity_matrix', ''):
+        G = "Coocurences"
+    elif 'train_coco' in params.get('similarity_matrix', ''):
+        G = "Glove-Coco"
     else:
         G = "Glove-Wiki"
     if params.get('rare_tfidf', 0):
@@ -237,10 +240,10 @@ def highlight(score, tresh):
         return '%.2f' % score
 
 def crawl_results(filter='', exc=None):
-    models = sorted(glob.glob('save/%s*' % filter))
+    models = sorted(glob.glob('save/*%s*' % filter))
     if exc:
         # Exclude models containg exc:
-        models = [model for model in models if exc not in model]
+        models = [model for model in models if not sum([e in model for e in exc])]
     print("Found:", models)
     fields = ["Model", "CNN", "params", 'loss', 'weights', 'Beam', 'CIDEr', 'Bleu4', 'Perplexity', 'best/last']
     recap = {}
@@ -282,29 +285,18 @@ def crawl_results(filter='', exc=None):
 
 
 if __name__ == "__main__":
-
+    parser = argparse.ArgumentParser()
     # tab = gather_results("save/baseline")
     # print(tab.get_string(fields=FIELDS, sortby="Sorter"))
     # print(tab.get_html_string(fields=FIELDS, sortby="Sorter"))
+    parser.add_argument('--filter', '-f', type=str, default='', help='kewyord to include')
+    parser.add_argument('--exclude', '-e', nargs="+", help='keyword to exculdeh')
+    parser.add_argument('--save', '-s', action='store_true', help="save results")
+    args = parser.parse_args()
 
-    save = 0
-    if len(sys.argv) > 1:
-        filter = sys.argv[1]
-        exc = None
-        if len(sys.argv) == 3:
-            exc = sys.argv[2]
-            # print('exc:', exc)
-            try:
-                if int(exc) == 1:
-                    save = 1
-                    exc = None
-            except:
-                pass
-        elif len(sys.argv) == 4:
-            exc = sys.argv[2]
-            save = 1
-    else:
-        filter = ''
+    save = args.save
+    filter = args.filter
+    exc = args.exclude
     print('filter:', filter, 'exclude:', exc, 'saving:', save)
     tab, dump = crawl_results(filter, exc)
     print(tab.get_string(sortby='CIDEr', reversesort=True))
