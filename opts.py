@@ -390,7 +390,9 @@ def parse_eval_opt():
     parser = configargparse.ArgParser()
     parser.add('--start_from_best', type=int, default=1,
                help="Whether to start from the best saved model (1) or the from the last checkpoint (0)")
-
+    parser.add('--start_from', type=str,
+               default=None, help="The directory of the initialization model, must contain model.pth (resp model-best.pth) \
+               the optimizer and the pickled infos")
     # Basic options
     parser = add_generic(parser)
     parser = add_eval_params(parser)

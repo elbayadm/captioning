@@ -14,6 +14,7 @@ import misc.cnn as cnn
 
 if __name__ == "__main__":
     opt = opts.parse_eval_opt()
+    print(vars(opt))
     if opt.start_from_best:
         flag = '-best'
         opt.logger.warn('Starting from the best saved model')
