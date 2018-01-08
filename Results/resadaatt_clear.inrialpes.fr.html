@@ -1,0 +1,170 @@
+<table>
+    <tr>
+        <th>Model</th>
+        <th>CNN</th>
+        <th>params</th>
+        <th>loss</th>
+        <th>weights</th>
+        <th>Beam</th>
+        <th>CIDEr</th>
+        <th>Bleu4</th>
+        <th>Perplexity</th>
+        <th>best/last</th>
+    </tr>
+    <tr>
+        <td>adaptive_attention</td>
+        <td>resnet152</td>
+        <td> base lr: 4.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16 Augment</td>
+        <td> ML</td>
+        <td>RNN</td>
+        <td>3</td>
+        <td>95.48</td>
+        <td>31.05</td>
+        <td>11.69</td>
+        <td>140k / 144k</td>
+    </tr>
+    <tr>
+        <td>adaptive_attention</td>
+        <td>resnet152</td>
+        <td> base lr: 4.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16 Maxout</td>
+        <td> ML</td>
+        <td>RNN</td>
+        <td>3</td>
+        <td>94.61</td>
+        <td>30.46</td>
+        <td>10.15</td>
+        <td>100k / 172k</td>
+    </tr>
+    <tr>
+        <td>adaptive_attention</td>
+        <td>resnet152</td>
+        <td> base lr: 4.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 18 xt = wt</td>
+        <td> ML</td>
+        <td>RNN</td>
+        <td>3</td>
+        <td>93.97</td>
+        <td>28.99</td>
+        <td>10.25</td>
+        <td>116k / 172k</td>
+    </tr>
+    <tr>
+        <td>adaptive_attention</td>
+        <td>resnet152</td>
+        <td> base lr: 4.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> ML</td>
+        <td>RNN</td>
+        <td>3</td>
+        <td>93.72</td>
+        <td>30.41</td>
+        <td>10.42</td>
+        <td>104k / 172k</td>
+    </tr>
+    <tr>
+        <td>adaptive_attention</td>
+        <td>resnet152</td>
+        <td> base lr: 4.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16 xt = wt</td>
+        <td> ML</td>
+        <td>RNN</td>
+        <td>3</td>
+        <td>92.51</td>
+        <td>28.55</td>
+        <td>10.23</td>
+        <td>120k / 172k</td>
+    </tr>
+    <tr>
+        <td>adaptive_attention</td>
+        <td>resnet152</td>
+        <td> base lr: 4.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 18 Maxout xt = wt</td>
+        <td> ML</td>
+        <td>RNN</td>
+        <td>3</td>
+        <td>92.06</td>
+        <td>27.79</td>
+        <td>10.14</td>
+        <td>112k / 172k</td>
+    </tr>
+    <tr>
+        <td>adaptive_attention</td>
+        <td>resnet152</td>
+        <td> base lr: 4.0e-04 decay: -1, Adam(0.8,0.999), batch: 20, seq: 16</td>
+        <td> ML</td>
+        <td>RNN</td>
+        <td>3</td>
+        <td>91.97</td>
+        <td>29.41</td>
+        <td>10.67</td>
+        <td>76k / 96k</td>
+    </tr>
+    <tr>
+        <td>adaptive_attention</td>
+        <td>resnet152</td>
+        <td> base lr: 4.0e-04 decay: -1, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> ML</td>
+        <td>RNN</td>
+        <td>3</td>
+        <td>90.64</td>
+        <td>29.20</td>
+        <td>10.70</td>
+        <td>160k / 172k</td>
+    </tr>
+    <tr>
+        <td>adaptive_attention</td>
+        <td>resnet50</td>
+        <td> base lr: 1.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> ML</td>
+        <td>RNN</td>
+        <td>3</td>
+        <td>89.84</td>
+        <td>29.53</td>
+        <td>12.19</td>
+        <td>112k / 172k</td>
+    </tr>
+    <tr>
+        <td>adaptive_attention</td>
+        <td>resnet50</td>
+        <td> base lr: 1.0e-04 decay: 5, Adam(0.9,0.999), batch: 10, seq: 16</td>
+        <td> ML</td>
+        <td>RNN</td>
+        <td>3</td>
+        <td>89.54</td>
+        <td>29.19</td>
+        <td>12.22</td>
+        <td>96k / 172k</td>
+    </tr>
+    <tr>
+        <td>adaptive_attention</td>
+        <td>resnet152</td>
+        <td> base lr: 5.0e-04 decay: -1, Adam(0.8,0.999), batch: 10, seq: 18</td>
+        <td> ML</td>
+        <td>RNN + 0.0 x cnn(6:)</td>
+        <td>3</td>
+        <td>88.77</td>
+        <td>28.28</td>
+        <td>10.70</td>
+        <td>148k / 288k</td>
+    </tr>
+    <tr>
+        <td>adaptive_attention</td>
+        <td>resnet50</td>
+        <td> base lr: 4.0e-04 decay: -1, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> ML</td>
+        <td>RNN</td>
+        <td>3</td>
+        <td>88.09</td>
+        <td>28.64</td>
+        <td>10.91</td>
+        <td>152k / 168k</td>
+    </tr>
+    <tr>
+        <td>adaptive_attention</td>
+        <td>resnet50</td>
+        <td> base lr: 1.0e-04 decay: 5, Adam(0.9,0.999), batch: 10, seq: 16</td>
+        <td> ML</td>
+        <td>RNN</td>
+        <td>3</td>
+        <td>87.68</td>
+        <td>28.79</td>
+        <td>12.23</td>
+        <td>100k / 172k</td>
+    </tr>
+</table>

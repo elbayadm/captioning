@@ -1,0 +1,194 @@
+<table>
+    <tr>
+        <th>Model</th>
+        <th>CNN</th>
+        <th>params</th>
+        <th>loss</th>
+        <th>weights</th>
+        <th>Beam</th>
+        <th>CIDEr</th>
+        <th>Bleu4</th>
+        <th>Perplexity</th>
+        <th>best/last</th>
+    </tr>
+    <tr>
+        <td>top_down</td>
+        <td>resnet152</td>
+        <td> base lr: 1.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16 Augment</td>
+        <td> Word Level, Sim=Coco, $\tau=0.17$, $\alpha=0.3$</td>
+        <td>RNN + 1.0 x cnn(6:)</td>
+        <td>3</td>
+        <td>104.49</td>
+        <td>33.63</td>
+        <td>15.66</td>
+        <td>232k / 256k</td>
+    </tr>
+    <tr>
+        <td>top_down</td>
+        <td>resnet152</td>
+        <td> base lr: 1.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16 Augment</td>
+        <td> SampleR, r=hamming limited=1, $\tau=0.17$, $\alpha=0.2$</td>
+        <td>RNN + 1.0 x cnn(6:)</td>
+        <td>3</td>
+        <td>103.24</td>
+        <td>33.11</td>
+        <td>11.58</td>
+        <td>216k / 256k</td>
+    </tr>
+    <tr>
+        <td>top_down</td>
+        <td>resnet152</td>
+        <td> base lr: 1.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16 Augment</td>
+        <td> ML</td>
+        <td>RNN + 1.0 x cnn(6:)</td>
+        <td>3</td>
+        <td>102.56</td>
+        <td>33.75</td>
+        <td>11.66</td>
+        <td>220k / 256k</td>
+    </tr>
+    <tr>
+        <td>top_down</td>
+        <td>resnet152</td>
+        <td> base lr: 1.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> Word Level, Sim=Coco, $\tau=0.13$, $\alpha=0.3$</td>
+        <td>RNN + 1.0 x cnn(6:)</td>
+        <td>3</td>
+        <td>101.52</td>
+        <td>32.62</td>
+        <td>13.07</td>
+        <td>240k / 256k</td>
+    </tr>
+    <tr>
+        <td>top_down</td>
+        <td>resnet152</td>
+        <td> base lr: 1.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> Word Level, Sim=Coco, $\tau=0.17$, $\alpha=0.5$</td>
+        <td>RNN + 1.0 x cnn(6:)</td>
+        <td>3</td>
+        <td>100.85</td>
+        <td>32.59</td>
+        <td>18.82</td>
+        <td>216k / 256k</td>
+    </tr>
+    <tr>
+        <td>top_down</td>
+        <td>resnet152</td>
+        <td> base lr: 1.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> Word Level, Sim=Coco, $\tau=0.09$, $\alpha=0.2$</td>
+        <td>RNN + 1.0 x cnn(6:)</td>
+        <td>3</td>
+        <td>100.80</td>
+        <td>31.95</td>
+        <td>11.24</td>
+        <td>228k / 256k</td>
+    </tr>
+    <tr>
+        <td>top_down</td>
+        <td>resnet152</td>
+        <td> base lr: 1.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> SampleR, r=hamming limited=1, $\tau=0.17$, $\alpha=0.4$</td>
+        <td>RNN + 1.0 x cnn(6:)</td>
+        <td>3</td>
+        <td>100.67</td>
+        <td>32.28</td>
+        <td>9.90</td>
+        <td>168k / 168k</td>
+    </tr>
+    <tr>
+        <td>top_down</td>
+        <td>resnet152</td>
+        <td> base lr: 1.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> SampleR, r=hamming limited=1, $\tau=0.17$, $\alpha=0.2$</td>
+        <td>RNN + 1.0 x cnn(6:)</td>
+        <td>3</td>
+        <td>100.65</td>
+        <td>32.47</td>
+        <td>9.65</td>
+        <td>240k / 256k</td>
+    </tr>
+    <tr>
+        <td>top_down</td>
+        <td>resnet152</td>
+        <td> base lr: 1.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> ML</td>
+        <td>RNN + 1.0 x cnn(6:)</td>
+        <td>3</td>
+        <td>100.64</td>
+        <td>32.82</td>
+        <td>9.81</td>
+        <td>200k / 256k</td>
+    </tr>
+    <tr>
+        <td>top_down</td>
+        <td>resnet152</td>
+        <td> base lr: 1.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> SampleR, r=hamming limited=1, $\tau=0.17$, $\alpha=0.6$</td>
+        <td>RNN + 1.0 x cnn(6:)</td>
+        <td>3</td>
+        <td>100.63</td>
+        <td>31.95</td>
+        <td>10.47</td>
+        <td>200k / 204k</td>
+    </tr>
+    <tr>
+        <td>top_down</td>
+        <td>resnet152</td>
+        <td> base lr: 1.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> Word Level, Sim=Coco, $\tau=0.09$, $\alpha=0.3$</td>
+        <td>RNN + 1.0 x cnn(6:)</td>
+        <td>3</td>
+        <td>100.05</td>
+        <td>32.44</td>
+        <td>13.01</td>
+        <td>156k / 256k</td>
+    </tr>
+    <tr>
+        <td>top_down</td>
+        <td>resnet152</td>
+        <td> base lr: 1.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> Word Level, Sim=Coco, $\tau=0.17$, $\alpha=0.2$</td>
+        <td>RNN + 1.0 x cnn(6:)</td>
+        <td>3</td>
+        <td>99.79</td>
+        <td>32.13</td>
+        <td>11.42</td>
+        <td>200k / 256k</td>
+    </tr>
+    <tr>
+        <td>top_down</td>
+        <td>resnet152</td>
+        <td> base lr: 1.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> SampleR, r=hamming limited=1, $\tau=0.17$, $\alpha=0.5$</td>
+        <td>RNN + 1.0 x cnn(6:)</td>
+        <td>3</td>
+        <td>99.47</td>
+        <td>31.92</td>
+        <td>10.20</td>
+        <td>176k / 256k</td>
+    </tr>
+    <tr>
+        <td>top_down</td>
+        <td>resnet152</td>
+        <td> base lr: 1.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> Word Level, Sim=Coco, $\tau=0.17$, $\alpha=0.3$</td>
+        <td>RNN + 1.0 x cnn(6:)</td>
+        <td>3</td>
+        <td>98.30</td>
+        <td>32.10</td>
+        <td>13.29</td>
+        <td>224k / 256k</td>
+    </tr>
+    <tr>
+        <td>top_down</td>
+        <td>resnet152</td>
+        <td> base lr: 1.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> Combining losses,  Word Level, Sim=Coco, $\tau=0.09$, $\alpha=0.2$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.2$</td>
+        <td>RNN + 1.0 x cnn(6:)</td>
+        <td>3</td>
+        <td>96.94</td>
+        <td>30.45</td>
+        <td>55.42</td>
+        <td>92k / 100k</td>
+    </tr>
+</table>

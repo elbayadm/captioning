@@ -290,6 +290,7 @@ if __name__ == "__main__":
     save = 0
     if len(sys.argv) > 1:
         filter = sys.argv[1]
+        exc = None
         if len(sys.argv) == 3:
             exc = sys.argv[2]
             # print('exc:', exc)
