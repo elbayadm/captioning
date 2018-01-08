@@ -15,7 +15,7 @@
         <td>top_down</td>
         <td>resnet152</td>
         <td> base lr: 5.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
-        <td> Combining losses,  Word Level, Sim=Coco, $\tau=0.09$, $\alpha=0.2$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.2$</td>
+        <td> Combining losses,  Word Level, Sim=Glove-Coco, $\tau=0.09$, $\alpha=0.2$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.2$</td>
         <td>RNN</td>
         <td>3</td>
         <td>96.94</td>
@@ -26,8 +26,20 @@
     <tr>
         <td>top_down</td>
         <td>resnet152</td>
+        <td> base lr: 1.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td> Combining losses,  Word Level, Sim=Glove-Coco, $\tau=0.09$, $\alpha=0.2$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.2$</td>
+        <td>RNN + 1.0 x cnn(6:)</td>
+        <td>3</td>
+        <td>96.94</td>
+        <td>30.45</td>
+        <td>55.42</td>
+        <td>92k / 108k</td>
+    </tr>
+    <tr>
+        <td>top_down</td>
+        <td>resnet152</td>
         <td> base lr: 5.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
-        <td> Combining losses,  Word Level, Sim=Coco xIDF, $\tau=0.15$, $\alpha=0.7$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.4$</td>
+        <td> Combining losses,  Word Level, Sim=Glove-Coco xIDF, $\tau=0.15$, $\alpha=0.7$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.4$</td>
         <td>RNN</td>
         <td>3</td>
         <td>96.03</td>
@@ -39,7 +51,7 @@
         <td>top_down</td>
         <td>resnet152</td>
         <td> base lr: 5.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
-        <td> Combining losses,  Word Level, Sim=Coco, $\tau=0.17$, $\alpha=0.3$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.2$</td>
+        <td> Combining losses,  Word Level, Sim=Glove-Coco, $\tau=0.17$, $\alpha=0.3$ w/ SampleR, r=hamming limited=1 $\tau=0.17$, $\alpha=0.2$</td>
         <td>RNN</td>
         <td>3</td>
         <td>95.55</td>
