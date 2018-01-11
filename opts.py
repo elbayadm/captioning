@@ -44,6 +44,9 @@ def add_eval_params(parser):
                default=25, help='How often do we snapshot')
     parser.add('--load_best_score', type=int,
                default=1, help='Do we load previous best score when resuming training.')
+    parser.add('--add_dirac', type=int,
+               default=0, help='add dirac to the saved reward track_distrib.py')
+
     return parser
 
 

@@ -68,15 +68,16 @@ if __name__ == "__main__":
     eval_kwargs.update(vars(opt))
     eval_kwargs['beam_size'] = 1
     eval_kwargs['val_images_use'] = 5
-    eval_kwargs['add_dirac'] = 1
+    eval_kwargs['add_dirac'] = opt.add_dirac
     rewards, logps = track_rnn(cnn_model,
                                model,
                                loader,
                                opt.logger,
                                eval_kwargs)
-    print('rewards:', rewards)
-    print('logp:', logps)
+    output = 'Results/%s_track' % opt.modelname.split('/')[-1]
+    if opt.add_dirac:
+        output += '_dirac'
     pickle.dump({"probas": logps,
                  "rewards": rewards},
-                open('Results/%s_track_dirac.tr' % opt.modelname.split('/')[-1], 'wb'))
+                open(output+'.tr', 'wb'))
 
