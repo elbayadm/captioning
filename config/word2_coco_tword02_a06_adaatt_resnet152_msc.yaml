@@ -1,0 +1,37 @@
+modelname : word2_coco_tword02_a06_adaatt_resnet152_msc
+caption_model : adaptive_attention
+
+restart : 1
+val_images_use : -1
+save_checkpoint_every : 4000
+
+optim_alpha : 0.8
+
+finetune_cnn_after : -1
+cnn_model : resnet152
+
+fc_feat_size : 2048
+att_feat_size : 2048
+region_size : 7
+use_adaptive_pooling : 0
+rnn_size : 512
+drop_feat_im : 0
+
+batch_size : 10
+input_data : data/coco/cocotalk
+similarity_matrix : data/Glove/train_coco_similarities.pkl
+
+grad_clip : .1
+learning_rate : 4e-4
+learning_rate_decay_start : 5
+learning_rate_decay_rate : 0.6
+learning_rate_decay_every: 3
+
+# Loss:
+sample_cap: 1
+loss_version : word2
+tau_word : 0.2
+rare_tfidf : 0
+alpha_word : 0.6
+
+beam_size : 3
