@@ -3,6 +3,8 @@ import json
 import time
 import os.path as osp
 from six.moves import cPickle as pickle
+import numpy as np
+from scipy.stats import entropy
 sys.path.append('.')
 import opts
 from dataloader import DataLoader
@@ -67,17 +69,23 @@ if __name__ == "__main__":
                    'dataset': opt.input_data + '.json'}
     eval_kwargs.update(vars(opt))
     eval_kwargs['beam_size'] = 1
-    eval_kwargs['val_images_use'] = 5
+    # eval_kwargs['val_images_use'] = -1
     eval_kwargs['add_dirac'] = opt.add_dirac
-    rewards, logps = track_rnn(cnn_model,
+    rewards, probs = track_rnn(cnn_model,
                                model,
                                loader,
                                opt.logger,
                                eval_kwargs)
-    output = 'Results/%s_track' % opt.modelname.split('/')[-1]
-    if opt.add_dirac:
-        output += '_dirac'
-    pickle.dump({"probas": logps,
-                 "rewards": rewards},
-                open(output+'.tr', 'wb'))
+    # Evaluate etropy & kl div:
+    kl = np.mean([entropy(rewards[batch][n, c, :], probs[batch][n, c, :]) for batch in range(len(probs)) for n in range(len(probs[batch])) for c in range(len(probs[batch][n]))])
+    enp = np.mean([entropy(probs[batch][n, c, :]) for batch in range(len(probs)) for n in range(len(probs[batch])) for c in range(len(probs[batch][n]))])
+    enr = np.mean([entropy(rewards[batch][n, c, :]) for batch in range(len(probs)) for n in range(len(probs[batch])) for c in range(len(probs[batch][n]))])
+    print('Average KL: %.2e & average entropy(p) :%.2e & Average entropy(r): %.2e' % (kl, enp, enr))
+    if opt.save_stats:
+        output = 'Results/%s_track' % opt.modelname.split('/')[-1]
+        if opt.add_dirac:
+            output += '_dirac'
+        pickle.dump({"probas": probs[:opt.save_stats],
+                     "rewards": rewards[:opt.save_stats]},
+                    open(output+'.tr', 'wb'))
 

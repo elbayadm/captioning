@@ -46,6 +46,8 @@ def add_eval_params(parser):
                default=1, help='Do we load previous best score when resuming training.')
     parser.add('--add_dirac', type=int,
                default=0, help='add dirac to the saved reward track_distrib.py')
+    parser.add('--save_stats', type=int,
+               default=0, help='if> 0,save rewards and ptheta for x first captions')
 
     return parser
 
