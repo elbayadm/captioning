@@ -15,6 +15,7 @@ vis
 *.pyc
 *.json
 *.log
+*.tr
 misc/rpn
 misc/ssd
 captions
