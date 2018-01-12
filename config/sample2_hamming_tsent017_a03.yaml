@@ -22,4 +22,4 @@ sample_reward: 1
 sentence_loss_version : 2
 loss_version : hamming
 tau_sent : .17
-alpha : 0.3
+alpha_sent : 0.3
