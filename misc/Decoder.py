@@ -45,9 +45,17 @@ class DecoderModel(nn.Module):
                     "infos file %s does not exist" % opt.start_from
             saved = torch.load(opt.start_from)
             for k in list(saved):
+                # issue with InferSent
                 if 'crit' in k:
                     self.logger.warn('Deleting key %s' % k)
                     del saved[k]
+                # issue with changes in AdaptiveAttention
+                if 'fr_' in k:
+                    newk = k.replace('fr_', 'sentinel_')
+                    saved[newk] = saved[k]
+                    self.logger.warn('Subbing %s >> %s' % (k, newk))
+                    del saved[k]
+
             self.logger.warn('Loading the model dict (last checkpoint) %s'\
                              % str(list(saved.keys())))
             self.load_state_dict(saved)

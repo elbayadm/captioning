@@ -114,6 +114,10 @@ def parse_name_clean(params):
     if 'gen' in params.get('input_data'):
         print('Using data augmentation')
         modelparams += " Augment"
+    if params.get('penalize_confidence', 0):
+        print('Using confidence penalization')
+        modelparams += " ConfPeanlize: %.2f" % params['penalize_confidence']
+
     # Get the loss:
     sample_cap = params.get('sample_cap', 0)
     sample_reward = params.get('sample_reward', 0)

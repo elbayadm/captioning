@@ -33,7 +33,7 @@ def hamming_distrib_soft(m, v, tau):
 
 def hamming_distrib(m, v, tau):
     x = [comb(m, d, exact=False) * (v-1)**d * math.exp(-d/tau) for d in range(m+1)]
-    x = np.array(x)
+    x = np.absolute(np.array(x))  # FIXME negative values occuring !!
     Z = np.sum(x)
     return x/Z, Z
 
@@ -72,6 +72,7 @@ class LanguageModelCriterion(nn.Module):
         self.logger = opt.logger
         self.scale_loss = opt.scale_loss
         self.normalize_batch = opt.normalize_batch
+        self.penalize_confidence = opt.penalize_confidence  # if 0 do not penalize if not this param=beta
 
     def log(self):
         self.logger.info('Default ML loss')
@@ -96,8 +97,14 @@ class LanguageModelCriterion(nn.Module):
         input = to_contiguous(input).view(-1, input.size(2))
         target = to_contiguous(target).view(-1, 1)
         mask = to_contiguous(mask).view(-1, 1)
-        output = - input.gather(1, target) * mask
-        output = torch.sum(output)
+        if self.penalize_confidence:
+            logp = input.gather(1, target)
+            entropy = torch.sum(torch.exp(logp) * logp)
+            output = torch.sum(-logp * mask) + self.penalize_confidence * entropy
+        else:
+            output = - input.gather(1, target) * mask
+            # output_i = -log(p)
+            output = torch.sum(output)
         # print('out:', output.data[0], 'mask:', torch.sum(mask).data[0])
         if self.normalize_batch:
             output /= torch.sum(mask)
@@ -123,7 +130,7 @@ class LanguageModelCriterion(nn.Module):
         target_d[rows, cols, target] = 1
         return input, target_d
 
-def get_ml_loss(input, target, mask, norm=True):
+def get_ml_loss(input, target, mask, norm=True, penalize=0):
     """
     Compute the usual ML loss
     """
@@ -133,8 +140,14 @@ def get_ml_loss(input, target, mask, norm=True):
     input = to_contiguous(input).view(-1, input.size(2))
     target = to_contiguous(target).view(-1, 1)
     mask = to_contiguous(mask).view(-1, 1)
-    ml_output = - input.gather(1, target) * mask
-    ml_output = torch.sum(ml_output)
+    if penalize:
+        logp = input.gather(1, target)
+        entropy = torch.sum(torch.exp(logp) * logp)
+        ml_output = torch.sum(-logp * mask) + penalize * entropy
+
+    else:
+        ml_output = - input.gather(1, target) * mask
+        ml_output = torch.sum(ml_output)
     if norm:
         ml_output /= torch.sum(mask)
     return ml_output
@@ -253,6 +266,7 @@ class WordSmoothCriterion2(nn.Module):
         self.normalize_batch = opt.normalize_batch
         self.scale_wl = opt.scale_wl
         self.use_cooc = opt.use_cooc
+        self.penalize_confidence = opt.penalize_confidence  # if 0 do not penalize if not this param=beta
         if self.clip_sim:
             self.margin = opt.margin
             self.logger.warn('Clipping similarities below %.2f' % self.margin)
@@ -289,7 +303,8 @@ class WordSmoothCriterion2(nn.Module):
             row_scores = scores.repeat(1, seq_length)
             mask = torch.mul(mask, row_scores)
         ml_output = get_ml_loss(input, target, mask,
-                                norm=self.normalize_batch)
+                                norm=self.normalize_batch,
+                                penalize=self.penalize_confidence)
         # Get the similarities of the words in the batch (NxL, V)
         input = to_contiguous(input).view(-1, input.size(2))
         indices = to_contiguous(target).view(-1, 1).squeeze().data
@@ -464,6 +479,8 @@ class SentSmoothCriterion2(nn.Module):
         self.seq_per_img = opt.seq_per_img
         self.version = opt.loss_version
         self.clip_scores = opt.clip_scores
+        self.penalize_confidence = opt.penalize_confidence  # if 0 do not penalize if not this param=beta
+
         # TODO assert type is defined
         # the final loss is (1-alpha) ML + alpha * RewardLoss
         self.alpha = opt.alpha_sent
@@ -481,7 +498,7 @@ class SentSmoothCriterion2(nn.Module):
         if self.scale_loss:
             row_scores = scores.repeat(1, seq_length)
             mask = torch.mul(mask, row_scores)
-        ml_output = get_ml_loss(input, target, mask)
+        ml_output = get_ml_loss(input, target, mask, penalize=self.penalize_confidence)
         preds = torch.max(input, dim=2)[1].squeeze().cpu().data
         sent_scores = self.get_scores(preds, target)
 
@@ -803,6 +820,8 @@ class RewardSampler(nn.Module):
         self.limited = opt.limited_vocab_sub
         self.verbose = opt.verbose
         self.mc_samples = opt.mc_samples
+        self.seq_per_img = opt.seq_per_img
+        self.penalize_confidence = opt.penalize_confidence  # if 0 do not penalize if not this param=beta
         # print('Training:', self.training)
         if self.combine_loss:
             # Instead of ML(sampled) return WL(sampled)
@@ -825,7 +844,7 @@ class RewardSampler(nn.Module):
             ml_gt, wl_gt, stats_gt = self.loss_gt(input, target, mask)
             loss_gt = self.loss_gt.alpha * wl_gt + (1 - self.loss_gt.alpha) * ml_gt
         else:
-            ml_gt = get_ml_loss(input, target, mask)
+            ml_gt = get_ml_loss(input, target, mask, penalize=self.penalize_confidence)
             loss_gt = ml_gt
         if self.training:
             MC = self.mc_samples
@@ -847,7 +866,7 @@ class RewardSampler(nn.Module):
                 stats.update(stats_sampled)
                 mc_output = self.loss_sampled.alpha * wl_sampled + (1 - self.loss_sampled.alpha) * ml_sampled
             else:
-                ml_sampled = get_ml_loss(sample_input, preds_matrix[:, 1:], mask)
+                ml_sampled = get_ml_loss(sample_input, preds_matrix[:, 1:], mask, penalize=self.penalize_confidence)
                 mc_output = ml_sampled
             if not ss:
                 output = mc_output
@@ -874,15 +893,22 @@ class HammingRewardSampler(RewardSampler):
             self.loss_sampled.log()
 
     def alter(self, labels):
-        print('Altering:', labels.size())
+        # print('Altering:', labels.size())
         N = labels.size(0)
         seq_length = labels.size(1)
         # get batch vocab size
         refs = labels.cpu().data.numpy()
-        if self.limited:
+        if self.limited == 1:  # In-batch vocabulary substitution
             batch_vocab = np.delete(np.unique(refs), 0)
             lv = len(batch_vocab)
-        else:
+        elif self.limited == 2:  # In-image vocabulary substitution
+            num_img = N // self.seq_per_img
+            refs_per_image = np.split(refs, num_img)
+            im_vocab = [np.delete(np.unique(chunk), 0) for chunk in refs_per_image]
+            del refs_per_image
+            lv = np.max([len(chunk) for chunk in im_vocab])
+            # print('im_vocab:', im_vocab, "im_lv:", lv)
+        else:  # Full vocabulary substitution
             lv = self.vocab_size
         # print('batch vocab:', len(batch_vocab), batch_vocab)
         distrib, Z = hamming_distrib(seq_length, lv, self.tau)
@@ -906,15 +932,18 @@ class HammingRewardSampler(RewardSampler):
         change_index = np.random.randint(seq_length, size=(N, select))
         rows = np.arange(N).reshape(-1, 1).repeat(select, axis=1)
         # select substitutes
-        if self.limited:
+        if self.limited == 1:
             select_index = np.random.choice(batch_vocab, size=(N, select))
+        elif self.limited == 2:
+            select_index = np.vstack([np.random.choice(chunk, size=(self.seq_per_img, select)) for chunk in im_vocab])
+            # print("selected:", select_index)
         else:
             select_index = np.random.randint(low=4, high=self.vocab_size, size=(N, select))
         # print("Selected:", select_index)
         preds[rows, change_index] = select_index
         preds_matrix = np.hstack((np.zeros((N, 1)), preds))  # padd <BOS>
         preds_matrix = Variable(torch.from_numpy(preds_matrix)).cuda().type_as(labels)
-        print('yielding:', preds_matrix.size())
+        # print('yielding:', preds_matrix.size())
         return preds_matrix, stats
 
 

@@ -81,11 +81,17 @@ if __name__ == "__main__":
     enp = np.mean([entropy(probs[batch][n, c, :]) for batch in range(len(probs)) for n in range(len(probs[batch])) for c in range(len(probs[batch][n]))])
     enr = np.mean([entropy(rewards[batch][n, c, :]) for batch in range(len(probs)) for n in range(len(probs[batch])) for c in range(len(probs[batch][n]))])
     print('Average KL: %.2e & average entropy(p) :%.2e & Average entropy(r): %.2e' % (kl, enp, enr))
+    output = 'Results/%s_track' % opt.modelname.split('/')[-1]
+    if opt.add_dirac:
+        output += '_dirac'
     if opt.save_stats:
-        output = 'Results/%s_track' % opt.modelname.split('/')[-1]
-        if opt.add_dirac:
-            output += '_dirac'
         pickle.dump({"probas": probs[:opt.save_stats],
                      "rewards": rewards[:opt.save_stats]},
                     open(output+'.tr', 'wb'))
+
+    pickle.dump({"H(p)": enp,
+                 "H(r)": enr,
+                 "KL(r,p)": kl},
+                open(output+'.entropy', 'wb'))
+
 

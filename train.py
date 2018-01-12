@@ -5,6 +5,19 @@ import os
 import os.path as osp
 import sys
 import pickle
+import subprocess
+
+def exec_cmd(command):
+    # return stdout, stderr output of a command
+    return subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
+
+
+def get_gpu_memory(gpuid):
+    # Get the current gpu usage.
+    result, _ = exec_cmd('nvidia-smi -i %d --query-gpu=memory.free --format=csv,nounits,noheader' % gpuid)
+    # Convert lines into a dictionary
+    result = int(result.strip())
+    return result
 
 
 def train(opt):
@@ -21,10 +34,8 @@ def train(opt):
         print("Failed to get gpu_id (setting gpu_id to %d)" % opt.gpu_id)
         gpu_id = str(opt.gpu_id)
     os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_id)
-
-    opt.logger.warn('GPU ID: %s', os.environ['CUDA_VISIBLE_DEVICES'])
-
     import torch
+    opt.logger.warn('GPU ID: %s | available memory: %dM' % (os.environ['CUDA_VISIBLE_DEVICES'], get_gpu_memory(gpu_id)))
     import torch.nn as nn
     from torch.autograd import Variable
     import torch.optim as optim
@@ -64,7 +75,10 @@ def train(opt):
     else:
         opt.logger.error('Unknown model %s' % opt.cnn_model)
         sys.exit(1)
-    cnn_model.cuda()
+    try:
+        cnn_model.cuda()
+    except:
+        cnn_model.cuda(gpu_id)
     # Build the captioning model
     opt.logger.error('-----------------------------SETUP')
     model = du.select_model(opt)
