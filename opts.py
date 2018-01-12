@@ -54,6 +54,8 @@ def add_eval_params(parser):
 
 def add_loss_params(parser):
     # Loss parameters:
+    parser.add('--penalize_confidence', type=float,
+               default=0, help='if neq 0, penalize with beta = param')
     parser.add('--scale_loss', type=float,
                default=0, help='if neq 0, each sentence loss will be scaled by a score')
     parser.add('--scale_wl', type=float,
