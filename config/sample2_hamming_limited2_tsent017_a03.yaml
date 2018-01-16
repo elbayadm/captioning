@@ -1,4 +1,4 @@
-modelname : combine_word2_tword015_coco_idf_a07_hamming_tsent017_limited2_a05
+modelname : sample2_hamming_limited2_tsent017_a03
 restart : 1
 
 caption_model : show_tell
@@ -16,18 +16,9 @@ learning_rate_decay_rate : 0.6
 learning_rate_decay_every: 3
 
 # Loss:
-combine_loss : 1
-
 sample_reward: 1
+sentence_loss_version : 2
 loss_version : hamming
-
 tau_sent : .17
-alpha_sent : 0.5
 limited_vocab_sub : 2
-mc_samples : 1
-
-tau_word: 0.15
-rare_tfidf : 1
-similarity_matrix : data/Glove/train_coco_similarities.pkl
-alpha_word : 0.7
-
+alpha_sent : 0.3

@@ -1,4 +1,4 @@
-modelname : combine_word2_tword015_coco_idf_a07_hamming_tsent017_limited2_a05
+modelname : combine_word2_tword015_coco_idf_a07_hamming_tsent017_limited2_mc2_a05
 restart : 1
 
 caption_model : show_tell
@@ -24,7 +24,7 @@ loss_version : hamming
 tau_sent : .17
 alpha_sent : 0.5
 limited_vocab_sub : 2
-mc_samples : 1
+mc_samples : 2
 
 tau_word: 0.15
 rare_tfidf : 1
