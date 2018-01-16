@@ -57,6 +57,38 @@ class DecoderModel(nn.Module):
                              % str(list(saved.keys())))
             self.load_state_dict(saved)
 
+    def define_sum_loss(self, vocab):
+        opt = self.opt
+        if 'hamming' in opt.loss_version:
+            crit_sent = loss.HammingRewardSampler(opt, vocab)
+            crit_sent.log()
+        elif 'tfidf' in opt.loss_version:
+            crit_sent = loss.TFIDFRewardSampler(opt, vocab)
+            crit_sent.log()
+        else:
+            raise ValueError('Loss function %s in sample_reward mode unknown' % (opt.loss_version))
+        crit_word = loss.WordSmoothCriterion(opt)
+        crit_word.log()
+        self.crit_word = crit_word
+        self.crit_sent = crit_sent
+        self.crit = self.crit_word
+
+    def define_alter_loss(self, vocab):
+        opt = self.opt
+        if 'hamming' in opt.loss_version:
+            crit_sent = loss.HammingRewardSampler(opt, vocab)
+            crit_sent.log()
+        elif 'tfidf' in opt.loss_version:
+            crit_sent = loss.TFIDFRewardSampler(opt, vocab)
+            crit_sent.log()
+        else:
+            raise ValueError('Loss function %s in sample_reward mode unknown' % (opt.loss_version))
+        crit_word = loss.WordSmoothCriterion(opt)
+        crit_word.log()
+        self.crit = crit_word
+        self.crit_word = crit_word
+        self.crit_sent = crit_sent
+
     def define_loss(self, vocab):
         opt = self.opt
         ver = opt.loss_version.lower()
@@ -66,7 +98,13 @@ class DecoderModel(nn.Module):
             crit = loss.WordSmoothCriterion(opt)
         elif ver == "seq":
             if opt.stratify_reward:
-                crit = loss.RewardSampler(opt, vocab)
+                reward = opt.reward
+                if reward == "hamming":
+                    crit = loss.HammingRewardSampler(opt, vocab)
+                elif reward == "tfidf":
+                    crit = loss.TFIDFRewardSampler(opt, vocab)
+                else:
+                    raise ValueError('Unknown reward %s' % reward)
             else:
                 crit = loss.ImportanceSampler(opt, vocab)
         else:
@@ -76,11 +114,23 @@ class DecoderModel(nn.Module):
 
     def step(self, data, att_feats, fc_feats, batch=None, epoch=None, train=True):
         opt = self.opt
-        tmp = [data['labels'], data['masks'], data['scores']]
-        tmp = [Variable(torch.from_numpy(_), requires_grad=False).cuda() for _ in tmp]
-        labels, masks, scores = tmp
-        if not opt.scale_loss:
-            scores = None
+        if opt.scale_loss:
+            assert opt.bootstrap_score in ['cider', 'bleu2', 'bleu3', 'bleu4', 'infersent']
+            tmp = [data['labels'], data['masks'], data['scores'], data[opt.bootstrap_score]]
+            tmp = [Variable(torch.from_numpy(_), requires_grad=False).cuda() for _ in tmp]
+            labels, masks, scores, s_scores = tmp
+            # Exponentiate the scores
+            if opt.tau_sent:
+                print('Original mean reward:', torch.mean(s_scores).data[0])
+                s_scores = torch.exp(torch.div(s_scores, opt.tau_sent))
+                print('Tempering the reward (new mean):', torch.mean(s_scores).data[0])
+            scores = torch.div(s_scores, torch.exp(scores))
+            opt.logger.debug('Mean importance scores: %.3e' % torch.mean(scores).data[0])
+        else:
+            tmp = [data['labels'], data['masks'], data['scores']]
+            tmp = [Variable(torch.from_numpy(_), requires_grad=False).cuda() for _ in tmp]
+            labels, masks, scores = tmp
+
         stats = None
         seq = labels[:, 1:]
         msk = masks[:, 1:]
@@ -88,6 +138,7 @@ class DecoderModel(nn.Module):
             ml_loss, reward_loss, stats = self.crit(self, fc_feats, att_feats, labels, msk, scores)
         else:
             logprobs = self.forward(fc_feats, att_feats, labels)
+            # print('Model forward output:', logprobs.size(), seq.size(), msk.size(), 'lab pure:', labels.size())
             ml_loss, reward_loss, stats = self.crit(logprobs,
                                                     seq,
                                                     msk,
@@ -99,9 +150,9 @@ class DecoderModel(nn.Module):
         return ml_loss, final_loss, stats
 
     def step_track(self, data, att_feats, fc_feats, add_dirac=False):
-        tmp = [data['labels'], data['masks']]
+        tmp = [data['labels'], data['masks'], data['scores']]
         tmp = [Variable(torch.from_numpy(_), requires_grad=False).cuda() for _ in tmp]
-        labels, masks = tmp
+        labels, masks, scores = tmp
         seq = labels[:, 1:]
         msk = masks[:, 1:]
         logprobs = self.forward(fc_feats, att_feats, labels)

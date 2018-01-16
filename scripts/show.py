@@ -128,6 +128,44 @@ def parse_name_clean(params):
             modelparams += ' frozen'
 
     # Get the loss:
+    if "sample_cap" in params:
+        loss_version = parse_loss_old(params)
+    else:
+        loss_version = parse_loss(params)
+    # finetuning:
+    if not modelparams:
+        # print('Couldnt name ', params['modelname'])
+        modelparams = 'Default'
+    return modelparams, loss_version
+
+
+def parse_loss(params):
+    combine_loss = params.get('combine_loss', 0)
+    loss_version = params['loss_version'].lower()
+    if loss_version == "ml":
+        return 'ML'
+    elif loss_version == "word":
+        return get_wl(params)
+    elif loss_version == "seq":
+        reward = params['reward']
+        if params['stratify_reward']:
+            if reward == "tfidf":
+                reward = 'tfidf n=%d, rare=%d' % (params['ngram_length'], params['rare_tfidf'])
+            elif reward == 'hamming':
+                reward = 'hamming Vpool=%d' % params['limited_vocab_sub']
+            loss_version = 'Stratify r=%s, $\\tau=%.2f, \\alpha=%.1f$' % (reward,
+                                                                          params['tau_sent'],
+                                                                          params['alpha_sent'])
+
+        else:
+            loss_version = 'Importance sampling r=%s, $\\tau_r=%.2f, \\alpha=%.1f$, q=%s' % (reward,
+                                                                                             params['tau_sent'],
+                                                                                             params['alpha_sent'],
+                                                                                             params['importance_sampler'])
+        return loss_version
+
+
+def parse_loss_old(params):
     sample_cap = params.get('sample_cap', 0)
     sample_reward = params.get('sample_reward', 0)
     alter_loss = params.get('alter_loss', 0)
@@ -146,7 +184,7 @@ def parse_name_clean(params):
     if 'tfidf' in loss_version:
         loss_version += " n=%d, idf_select=%d, idf_sub=%d" % (params.get('ngram_length', 0), rare, sub)
     elif 'hamming' in loss_version:
-        loss_version += " limited=%d" % params.get('limited_vocab_sub', 1)
+        loss_version += " Vpool=%d" % params.get('limited_vocab_sub', 1)
     if not multi:
         if loss_version == "word2":
             loss_version = get_wl(params)
@@ -154,9 +192,9 @@ def parse_name_clean(params):
             if loss_version == "dummy":
                 loss_version = "constant"
             ver = params.get('sentence_loss_version', 1)
-            loss_version = ' SampleP, r=%s V%d, $\\tau=%.2f$, $\\alpha=%.1f$' % (loss_version, ver, tau_sent, alpha[0])
+            loss_version = ' SampleP, r=%s V%d, $\\tau=%.2f, \\alpha=%.1f$' % (loss_version, ver, tau_sent, alpha[0])
         elif sample_reward:
-            loss_version = ' SampleR, r=%s, $\\tau=%.2f$, $\\alpha=%.1f$' % (loss_version, tau_sent, alpha[0])
+            loss_version = ' Stratify r=%s, $\\tau=%.2f, \\alpha=%.1f$' % (loss_version, tau_sent, alpha[0])
         else:
             # print('Model: %s - assuming baseline loss' % params['modelparams'])
             # modelparams = " ".join(params['modelparams'].split('_'))
@@ -164,20 +202,15 @@ def parse_name_clean(params):
     else:
         wl = get_wl(params)
         if alter_loss:
-            loss_version = " Alternating losses, %s  w/ SampleR, r=%s $\\tau=%.2f$, $\\alpha=%.1f$, $\\gamma=%.1f$ (mode:%s)" \
+            loss_version = " Alternating losses, %s  w/ Stratify, r=%s $\\tau=%.2f$, $\\alpha=%.1f$, $\\gamma=%.1f$ (mode:%s)" \
                            % (wl, loss_version, tau_sent, alpha[0], params.get('gamma', 0), params.get('alter_mode', 'iter'))
         elif sum_loss:
-            loss_version = " Sum losses, %s w/ SampleR, r=%s $\\tau=%.2f$, $\\alpha=%.1f$, $\\gamma=%.1f$" \
+            loss_version = " Sum losses, %s w/ Stratify, r=%s $\\tau=%.2f$, $\\alpha=%.1f$, $\\gamma=%.1f$" \
                            % (wl, loss_version, tau_sent, alpha[0], params.get('gamma', 0))
         elif combine_loss:
-            loss_version = " Combining losses, %s w/ SampleR, r=%s $\\tau=%.2f$, $\\alpha=%.1f$" \
+            loss_version = " Combining losses, %s w/ Stratify, r=%s $\\tau=%.2f$, $\\alpha=%.1f$" \
                             % (wl, loss_version, tau_sent, alpha[0])
-
-    # finetuning:
-    if not modelparams:
-        # print('Couldnt name ', params['modelname'])
-        modelparams = 'Default'
-    return modelparams, loss_version
+    return loss_version
 
 
 

@@ -81,26 +81,30 @@ def get_indices_vocab(target, seq_per_img):
     return indices_vocab
 
 
-def get_ml_loss(logp, target, mask, norm=True, penalize=0):
+def get_ml_loss(logp, target, mask, scores=None, norm=True, penalize=0):
     """
     Compute the usual ML loss
     """
-    target = target[:, :logp.size(1)]
-    mask = mask[:, :logp.size(1)]
-    # print('logp:', logp.size(), target.size(), mask.size())
+    seq_length = logp.size(1)
+    target = target[:, :seq_length]
+    mask = mask[:, :seq_length]
+    binary_mask = mask
+    if scores is not None:
+        # row_scores = scores.unsqueeze(1).repeat(1, seq_length)
+        row_scores = scores.repeat(1, seq_length)
+        mask = torch.mul(mask, row_scores)
     logp = to_contiguous(logp).view(-1, logp.size(2))
     target = to_contiguous(target).view(-1, 1)
     mask = to_contiguous(mask).view(-1, 1)
     if penalize:
         logp = logp.gather(1, target)
-        entropy = torch.sum(torch.exp(logp) * logp)
-        ml_output = torch.sum(-logp * mask) + penalize * entropy
-
+        neg_entropy = torch.sum(torch.exp(logp) * logp)
+        ml_output = torch.sum(-logp * mask) + penalize * neg_entropy
     else:
         ml_output = - logp.gather(1, target) * mask
         ml_output = torch.sum(ml_output)
     if norm:
-        ml_output /= torch.sum(mask)
+        ml_output /= torch.sum(binary_mask)
     return ml_output
 
 

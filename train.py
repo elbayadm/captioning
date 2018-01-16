@@ -32,7 +32,6 @@ def train(opt):
     # setup gpu
     try:
         gpu_id = int(subprocess.check_output('gpu_getIDs.sh', shell=True))
-        print("GPU:", gpu_id)
     except:
         print("Failed to get gpu_id (setting gpu_id to %d)" % opt.gpu_id)
         gpu_id = str(opt.gpu_id)
@@ -100,7 +99,7 @@ def train(opt):
     lg.log_optimizer(opt, optimizers)
     # Main loop
     # To save before training:
-    iteration -= 1
+    # iteration -= 1
     val_losses = []
     while True:
         if update_lr_flag:
@@ -115,7 +114,7 @@ def train(opt):
                     opt.ss_prob = min(opt.scheduled_sampling_increase_prob  * frac, opt.scheduled_sampling_max_prob)
                     model.ss_prob = opt.ss_prob
                     opt.logger.warn('ss_prob= %.2e' % model.ss_prob )
-            if opt.sample_cap and opt.alpha_strategy == "step":
+            if opt.loss_version in ['word', 'seq'] and opt.alpha_strategy == "step":
                 if epoch >= opt.alpha_increase_start:
                     # Update ncrit's alpha:
                     opt.logger.warn('Updating alpha')
@@ -131,15 +130,13 @@ def train(opt):
                 opt.ss_prob = 1 - opt.scheduled_sampling_speed / (opt.scheduled_sampling_speed + exp(iteration / opt.scheduled_sampling_speed))
                 model.ss_prob = opt.ss_prob
                 opt.logger.warn("ss_prob =  %.3e" % model.ss_prob)
-        if opt.sample_cap and opt.alpha_strategy == "sigmoid":
+        if opt.loss_version in ['word', 'seq'] and opt.alpha_strategy == "sigmoid":
             # Update crit's alpha:
             opt.logger.warn('Updating the loss scaling param alpha')
             new_alpha = 1 - opt.alpha_speed / (opt.alpha_speed + exp(iteration / opt.alpha_speed))
             new_alpha = min(new_alpha, opt.alpha_max)
             model.crit.alpha = new_alpha
             opt.logger.warn('New alpha %.3e' % new_alpha)
-        # if opt.sample_cap:
-            # opt.logger.error('Sanity check alpha = %.3e' % model.crit.alpha)
 
         # Load data from train split (0)
         data = loader.get_batch('train')

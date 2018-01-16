@@ -32,7 +32,7 @@ def add_eval_params(parser):
                help='used when sample_max = 1, indicates number of beams in beam search. Usually 2 or 3 works well. More is not better. Set this to 1 for faster runtime but a bit worse performance.')
     parser.add('--temperature', type=float, default=0.5,
                help='temperature when sampling from distributions (i.e. when sample_max = 0). Lower = "safer" predictions.')
-    parser.add('--val_images_use', type=int,
+    parser.add('--val_images_us_', type=int,
                default=-1, help='how many images to use when evaluating (-1 = all)')
     parser.add('--save_checkpoint_every', type=int,
                default=4000, help='how often to save a model checkpoint (in iterations)?')
@@ -53,14 +53,8 @@ def add_eval_params(parser):
 
 
 def add_loss_params(parser):
-    # Loss parameters:
-    parser.add('--penalize_confidence', type=float,
-               default=0, help='if neq 0, penalize with beta = param')
-    parser.add('--scale_loss', type=float,
-               default=0, help='if neq 0, each sentence loss will be scaled by a score')
-    parser.add('--scale_wl', type=float,
-               default=0, help='scale the wl to the ml level typically, 0.2')
-    ## Importance sampling:
+    # Deprecated
+    # Importance sampling:
     parser.add('--bootstrap', type=int,
                default=0, help='use bootstrap/importance sampling loss.')
     parser.add('--bootstrap_score', type=str,
@@ -70,69 +64,94 @@ def add_loss_params(parser):
                default="ml", help='Separate loss for the gold caps')
     parser.add('--augmented_loss_version', type=str,
                default="ml", help='Separate loss for the augmented caps')
+    # //Deprecated
 
-    ## Smoothed loss
+    # Combining lossess
     parser.add('--alter_loss', type=int, default=0, help='Alter between losses at every iteration')
     parser.add('--alter_mode', type=str, default='even-odd', help='How to altern between losses: even-odd, even-odd-epoch, epoch')
-
     parser.add('--sum_loss', type=int, default=0, help='Sum two different losses')
-    parser.add('--combine_loss', type=int,
-               default=0, help='combine WL with SL')
-    parser.add('--sample_cap', type=int,
-               default=0, help='use smooth loss with captining model sampling (sentence level) or word level smoothing')
-    parser.add('--sample_reward', type=int,
-               default=0, help='use smooth loss with reward sampling')
-    parser.add('--cider_df', type=str,
-               default='data/coco-train-df.p', help='path to dataset n-grams frequency')
-    parser.add('--clip_scores', type=int,
-               default=0, help='Clip and scale the sentence scores')
-    parser.add('--similarity_matrix', type=str,
-               default='data/Glove/cocotalk_similarities_v2.pkl', help='path to the pre-computed similarity matrix between the vocab words')
-    parser.add('--use_cooc', type=int, default=0,
-               help='Use cooccurrences matrix instead')
-    parser.add('--loss_version', type=str,
-               default="word", help='Version of loss smoothing')
-    parser.add('--sentence_loss_version', type=int,
-               default=1, help='Version of sentence loss smoothing')
-    parser.add('--mc_samples', type=int,
-               default=1, help='Number of MC samples')
-    parser.add('--normalize_batch', type=int,
-               default=1, help='Version of sentence loss smoothing')
-    parser.add('--bleu_version', type=str,
-               default="soft", help='Version of bleu scorer to use: coco or soft')
-    parser.add('--smooth_remove_equal', type=int, default=0)
-    parser.add('--tau_word', type=float,
-               default=0.005, help='Temperature for the rbf kernel applied to the words similarities')
-    parser.add('--word_add_entropy', type=int,
-               default=0, help='Add entropy to the word smooth loss')
-    parser.add('--tau_sent', type=float,
-               default=0, help='Temperature for the rbf kernel applied to the sentences scores')
-    parser.add('--clip_sim', type=int,
-               default=0, help='whether or not to clip the similarities')
-    parser.add('--exact_dkl', type=int,
-               default=0, help='use dkl combination instead of upper bound')
-    parser.add('--limited_vocab_sim', type=int,
-               default=0, help='whether or not to clip the similarities')
-    parser.add('--limited_vocab_sub', type=int,
-               default=1, help='Hamming vocab pool')
-    parser.add('--rare_tfidf', type=int,
-               default=0, help='Sample according to rarity')
-    parser.add('--sub_idf', type=int,
-               default=0, help='Substitute commnon ngrams')
-    parser.add('--ngram_length', type=int,
-               default=2, help='ngram length to substitute')
-    parser.add('--margin', type=float,
-               default=0.95, help='clipping margin for the similarities')
-    parser.add('--alpha_sent', type=float,
-               default=0.4, help='Scalar used to weight the losses')
-    parser.add('--alpha_word', type=float,
-               default=0.9, help='Scalar used to weight the losses')
     parser.add('--beta', type=float,
                default=0.1, help='Scalar used to weight the losses')
     parser.add('--gamma', type=float,
                default=.33, help='Scalar used to weight the losses')
+    # Deprecated
+    parser.add('--combine_loss', type=int,
+               default=0, help='combine WL with SL')
 
-    ### Alpha scheme:
+    # Loss smoothing
+    parser.add('--loss_version', type=str,
+               default="ml", help='The loss version:\
+               ml: cross entropy,\
+               word: word smoothing,\
+               seq: sentence smoothing')
+    # Generic loss parameters:
+    parser.add('--normalize_batch', type=int,
+               default=1, help='whether to normalize the batch loss via the mask')
+    parser.add('--penalize_confidence', type=float,
+               default=0, help='if neq 0, penalize the confidence by subsiding this * H(p) to the loss')
+    parser.add('--scale_loss', type=float,
+               default=0, help='if neq 0, each sentence loss will be scaled by a pre-computed score (cf dataloader)')
+
+    # loss_version == word params
+    parser.add('--similarity_matrix', type=str,
+               default='data/Glove/cocotalk_similarities_v2.pkl',
+               help='path to the pre-computed similarity matrix between the vocab words')
+    parser.add('--use_cooc', type=int, default=0,
+               help='Use cooccurrences matrix instead of glove similarities')
+    parser.add('--margin_sim', type=float,
+               default=0, help='if neq 0 clip the similarities below this')
+    parser.add('--limited_vocab_sim', type=int,
+               default=0, help='whether or not to restrain to a subset of similarities\
+               0 : the full vocabulary,\
+               1 : the 5 captions vocabulary')
+    parser.add('--rare_tfidf', type=int,
+               default=0, help='increase the similarity of rare words')
+    parser.add('--alpha_word', type=float,
+               default=0.9, help='Scalar used to weigh the word loss\
+               the final loss = alpha * word + (1-alpha) ml')
+    parser.add('--tau_word', type=float,
+               default=0.005, help='Temperature applied to the words similarities')
+
+    # loss_version == seq params
+    parser.add('--mc_samples', type=int,
+               default=1, help='Number of MC samples')
+    parser.add('--reward', type=str, default='hamming',
+               help='rewards at the seuqence level,\
+               options: hamming, bleu1:4, cider, tfidf')
+    parser.add('--stratify_reward', type=int,
+               default=1, help='sample the reward itself, only possible with reward=Hamming, tfidf')
+    parser.add('--importance_sampler', type=str,
+               default="greedy", help='the method used to sample candidate sequences,\
+               options: greedy (the captioning model itself),\
+               hamming: startified sampling of haming')
+
+    parser.add('--alpha_sent', type=float,
+               default=0.4, help='Scalar used to weight the losses')
+    parser.add('--tau_sent', type=float,
+               default=0, help='Temperature applied to the sentences scores (r)')
+    parser.add('--tau_sent_q', type=float,
+               default=0.3, help='Temperature applied to the sentences scores (q) if relevant')
+
+    parser.add('--clip_reward', type=int,
+               default=0, help='Clip and scale the sentence scores')
+
+    # CIDEr specific
+    parser.add('--cider_df', type=str,
+               default='data/coco-train-df.p', help='path to dataset n-grams frequency')
+
+    # Hamming specific
+    parser.add('--limited_vocab_sub', type=int,
+               default=1, help='Hamming vocab pool, options:\
+               0: the full vocab \
+               1: in-batch,\
+               2: captions of the image')
+    # TFIDF specific
+    parser.add('--sub_idf', type=int,
+               default=0, help='Substitute commnon ngrams')
+    parser.add('--ngram_length', type=int,
+               default=2, help='ngram length to substitute')
+
+    # Alpha scheme:
     parser.add('--alpha_increase_every', type=int,
                default=2, help='step width')
     parser.add('--alpha_increase_factor', type=float,
@@ -145,8 +164,6 @@ def add_loss_params(parser):
                default=20000, help='alpha decreasing speed')
     parser.add('--alpha_strategy', type=str,
                default="constant", help='Increase strategy')
-    parser.add('--verbose', type=int, default=0,
-               help='code verbosity')
 
     return parser
 
@@ -202,7 +219,7 @@ def add_optim_params(parser):
 
     ## LR and its scheme
     parser.add('--learning_rate', type=float,
-               default=5e-4, help='learning rate')
+               default=4e-4, help='learning rate')
     parser.add('--learning_rate_decay_start', type=int,
                default=5, help='at what iteration to start decaying learning rate? (-1 = dont) (in epoch)')
     parser.add('--lr_patience', type=int,
@@ -226,7 +243,7 @@ def add_optim_params(parser):
 
     ## CNN LR
     parser.add('--cnn_learning_rate', type=float,
-               default=0.1, help='learning rate for the CNN = factor * learning_rate')
+               default=1., help='learning rate for the CNN = factor * learning_rate')
     return parser
 
 def add_generic(parser):
@@ -236,6 +253,8 @@ def add_generic(parser):
 
     parser.add('--caption_model', type=str,
                default="show_tell", help='show_tell, show_attend_tell, attention, test_att, show_attend_tell_new')
+    parser.add('--verbose', type=int, default=0,
+               help='code verbosity')
 
     # Running settings
     # Gpu id if required (LIG servers)
@@ -248,7 +267,7 @@ def add_generic(parser):
     parser.add('--upsampling_size', type=int,
                default=300, help='upsampling size for MIL')
     parser.add('--batch_size', type=int,
-               default=25, help='minibatch size')
+               default=10, help='minibatch size')
     parser.add('--seq_per_img', type=int,
                default=5, help='number of captions to sample for each image during training')
     parser.add('--fliplr', type=int, default=0,
@@ -334,7 +353,6 @@ def create_logger(log_file=None, debug=True):
     if log_file is not None:
         log_dir = osp.dirname(log_file)
         if log_dir:
-            print('Parsed log dir', log_dir)
             if not osp.exists(log_dir):
                 os.makedirs(log_dir)
         # cerate file handler

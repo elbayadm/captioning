@@ -27,9 +27,9 @@ learning_rate_decay_rate : 0.6
 learning_rate_decay_every: 3
 
 # Loss:
-sample_reward: 1
-sentence_loss_version : 2
-loss_version : hamming
+stratify_reward : 1
+loss_version : seq
+reward : hamming
 tau_sent : .3
 limited_vocab_sub : 2
 alpha_sent : 0.6

@@ -14,7 +14,7 @@ def normalize_reward(distrib):
     return distrib / sums.repeat(1, distrib.size(1))
 
 
-class WordSmoothCriterion(nn.Module):  # the correct one
+class WordSmoothCriterion(nn.Module):
     """
     Apply word level loss smoothing given a similarity matrix
     the two versions are:
@@ -25,17 +25,13 @@ class WordSmoothCriterion(nn.Module):  # the correct one
         super().__init__()
         self.logger = opt.logger
         self.seq_per_img = opt.seq_per_img
-        self.scale_loss = opt.scale_loss
-        self.smooth_remove_equal = opt.smooth_remove_equal
-        self.clip_sim = opt.clip_sim
+        self.margin_sim = opt.margin_sim
         self.add_entropy = opt.word_add_entropy
         self.normalize_batch = opt.normalize_batch
-        self.scale_wl = opt.scale_wl
         self.use_cooc = opt.use_cooc
         self.penalize_confidence = opt.penalize_confidence  #FIXME
-        if self.clip_sim:
-            self.margin = opt.margin
-            self.logger.warn('Clipping similarities below %.2f' % self.margin)
+        if self.margin_sim:
+            self.logger.warn('Clipping similarities below %.2f' % self.margin_sim)
         self.limited = opt.limited_vocab_sim
         self.alpha = opt.alpha_word
         self.tau_word = opt.tau_word
@@ -53,7 +49,6 @@ class WordSmoothCriterion(nn.Module):  # the correct one
         self.vocab_size = opt.vocab_size
         M = Variable(torch.from_numpy(M)).cuda()
         self.Sim_Matrix = M
-        self.exact = opt.exact_dkl
 
     def log(self):
         self.logger.info("Initialized Word2 loss tau=%.3f, alpha=%.1f" % (self.tau_word, self.alpha))
@@ -63,19 +58,20 @@ class WordSmoothCriterion(nn.Module):  # the correct one
         seq_length = logp.size(1)
         target = target[:, :seq_length]
         mask = mask[:, :seq_length]
-        if self.scale_loss:
+        binary_mask = mask
+        if scores is not None:
             row_scores = scores.repeat(1, seq_length)
             mask = torch.mul(mask, row_scores)
-        ml_output = get_ml_loss(logp, target, mask,
+        ml_output = get_ml_loss(logp, target, binary_mask, scores,
                                 norm=self.normalize_batch,
                                 penalize=self.penalize_confidence)
         # Get the similarities of the words in the batch (NxL, V)
         logp = to_contiguous(logp).view(-1, logp.size(2))
         indices = to_contiguous(target).view(-1, 1).squeeze().data
         sim = self.Sim_Matrix[indices]
-        if self.clip_sim:
+        if self.margin_sim:
             # keep only the similarities larger than the margin
-            sim = sim * sim.ge(self.margin).float()
+            sim = sim * sim.ge(self.margin_sim).float()
         if self.limited:
             indices_vocab = get_indices_vocab(target, self.seq_per_img)
             sim = sim.gather(1, indices_vocab)
@@ -87,10 +83,6 @@ class WordSmoothCriterion(nn.Module):  # the correct one
             smooth_target = sim
         # Normalize the word reward distribution:
         smooth_target = normalize_reward(smooth_target)
-
-        if self.exact:
-            delta = Variable(torch.eye(self.vocab_size)[indices.cpu()]).cuda()
-            smooth_target = torch.mul(smooth_target, self.alpha) + torch.mul(delta, (1 - self.alpha))
 
         # Store some stats about the sentences scores:
         scalars = smooth_target.data.cpu().numpy()
@@ -104,23 +96,13 @@ class WordSmoothCriterion(nn.Module):  # the correct one
 
         if self.normalize_batch:
             if torch.sum(mask).data[0] > 0:
-                output = torch.sum(output) / torch.sum(mask)
+                output = torch.sum(output) / torch.sum(binary_mask)
             else:
                 self.logger.warn("Smooth targets weights sum to 0")
                 output = torch.sum(output)
         else:
             output = torch.sum(output)
 
-        # Deprecated
-        if self.scale_wl:
-            if self.scale_wl == -1:
-                # dynamic scaling:
-                sc = float(ml_output.data.cpu().numpy() / output.data.cpu().numpy())
-            else:
-                sc = self.scale_wl
-            self.logger.warn('Scaling the pure WL RAML by %.3f' % sc)
-            output = sc * output
-        # // Deprecated
         return ml_output, output, stats
 
     def track(self, logp, target, mask, add_dirac=False):
@@ -133,9 +115,9 @@ class WordSmoothCriterion(nn.Module):  # the correct one
         target = target[:, :seq_length]
         indices = to_contiguous(target).view(-1, 1).squeeze().data
         sim = self.Sim_Matrix[indices]
-        if self.clip_sim:
+        if self.margin_sim:
             # keep only the similarities larger than the margin
-            sim = sim * sim.ge(self.margin).float()
+            sim = sim * sim.ge(self.margin_sim).float()
         if self.limited:
             indices_vocab = get_indices_vocab(target, self.seq_per_img)
             sim = sim.gather(1, indices_vocab)

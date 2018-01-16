@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 import torch.nn as nn
-from .utils import to_contiguous
+from .utils import to_contiguous, get_ml_loss
 
 
 class MLCriterion(nn.Module):
@@ -12,7 +12,6 @@ class MLCriterion(nn.Module):
     def __init__(self, opt):
         super().__init__()
         self.logger = opt.logger
-        self.scale_loss = opt.scale_loss
         self.normalize_batch = opt.normalize_batch
         self.penalize_confidence = opt.penalize_confidence
 
@@ -26,25 +25,9 @@ class MLCriterion(nn.Module):
         mask : the ground truth mask to ignore UNK tokens (N, seq_length)
         scores: scalars to scale the loss of each sentence (N, 1)
         """
-        # truncate to the same size
-        seq_length = logp.size(1)
-        target = target[:, :seq_length]
-        mask = mask[:, :seq_length]
-        if self.scale_loss:
-            row_scores = scores.unsqueeze(1).repeat(1, seq_length)
-            mask = torch.mul(mask, row_scores)
-        logp = to_contiguous(logp).view(-1, logp.size(2))
-        target = to_contiguous(target).view(-1, 1)
-        mask = to_contiguous(mask).view(-1, 1)
-        if self.penalize_confidence:
-            logp = logp.gather(1, target)
-            neg_entropy = torch.sum(torch.exp(logp) * logp)
-            output = torch.sum(-logp * mask) + self.penalize_confidence * neg_entropy
-        else:
-            output = - logp.gather(1, target) * mask
-            output = torch.sum(output)
-        if self.normalize_batch:
-            output /= torch.sum(mask)
+        output = get_ml_loss(logp, target, mask, scores,
+                             norm=self.normalize_batch,
+                             penalize=self.penalize_confidence)
         return output, output, None
 
     def track(self, logp, target, mask, add_dirac=False):
@@ -52,7 +35,6 @@ class MLCriterion(nn.Module):
         logp : the decoder logits (N, seq_length, V)
         target : the ground truth labels (N, seq_length)
         mask : the ground truth mask to ignore UNK tokens (N, seq_length)
-        scores: scalars to scale the loss of each sentence (N, 1)
         """
         # truncate to the same size
         N = logp.size(0)
