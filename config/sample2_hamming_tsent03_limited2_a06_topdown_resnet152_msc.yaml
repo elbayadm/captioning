@@ -1,4 +1,4 @@
-modelname : debug
+modelname : sample2_hamming_tsent03_limited2_a06_topdown_resnet152_msc
 caption_model : top_down
 
 restart : 1
@@ -32,6 +32,6 @@ sentence_loss_version : 2
 loss_version : hamming
 tau_sent : .3
 limited_vocab_sub : 2
-alpha_sent : 0.4
+alpha_sent : 0.6
 
 beam_size : 3

@@ -1,4 +1,4 @@
-modelname : debug
+modelname : sample2_hamming_tsent03_limited2_a04_topdown_resnet152_msc
 caption_model : top_down
 
 restart : 1
