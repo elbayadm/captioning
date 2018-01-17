@@ -20,7 +20,7 @@ def exec_cmd(command):
 def get_gpu_memory(gpuid):
     # Get the current gpu usage.
     result, _ = exec_cmd('nvidia-smi -i %d --query-gpu=memory.free \
-                         --format=csv,nounits,noheader' % gpuid)
+                         --format=csv,nounits,noheader' % int(gpuid))
     # Convert lines into a dictionary
     result = int(result.strip())
     return result
