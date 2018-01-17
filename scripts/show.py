@@ -148,20 +148,35 @@ def parse_loss(params):
         return get_wl(params)
     elif loss_version == "seq":
         reward = params['reward']
+        if reward == "tfidf":
+            reward = 'tfidf n=%d, rare=%d' % (params['ngram_length'],
+                                              params['rare_tfidf'])
+        elif reward == 'hamming':
+            reward = 'hamming Vpool=%d' % (params['limited_vocab_sub'])
+        reward += ' $\\tau=%.2f$' % params['tau_sent']
+
         if params['stratify_reward']:
-            if reward == "tfidf":
-                reward = 'tfidf n=%d, rare=%d' % (params['ngram_length'], params['rare_tfidf'])
-            elif reward == 'hamming':
-                reward = 'hamming Vpool=%d' % params['limited_vocab_sub']
-            loss_version = 'Stratify r=%s, $\\tau=%.2f, \\alpha=%.1f$' % (reward,
-                                                                          params['tau_sent'],
-                                                                          params['alpha_sent'])
+            loss_version = 'Stratify r=(%s), \\alpha=%.1f$' % (reward,
+                                                               params['alpha_sent'])
 
         else:
-            loss_version = 'Importance sampling r=%s, $\\tau_r=%.2f, \\alpha=%.1f$, q=%s' % (reward,
-                                                                                             params['tau_sent'],
-                                                                                             params['alpha_sent'],
-                                                                                             params['importance_sampler'])
+            sampler = params['importance_sampler']
+            tau_q = params.get('tau_sent_q', params['tau_sent'])
+            if sampler == "tfidf":
+                sampler = 'tfidf n=%d, rare=%d $\\tau=%.2f$' % (params['ngram_length'],
+                                                                params['rare_tfidf'],
+                                                                tau_q)
+            elif sampler == 'hamming':
+                sampler = 'hamming Vpool=%d $\\tau=%.2f$' % (params['limited_vocab_sub'],
+                                                             tau_q)
+            elif sampler == 'greedy':
+                sampler = '$p_\\theta$'
+
+            extra = params.get('lazy_rnn', 0) * " (LAZY)"
+            loss_version = 'Importance r=(%s), q=(%s),%s \\alpha=%.1f$' % (reward,
+                                                                           sampler,
+                                                                           extra,
+                                                                           params['alpha_sent'])
         return loss_version
 
 

@@ -1,3 +1,4 @@
+import random
 from math import exp
 import numpy as np
 import time
@@ -53,7 +54,9 @@ def train(opt):
     import utils.logging as lg
 
     # reproducibility:
-    torch.manual_seed(1)
+    torch.manual_seed(opt.seed)
+    random.seed(opt.seed)
+    np.random.seed(opt.seed)
     loader = DataLoader(opt)
     opt.vocab_size = loader.vocab_size + 1
     opt.seq_length = loader.seq_length

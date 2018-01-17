@@ -113,6 +113,8 @@ def add_loss_params(parser):
                default=0.005, help='Temperature applied to the words similarities')
 
     # loss_version == seq params
+    parser.add('--lazy_rnn', type=int,
+               default=0, help='lazy estimation of the sampled sentences logp')
     parser.add('--mc_samples', type=int,
                default=1, help='Number of MC samples')
     parser.add('--reward', type=str, default='hamming',
@@ -253,6 +255,7 @@ def add_generic(parser):
 
     parser.add('--caption_model', type=str,
                default="show_tell", help='show_tell, show_attend_tell, attention, test_att, show_attend_tell_new')
+    parser.add('--seed', type=int, default=1, help="seed for all randomizer")
     parser.add('--verbose', type=int, default=0,
                help='code verbosity')
 

@@ -1,4 +1,4 @@
-modelname : debug 
+modelname : importance_lazy_qp_rcider_tsent05_a04_topdown
 caption_model : top_down
 cnn_model : resnet152
 input_data : data/coco/cocotalk
@@ -6,11 +6,8 @@ input_data : data/coco/cocotalk
 loss_version : seq
 stratify_reward : 0
 reward : cider
-importance_sampler : hamming
+importance_sampler : greedy
 alpha_sent : 0.4
 tau_sent : 0.5
-tau_sent_q : 0.17
-limited_vocab_sub : 1
-mc_samples : 2
-batch_size : 3
-lazy_rnn  : 1
+lazy_rnn : 1
+
