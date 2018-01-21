@@ -12,3 +12,4 @@ confusion_lattices
 *.log
 *.tr
 coco-caption
+jupyter/.ipynb_checkpoints
