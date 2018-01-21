@@ -15,6 +15,12 @@ FIELDS = ['Beam', 'Temperature', 'CIDEr', 'Bleu4', 'Perplexity']
 def correct(word):
     if word == "show_tell":
         return 'Show \\& Tell'
+    elif word == "resnet50":
+        return "ResNet-50"
+    elif word == "resnet152":
+        return "ResNet-152"
+    elif "cnn" in word:
+        return "RNN + CNN"
     else:
         return word
 
@@ -31,16 +37,16 @@ def get_latex(ptab, **kwargs):
             aligns.append(ptab._align[field])
             fields.append(field)
     lines = ['|' + '|'.join(['%s' % a for a in aligns]) + '|']
-    lines.append('\hrule \\\\')
+    lines.append('\hline')
     lines.append(' & '.join(fields) + '\\\\')
-    lines.append('\hrule \\\\')
+    lines.append('\hline')
     for row in formatted_rows:
         line = []
         for field, datum in zip(ptab._field_names, row):
             if field in fields:
                 line.append(correct(datum))
         lines.append(' & '.join(line) + '\\\\')
-    lines.append('\hrule')
+    lines.append('\hline')
     return lines
 
 
