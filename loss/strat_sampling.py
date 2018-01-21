@@ -19,7 +19,9 @@ class RewardSampler(nn.Module):
     def __init__(self, opt, vocab):
         super(RewardSampler, self).__init__()
         self.logger = opt.logger
+        self.caption_model = opt.caption_model
         self.penalize_confidence = opt.penalize_confidence  #FIXME
+        self.lazy_rnn = opt.lazy_rnn
         # the final loss is (1-alpha) ML + alpha * RewardLoss
         self.alpha = opt.alpha_sent
         self.combine_loss = opt.combine_loss
@@ -53,48 +55,90 @@ class RewardSampler(nn.Module):
             # FIXME see to it that i do not normalize with scaled masks
             row_scores = scores.repeat(1, seq_length)
             mask = torch.mul(mask, row_scores)
-        if self.combine_loss:
-            ml_gt, wl_gt, _ = self.loss_gt(logp, target, mask)
-            loss_gt = self.loss_gt.alpha * wl_gt + (1 - self.loss_gt.alpha) * ml_gt
-        else:
-            ml_gt = get_ml_loss(logp, target, mask, penalize=self.penalize_confidence)
-            loss_gt = ml_gt
+
+        # labels should bet trimmed to seqlength after 1:
+        loss_gt, stats = self.batch_loss_lazy(logp, labels, mask, scores)
         if self.training:
             MC = self.mc_samples
         else:
             MC = 1
-        for ss in range(MC):
-            preds_matrix, _, stats = self.sampler.sample(logp, target)
+        for mci in range(MC):
+            sampled, _, stats = self.sampler.sample(logp, target)
             if 0:
                 gt_s = decode_sequence(self.vocab, preds_matrix.data[:, 1:])
                 gt = decode_sequence(self.vocab, labels.data[:, 1:])
                 for s, ss in zip(gt, gt_s):
                     print('GT:', s, '\nSA:', ss)
             # Forward the sampled captions
-            sample_logp = model.forward(fc_feats, att_feats, preds_matrix)
-            if model.opt.caption_model in ['adaptive_attention', 'top_down']:
-                sample_logp = sample_logp[:, :-1]
-            if self.combine_loss:
-                ml_sampled, wl_sampled, stats_sampled = self.loss_sampled(sample_logp,
-                                                                          preds_matrix[:, 1:],
-                                                                          mask)
-                stats.update(stats_sampled)
-                mc_output = (self.loss_sampled.alpha * wl_sampled +
-                             (1 - self.loss_sampled.alpha) * ml_sampled)
+            if self.lazy_rnn:
+                mc_output, stats_sampled = self.batch_loss_lazy(logp,
+                                                                sampled,
+                                                                mask,
+                                                                scores)
+
             else:
-                ml_sampled = get_ml_loss(sample_logp,
-                                         preds_matrix[:, 1:],
-                                         mask,
-                                         scores,
-                                         penalize=self.penalize_confidence)
-                mc_output = ml_sampled
-            if not ss:
+                mc_output, stats_sampled = self.batch_loss(model,
+                                                           fc_feats,
+                                                           att_feats,
+                                                           sampled,
+                                                           mask,
+                                                           scores)
+
+            if stats_sampled is not None:
+                stats.update(stats_sampled)
+
+            if not mci:
                 output = mc_output
             else:
                 output += mc_output
         output /= MC
-        # output = torch.sum(torch.log(r) - logprob) / N
         return loss_gt, output, stats
 
+    def batch_loss(self, model, fc_feats, att_feats, labels, mask, scores):
+        """
+        forward the new sampled labels and return the loss
+        """
+        logp = model.forward(fc_feats, att_feats, labels)
+        if self.caption_model in ['adaptive_attention', 'top_down']:
+            logp = logp[:, :-1]
+        if self.combine_loss:
+            ml, wl, stats = self.loss_sampled(logp,
+                                              labels[:, 1:],
+                                              mask,
+                                              scores)
+            loss = (self.loss_sampled.alpha * wl +
+                    (1 - self.loss_sampled.alpha) * ml)
+        else:
+            ml = get_ml_loss(logp,
+                             labels[:, 1:],
+                             mask,
+                             scores,
+                             penalize=self.penalize_confidence)
+            loss = ml
+            stats = None
+        return loss, stats
+
+    def batch_loss_lazy(self, logp, labels, mask, scores):
+        """
+        Evaluate the oss ov the new labels given the gt logits
+        """
+        if self.caption_model in ['adaptive_attention', 'top_down']:
+            logp = logp[:, :-1]
+        if self.combine_loss:
+            ml, wl, stats = self.loss_sampled(logp,
+                                              labels[:, 1:],
+                                              mask,
+                                              scores)
+            loss = (self.loss_sampled.alpha * wl +
+                    (1 - self.loss_sampled.alpha) * ml)
+        else:
+            ml = get_ml_loss(logp,
+                             labels[:, 1:],
+                             mask,
+                             scores,
+                             penalize=self.penalize_confidence)
+            loss = ml
+            stats = None
+        return loss, stats
 
 

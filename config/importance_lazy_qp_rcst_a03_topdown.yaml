@@ -1,0 +1,12 @@
+modelname : importance_lazy_qp_rcst_a03_topdown
+caption_model : top_down
+cnn_model : resnet152
+input_data : data/coco/cocotalk
+# loss:
+loss_version : seq
+stratify_reward : 0
+reward : constant
+importance_sampler : greedy
+alpha_sent : 0.3
+lazy_rnn : 1
+

@@ -134,8 +134,8 @@ def add_loss_params(parser):
     parser.add('--tau_sent_q', type=float,
                default=0.3, help='Temperature applied to the sentences scores (q) if relevant')
 
-    parser.add('--clip_reward', type=int,
-               default=0, help='Clip and scale the sentence scores')
+    parser.add('--clip_reward', type=float,
+               default=1, help='Upper margin for seq reward clipping')
 
     # CIDEr specific
     parser.add('--cider_df', type=str,

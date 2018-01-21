@@ -108,22 +108,21 @@ def parse_name_clean(params):
                                                                                      # params["seq_length"])
     if params['caption_model'] == "adaptive_attention":
         if params.get('use_maxout', 0):
-            modelparams += " Maxout"
+            modelparams += "Maxout"
         if not params.get('add_fc_img', 1):
-            modelparams += " xt = wt"
+            modelparams += "xt = wt"
+    aug = 0
     if 'gen' in params.get('input_data'):
-        print('Using data augmentation')
-        modelparams += " Augment"
-    if params.get('penalize_confidence', 0):
-        # print('Using confidence penalization')
-        modelparams += " Peanlize: %.2f" % params['penalize_confidence']
-    if params.get('mc_samples', 1) > 1:
-        # print('Using multiple MC')
-        modelparams += " Mc: %d" % params['mc_samples']
+        modelparams += "Augment (%d)" % params['seq_per_img']
+        aug = 1
+    if not aug:
+        if not params['seq_per_img'] == 5:
+            modelparams += "Repeat (%d)" % params['seq_per_img']
+
     if params.get('init_decoder_W', ""):
         # print('Initializing the word emebddings')
         # print('Freezing:', params.get('freeze_decoder_W', 0))
-        modelparams += " W(init): %s" % params['init_decoder_W'].split('/')[-1].split('.')[0]
+        modelparams += "W(init): %s" % params['init_decoder_W'].split('/')[-1].split('.')[0]
         if params.get('freeze_decoder_W', 0):
             modelparams += ' frozen'
 
@@ -153,11 +152,17 @@ def parse_loss(params):
                                               params['rare_tfidf'])
         elif reward == 'hamming':
             reward = 'hamming Vpool=%d' % (params['limited_vocab_sub'])
+        elif reward == 'cider':
+            clip = params.get('clip_reward', 1)
+            if not clip:
+                clip = 1
+            reward = 'CIDEr (clip=%.1f)' % clip
         reward += ' $\\tau=%.2f$' % params['tau_sent']
 
         if params['stratify_reward']:
-            loss_version = 'Stratify r=(%s), \\alpha=%.1f$' % (reward,
-                                                               params['alpha_sent'])
+            loss_version = 'Stratify r=(%s), MC=%d, \\alpha=%.1f$' % (reward,
+                                                                      params['mc_samples'],
+                                                                      params['alpha_sent'])
 
         else:
             sampler = params['importance_sampler']
@@ -173,10 +178,11 @@ def parse_loss(params):
                 sampler = '$p_\\theta$'
 
             extra = params.get('lazy_rnn', 0) * " (LAZY)"
-            loss_version = 'Importance r=(%s), q=(%s),%s \\alpha=%.1f$' % (reward,
-                                                                           sampler,
-                                                                           extra,
-                                                                           params['alpha_sent'])
+            loss_version = 'Importance r=(%s), q=(%s), MC=%d, \\alpha=%.1f$ %s' % (reward,
+                                                                                   sampler,
+                                                                                   params['mc_samples'],
+                                                                                   params['alpha_sent'],
+                                                                                   extra)
         return loss_version
 
 
@@ -197,9 +203,9 @@ def parse_loss_old(params):
     rare = params.get('rare_tfidf', 0)
     sub = params.get('sub_idf', 0)
     if 'tfidf' in loss_version:
-        loss_version += " n=%d, idf_select=%d, idf_sub=%d" % (params.get('ngram_length', 0), rare, sub)
+        loss_version = "TFIDF n=%d, idf_select=%d, idf_sub=%d" % (params.get('ngram_length', 0), rare, sub)
     elif 'hamming' in loss_version:
-        loss_version += " Vpool=%d" % params.get('limited_vocab_sub', 1)
+        loss_version = "hamming Vpool=%d" % params.get('limited_vocab_sub', 1)
     if not multi:
         if loss_version == "word2":
             loss_version = get_wl(params)
@@ -209,11 +215,15 @@ def parse_loss_old(params):
             ver = params.get('sentence_loss_version', 1)
             loss_version = ' SampleP, r=%s V%d, $\\tau=%.2f, \\alpha=%.1f$' % (loss_version, ver, tau_sent, alpha[0])
         elif sample_reward:
-            loss_version = ' Stratify r=%s, $\\tau=%.2f, \\alpha=%.1f$' % (loss_version, tau_sent, alpha[0])
+            mc = params.get('mc_samples', 1)
+            loss_version = ' Stratify r=(%s, $\\tau=%.2f), MC=%d, \\alpha=%.1f$' % (loss_version, tau_sent, mc,  alpha[0])
         else:
             # print('Model: %s - assuming baseline loss' % params['modelparams'])
             # modelparams = " ".join(params['modelparams'].split('_'))
             loss_version = " ML"
+        if params.get('penalize_confidence', 0):
+            loss_version += " Peanlize: %.2f" % params['penalize_confidence']
+
     else:
         wl = get_wl(params)
         if alter_loss:
@@ -362,7 +372,7 @@ if __name__ == "__main__":
     print('filter:', filter, 'exclude:', exc, 'saving:', save)
     tab, dump = crawl_results(filter, exc)
     print(tab.get_string(sortby='CIDEr', reversesort=True))
-    filename = "Results/res%s_%s" % (filter, socket.gethostname())
+    filename = "results/res%s_%s" % (filter, socket.gethostname())
     if save:
         with open(filename+'.html', 'w') as f:
             ss = tab.get_html_string(sortby="CIDEr", reversesort=True)

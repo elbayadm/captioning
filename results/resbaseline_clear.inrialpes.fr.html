@@ -13,20 +13,20 @@
     </tr>
     <tr>
         <td>show_tell</td>
-        <td>resnet50</td>
-        <td> base lr: 1.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td>resnet152</td>
+        <td>Default</td>
         <td> ML</td>
-        <td>RNN + 1.0 x cnn(3:)</td>
+        <td>RNN + 1.0 x cnn(6:)</td>
         <td>3</td>
-        <td>88.77</td>
-        <td>29.08</td>
-        <td>10.28</td>
-        <td>204k / 212k</td>
+        <td>93.29</td>
+        <td>29.64</td>
+        <td>10.01</td>
+        <td>168k / 212k</td>
     </tr>
     <tr>
         <td>show_tell</td>
         <td>resnet50</td>
-        <td> base lr: 1.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td>Default</td>
         <td> ML</td>
         <td>RNN + 1.0 x cnn(6:)</td>
         <td>3</td>
@@ -37,56 +37,8 @@
     </tr>
     <tr>
         <td>show_tell</td>
-        <td>resnet50</td>
-        <td> base lr: 1.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
-        <td> ML</td>
-        <td>RNN + 1.0 x cnn(0:)</td>
-        <td>3</td>
-        <td>88.09</td>
-        <td>28.91</td>
-        <td>10.30</td>
-        <td>168k / 172k</td>
-    </tr>
-    <tr>
-        <td>show_tell</td>
-        <td>resnet50</td>
-        <td> base lr: 1.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
-        <td> ML</td>
-        <td>RNN + 1.0 x cnn(5:)</td>
-        <td>3</td>
-        <td>88.03</td>
-        <td>28.85</td>
-        <td>10.28</td>
-        <td>204k / 212k</td>
-    </tr>
-    <tr>
-        <td>show_tell</td>
-        <td>resnet50</td>
-        <td> base lr: 1.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
-        <td> ML</td>
-        <td>RNN + 1.0 x cnn(4:)</td>
-        <td>3</td>
-        <td>87.50</td>
-        <td>28.45</td>
-        <td>10.29</td>
-        <td>168k / 212k</td>
-    </tr>
-    <tr>
-        <td>show_tell</td>
         <td>resnet152</td>
-        <td> base lr: 5.0e-04 decay: 5, Adam(0.9,0.999), batch: 10, seq: 16</td>
-        <td> ML</td>
-        <td>RNN</td>
-        <td>3</td>
-        <td>87.35</td>
-        <td>28.42</td>
-        <td>10.45</td>
-        <td>120k / 172k</td>
-    </tr>
-    <tr>
-        <td>show_tell</td>
-        <td>resnet152</td>
-        <td> base lr: 4.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td>Default</td>
         <td> ML</td>
         <td>RNN</td>
         <td>3</td>
@@ -98,7 +50,7 @@
     <tr>
         <td>show_tell</td>
         <td>resnet50</td>
-        <td> base lr: 4.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td>Default</td>
         <td> ML</td>
         <td>RNN</td>
         <td>3</td>
@@ -110,19 +62,7 @@
     <tr>
         <td>show_tell</td>
         <td>resnet50</td>
-        <td> base lr: 4.0e-04 decay: 5, Adam(0.8,0.999), batch: 20, seq: 16</td>
-        <td> ML</td>
-        <td>RNN</td>
-        <td>3</td>
-        <td>84.64</td>
-        <td>27.72</td>
-        <td>10.28</td>
-        <td>60k / 84k</td>
-    </tr>
-    <tr>
-        <td>show_tell</td>
-        <td>resnet50</td>
-        <td> base lr: 5.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td>W(init): glove_coco_d512_w15_matrix</td>
         <td> ML</td>
         <td>RNN</td>
         <td>3</td>
@@ -134,7 +74,7 @@
     <tr>
         <td>show_tell</td>
         <td>resnet50</td>
-        <td> base lr: 5.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td>W(init): glove_coco_d512_w10_matrix</td>
         <td> ML</td>
         <td>RNN</td>
         <td>3</td>
@@ -146,7 +86,7 @@
     <tr>
         <td>show_tell</td>
         <td>resnet50</td>
-        <td> base lr: 5.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
+        <td>Default</td>
         <td> ML</td>
         <td>RNN</td>
         <td>3</td>
@@ -154,29 +94,5 @@
         <td>27.45</td>
         <td>1.00</td>
         <td>108k / 192k</td>
-    </tr>
-    <tr>
-        <td>show_tell</td>
-        <td>resnet50</td>
-        <td> base lr: 5.0e-04 decay: 5, Adam(0.8,0.999), batch: 10, seq: 16</td>
-        <td> ML</td>
-        <td>RNN</td>
-        <td>3</td>
-        <td>83.82</td>
-        <td>27.45</td>
-        <td>1.00</td>
-        <td>108k / 192k</td>
-    </tr>
-    <tr>
-        <td>show_tell</td>
-        <td>resnet152</td>
-        <td> base lr: 4.0e-04 decay: -1, Adam(0.9,0.999), batch: 10, seq: 16</td>
-        <td> ML</td>
-        <td>RNN</td>
-        <td>3</td>
-        <td>83.28</td>
-        <td>27.26</td>
-        <td>10.87</td>
-        <td>92k / 172k</td>
     </tr>
 </table>

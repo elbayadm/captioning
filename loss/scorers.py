@@ -26,7 +26,9 @@ class AllIsGoodScorer(object):
         self.version = "constant"
 
     def get_scores(self, preds, target):
-        return np.ones(target.size(0))
+        rstats = {"rconst_mean": 1,
+                  "rconst_std": 0}
+        return np.ones(target.size(0)), rstats
 
 
 class CiderRewardScorer(object):
@@ -70,8 +72,7 @@ class CiderRewardScorer(object):
         scores = np.array(scores)
         rstats = {"rcider_raw_mean": np.mean(scores),
                   "rcider_raw_std": np.std(scores)}
-        # if self.clip_reward:
-        scores = np.clip(scores, 0, 1) - 1
+        scores = np.clip(scores, 0, self.clip_reward) - self.clip_reward
         # Process scores:
         if self.tau_sent:
             scores = np.exp(scores / self.tau_sent)

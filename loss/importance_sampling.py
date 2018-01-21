@@ -139,6 +139,9 @@ class ImportanceSampler(nn.Module):
         return loss_gt, output, stats
 
     def batch_loss(self, model, fc_feats, att_feats, labels, mask, scores):
+        """
+        forward the new sampled labels and return the loss
+        """
         logp = model.forward(fc_feats, att_feats, labels)
         if self.caption_model in ['adaptive_attention', 'top_down']:
             logp = logp[:, :-1]
@@ -147,19 +150,22 @@ class ImportanceSampler(nn.Module):
                                               labels[:, 1:],
                                               mask,
                                               scores)
-            mc_output = (self.loss_sampled.alpha * wl +
-                         (1 - self.loss_sampled.alpha) * ml)
+            loss = (self.loss_sampled.alpha * wl +
+                    (1 - self.loss_sampled.alpha) * ml)
         else:
-            ml_sampled = get_ml_loss(logp,
-                                     labels[:, 1:],
-                                     mask,
-                                     scores,
-                                     penalize=self.penalize_confidence)
-            mc_output = ml_sampled
+            ml = get_ml_loss(logp,
+                             labels[:, 1:],
+                             mask,
+                             scores,
+                             penalize=self.penalize_confidence)
+            loss = ml
             stats = None
-        return mc_output, stats
+        return loss, stats
 
     def batch_loss_lazy(self, logp, labels, mask, scores):
+        """
+        Evaluate the oss ov the new labels given the gt logits
+        """
         if self.caption_model in ['adaptive_attention', 'top_down']:
             logp = logp[:, :-1]
         if self.combine_loss:
@@ -167,16 +173,16 @@ class ImportanceSampler(nn.Module):
                                               labels[:, 1:],
                                               mask,
                                               scores)
-            mc_output = (self.loss_sampled.alpha * wl +
-                         (1 - self.loss_sampled.alpha) * ml)
+            loss = (self.loss_sampled.alpha * wl +
+                    (1 - self.loss_sampled.alpha) * ml)
         else:
-            ml_sampled = get_ml_loss(logp,
-                                     labels[:, 1:],
-                                     mask,
-                                     scores,
-                                     penalize=self.penalize_confidence)
-            mc_output = ml_sampled
+            ml = get_ml_loss(logp,
+                             labels[:, 1:],
+                             mask,
+                             scores,
+                             penalize=self.penalize_confidence)
+            loss = ml
             stats = None
-        return mc_output, stats
+        return loss, stats
 
 
