@@ -7,8 +7,35 @@ import pickle
 import argparse
 from math import exp
 from prettytable import PrettyTable
+from tabulate import tabulate
+from html import escape
 
 FIELDS = ['Beam', 'Temperature', 'CIDEr', 'Bleu4', 'Perplexity']
+
+
+def get_latex(ptab, **kwargs):
+    options = ptab._get_options(kwargs)
+    lines = []
+    rows = ptab._get_rows(options)
+    formatted_rows = ptab._format_rows(rows, options)
+    aligns = []
+    fields = []
+    for field in ptab._field_names:
+        if options["fields"] and field in options["fields"]:
+            aligns.append(ptab._align[field])
+            fields.append(field)
+    lines = ['|' + '|'.join(['%s' % a for a in aligns]) + '|']
+    lines.append('\hrule')
+    lines.append(' & '.join(fields) + '\\')
+    lines.append('\hrule')
+    for row in formatted_rows:
+        line = []
+        for field, datum in zip(ptab._field_names, row):
+            if field in fields:
+                line.append(datum)
+        lines.append(' & '.join(line) + '\\')
+    lines.append('\hrule')
+    return lines
 
 
 def get_results(model, split='val'):
@@ -311,13 +338,12 @@ def highlight(score, tresh):
     else:
         return '%.2f' % score
 
-def crawl_results(filter='', exc=None):
+def crawl_results(fields, filter='', exc=None):
     models = sorted(glob.glob('save/*%s*' % filter))
     if exc:
         # Exclude models containg exc:
         models = [model for model in models if not sum([e in model for e in exc])]
     print("Found:", models)
-    fields = ["Model", "CNN", "params", 'loss', 'weights', 'Beam', 'CIDEr', 'Bleu4', 'Perplexity', 'best/last']
     recap = {}
     tab = PrettyTable()
     tab.field_names = fields
@@ -346,13 +372,14 @@ def crawl_results(filter='', exc=None):
                     perpl = float(exp(res['ml_loss']))
                 except:
                     perpl = 1.
-                tab.add_row([p['caption_model'],
-                             p['cnn_model'],
-                             modelparams,
-                             loss_version,
-                             finetuning,
-                             p['beam_size'],
-                             cid, bl, perpl, res['best/last']])
+                row = [p['caption_model'],
+                       p['cnn_model'],
+                       modelparams,
+                       loss_version,
+                       finetuning,
+                       p['beam_size'],
+                       cid, bl, perpl, res['best/last']]
+                tab.add_row(row)
     return tab, dump
 
 
@@ -370,7 +397,8 @@ if __name__ == "__main__":
     filter = args.filter
     exc = args.exclude
     print('filter:', filter, 'exclude:', exc, 'saving:', save)
-    tab, dump = crawl_results(filter, exc)
+    fields = ["Model", "CNN", "params", 'loss', 'weights', 'Beam', 'CIDEr', 'Bleu4', 'Perplexity', 'best/last']
+    tab, dump = crawl_results(fields, filter, exc)
     print(tab.get_string(sortby='CIDEr', reversesort=True))
     filename = "results/res%s_%s" % (filter, socket.gethostname())
     if save:
@@ -378,5 +406,9 @@ if __name__ == "__main__":
             ss = tab.get_html_string(sortby="CIDEr", reversesort=True)
             # print(ss)
             f.write(ss)
+        with open(filename+'.tex', 'w') as f:
+            tex = get_latex(tab, sortby="CIDEr", reversesort=True, fields=fields[:-2])
+            # print(ss)
+            f.write("\n".join(tex))
         pickle.dump(dump, open(filename+".res", 'wb'))
 
