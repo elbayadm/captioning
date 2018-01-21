@@ -1,3 +1,4 @@
+import random
 from math import exp
 import numpy as np
 import time
@@ -6,15 +7,20 @@ import os.path as osp
 import sys
 import pickle
 import subprocess
+import utils
+
 
 def exec_cmd(command):
     # return stdout, stderr output of a command
-    return subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
+    return subprocess.Popen(command, shell=True,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE).communicate()
 
 
 def get_gpu_memory(gpuid):
     # Get the current gpu usage.
-    result, _ = exec_cmd('nvidia-smi -i %d --query-gpu=memory.free --format=csv,nounits,noheader' % gpuid)
+    result, _ = exec_cmd('nvidia-smi -i %d --query-gpu=memory.free \
+                         --format=csv,nounits,noheader' % int(gpuid))
     # Convert lines into a dictionary
     result = int(result.strip())
     return result
@@ -26,38 +32,38 @@ def train(opt):
     """
     # setup gpu
     try:
-        import os
-        import subprocess
         gpu_id = int(subprocess.check_output('gpu_getIDs.sh', shell=True))
-        print("GPU:", gpu_id)
     except:
         print("Failed to get gpu_id (setting gpu_id to %d)" % opt.gpu_id)
         gpu_id = str(opt.gpu_id)
     os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_id)
     import torch
-    opt.logger.warn('GPU ID: %s | available memory: %dM' % (os.environ['CUDA_VISIBLE_DEVICES'], get_gpu_memory(gpu_id)))
+    opt.logger.warn('GPU ID: %s | available memory: %dM' \
+                    % (os.environ['CUDA_VISIBLE_DEVICES'], get_gpu_memory(gpu_id)))
     import torch.nn as nn
     from torch.autograd import Variable
     import torch.optim as optim
-    from dataloader import DataLoader
-    import eval_utils
-    import misc.utils as utils
-    import misc.cnn as cnn
-    import misc.decoder_utils as du
-    import misc.logging as lg
     import tensorflow as tf
     from tensorflow.python.framework import dtypes
     from tensorflow.contrib.tensorboard.plugins import projector
 
+    from loader import DataLoader
+    import models.eval_utils as evald
+    import models.cnn as cnn
+    import models.setup as ms
+    import utils.logging as lg
+
     # reproducibility:
-    torch.manual_seed(1)
+    torch.manual_seed(opt.seed)
+    random.seed(opt.seed)
+    np.random.seed(opt.seed)
     loader = DataLoader(opt)
     opt.vocab_size = loader.vocab_size + 1
     opt.seq_length = loader.seq_length
     opt.lr_wait = 0
 
     tf_summary_writer = tf.summary.FileWriter(opt.eventname)
-    iteration, epoch, opt, infos, history = du.recover_infos(opt)
+    iteration, epoch, opt, infos, history = ms.recover_infos(opt)
     if opt.shift_epoch:
         opt.logger.warn('Resetting epoch count (%d -> 0)' % epoch)
         epoch = 0
@@ -81,7 +87,7 @@ def train(opt):
         cnn_model.cuda(gpu_id)
     # Build the captioning model
     opt.logger.error('-----------------------------SETUP')
-    model = du.select_model(opt)
+    model = ms.select_model(opt)
     # model.define_loss(loader.get_vocab())
     model.load()
     opt.logger.error('-----------------------------/SETUP')
@@ -91,7 +97,7 @@ def train(opt):
     model.train()
     cnn_model.eval()
     model.define_loss(loader.get_vocab())
-    optimizers = du.set_optimizer(opt, epoch,
+    optimizers = ms.set_optimizer(opt, epoch,
                                   model, cnn_model)
     lg.log_optimizer(opt, optimizers)
     # Main loop
@@ -111,7 +117,7 @@ def train(opt):
                     opt.ss_prob = min(opt.scheduled_sampling_increase_prob  * frac, opt.scheduled_sampling_max_prob)
                     model.ss_prob = opt.ss_prob
                     opt.logger.warn('ss_prob= %.2e' % model.ss_prob )
-            if opt.sample_cap and opt.alpha_strategy == "step":
+            if opt.loss_version in ['word', 'seq'] and opt.alpha_strategy == "step":
                 if epoch >= opt.alpha_increase_start:
                     # Update ncrit's alpha:
                     opt.logger.warn('Updating alpha')
@@ -127,15 +133,13 @@ def train(opt):
                 opt.ss_prob = 1 - opt.scheduled_sampling_speed / (opt.scheduled_sampling_speed + exp(iteration / opt.scheduled_sampling_speed))
                 model.ss_prob = opt.ss_prob
                 opt.logger.warn("ss_prob =  %.3e" % model.ss_prob)
-        if opt.sample_cap and opt.alpha_strategy == "sigmoid":
+        if opt.loss_version in ['word', 'seq'] and opt.alpha_strategy == "sigmoid":
             # Update crit's alpha:
             opt.logger.warn('Updating the loss scaling param alpha')
             new_alpha = 1 - opt.alpha_speed / (opt.alpha_speed + exp(iteration / opt.alpha_speed))
             new_alpha = min(new_alpha, opt.alpha_max)
             model.crit.alpha = new_alpha
             opt.logger.warn('New alpha %.3e' % new_alpha)
-        # if opt.sample_cap:
-            # opt.logger.error('Sanity check alpha = %.3e' % model.crit.alpha)
 
         # Load data from train split (0)
         data = loader.get_batch('train')
@@ -176,7 +180,7 @@ def train(opt):
             epoch += 1
             update_lr_flag = True
         # Write the training loss summary
-        if (iteration % opt.losses_log_every == 0):
+        if iteration % opt.losses_log_every == 0:
             lg.log_epoch(tf_summary_writer, iteration, opt,
                          losses, stats, grad_norm,
                          model)
@@ -186,21 +190,23 @@ def train(opt):
             history['scores_stats'][iteration] = stats
 
         # make evaluation on validation set, and save model
-        if (iteration % opt.save_checkpoint_every == 0):
+        if iteration % opt.save_checkpoint_every == 0:
             # eval model
             eval_kwargs = {'split': 'val',
                            'dataset': opt.input_data + '.json'}
             eval_kwargs.update(vars(opt))
             # print("eval kwargs: ", eval_kwargs)
             (val_ml_loss, val_loss,
-             predictions, lang_stats) = eval_utils.eval_split(cnn_model,
-                                                              model,
-                                                              loader,
-                                                              opt.logger,
-                                                              eval_kwargs)
+             predictions, lang_stats) = evald.eval_split(cnn_model,
+                                                         model,
+                                                         loader,
+                                                         opt.logger,
+                                                         eval_kwargs)
             # Write validation result into summary
-            lg.add_summary_value(tf_summary_writer, 'validation_loss', val_loss, iteration)
-            lg.add_summary_value(tf_summary_writer, 'validation_ML_loss', val_ml_loss, iteration)
+            lg.add_summary_value(tf_summary_writer, 'validation_loss',
+                                 val_loss, iteration)
+            lg.add_summary_value(tf_summary_writer, 'validation_ML_loss',
+                                 val_ml_loss, iteration)
 
             for k, v in lang_stats.items():
                 lg.add_summary_value(tf_summary_writer, k, v, iteration)
@@ -228,6 +234,5 @@ def train(opt):
             break
 
 if __name__ == "__main__":
-    import opts
-    opt = opts.parse_opt()
+    opt = utils.parse_opt()
     train(opt)
