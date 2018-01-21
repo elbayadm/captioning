@@ -12,6 +12,12 @@ from html import escape
 
 FIELDS = ['Beam', 'Temperature', 'CIDEr', 'Bleu4', 'Perplexity']
 
+def correct(word):
+    if word == "show_tell":
+        return 'Show \\& Tell'
+    else:
+        return word
+
 
 def get_latex(ptab, **kwargs):
     options = ptab._get_options(kwargs)
@@ -25,15 +31,15 @@ def get_latex(ptab, **kwargs):
             aligns.append(ptab._align[field])
             fields.append(field)
     lines = ['|' + '|'.join(['%s' % a for a in aligns]) + '|']
-    lines.append('\hrule')
-    lines.append(' & '.join(fields) + '\\')
-    lines.append('\hrule')
+    lines.append('\hrule \\\\')
+    lines.append(' & '.join(fields) + '\\\\')
+    lines.append('\hrule \\\\')
     for row in formatted_rows:
         line = []
         for field, datum in zip(ptab._field_names, row):
             if field in fields:
-                line.append(datum)
-        lines.append(' & '.join(line) + '\\')
+                line.append(correct(datum))
+        lines.append(' & '.join(line) + '\\\\')
     lines.append('\hrule')
     return lines
 
