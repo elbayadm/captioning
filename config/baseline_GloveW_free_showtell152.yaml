@@ -1,0 +1,9 @@
+modelname : baseline_GloveW_free_showtell152
+caption_model : show_tell
+cnn_model : resnet152
+init_decoder_W:  data/Glove/cocotalk_glove_v2.pkl
+freeze_decoder_W : 0 
+input_data : data/coco/cocotalk
+
+# Loss:
+loss_version : ml

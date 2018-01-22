@@ -104,7 +104,7 @@ def add_loss_params(parser):
                default=0, help='whether or not to restrain to a subset of similarities\
                0 : the full vocabulary,\
                1 : the 5 captions vocabulary')
-    parser.add('--rare_tfidf', type=int,
+    parser.add('--rare_tfidf', type=float,
                default=0, help='increase the similarity of rare words')
     parser.add('--alpha_word', type=float,
                default=0.9, help='Scalar used to weigh the word loss\

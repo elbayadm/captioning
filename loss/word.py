@@ -37,10 +37,10 @@ class WordSmoothCriterion(nn.Module):
         # Load the similarity matrix:
         M = pickle.load(open(opt.similarity_matrix, 'rb'), encoding='iso-8859-1')
         if not self.use_cooc:
-            M = M - 1
+            M = M - 1  # = -D_ij
         if opt.rare_tfidf:
-            IDF = pickle.load(open('data/coco/idf_coco.pkl', 'rb'))
-            M += self.tau_word * IDF  # old versions IDF/1.8
+            IDF = pickle.load(open('data/coco/idf_coco_01.pkl', 'rb'))
+            M -= self.tau_word * opt.rare_tfidf * IDF
         M = M.astype(np.float32)
         n, d = M.shape
         print('Sim matrix:', n, 'x', d, ' V=', opt.vocab_size)
