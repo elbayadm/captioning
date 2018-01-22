@@ -132,7 +132,7 @@ def get_wl(params):
         G += ' +H'
     if params.get('exact_dkl', 0):
         G += ' +ExDKL'
-    modelparams = ' Word Level, Sim=%s, $\\tau=%.2f$, $\\alpha=%.1f$' % (G, params['tau_word'], alpha)
+    modelparams = ' Word, Sim=%s, $\\tau=%.2f$, $\\alpha=%.1f$' % (G, params['tau_word'], alpha)
     return modelparams
 
 
@@ -187,41 +187,34 @@ def parse_loss(params):
     elif loss_version == "seq":
         reward = params['reward']
         if reward == "tfidf":
-            reward = 'tfidf n=%d, rare=%d' % (params['ngram_length'],
-                                              params['rare_tfidf'])
+            reward = 'TFIDF, n=%d, rare=%d' % (params['ngram_length'],
+                                               params['rare_tfidf'])
         elif reward == 'hamming':
-            reward = 'hamming Vpool=%d' % (params['limited_vocab_sub'])
-        elif reward == 'cider':
-            clip = params.get('clip_reward', 1)
-            if not clip:
-                clip = 1
-            reward = 'CIDEr (clip=%.1f)' % clip
-        reward += ' $\\tau=%.2f$' % params['tau_sent']
+            reward = 'Hamming, Vpool=%d' % (params['limited_vocab_sub'])
+        reward += ', $\\tau=%.2f$' % params['tau_sent']
 
         if params['stratify_reward']:
-            loss_version = 'Stratify r=(%s), MC=%d, \\alpha=%.1f$' % (reward,
-                                                                      params['mc_samples'],
-                                                                      params['alpha_sent'])
+            loss_version = 'Stratify r=(%s), \\alpha=%.1f$' % (reward,
+                                                               params['alpha_sent'])
 
         else:
             sampler = params['importance_sampler']
             tau_q = params.get('tau_sent_q', params['tau_sent'])
             if sampler == "tfidf":
-                sampler = 'tfidf n=%d, rare=%d $\\tau=%.2f$' % (params['ngram_length'],
-                                                                params['rare_tfidf'],
-                                                                tau_q)
+                sampler = 'TFIDF, n=%d, rare=%d $\\tau=%.2f$' % (params['ngram_length'],
+                                                                 params['rare_tfidf'],
+                                                                 tau_q)
             elif sampler == 'hamming':
-                sampler = 'hamming Vpool=%d $\\tau=%.2f$' % (params['limited_vocab_sub'],
-                                                             tau_q)
+                sampler = 'Hamming, Vpool=%d $\\tau=%.2f$' % (params['limited_vocab_sub'],
+                                                              tau_q)
             elif sampler == 'greedy':
                 sampler = '$p_\\theta$'
 
             extra = params.get('lazy_rnn', 0) * " (LAZY)"
-            loss_version = 'Importance r=(%s), q=(%s), MC=%d, \\alpha=%.1f$ %s' % (reward,
-                                                                                   sampler,
-                                                                                   params['mc_samples'],
-                                                                                   params['alpha_sent'],
-                                                                                   extra)
+            loss_version = 'Importance r=(%s), q=(%s),\\alpha=%.1f$ %s' % (reward,
+                                                                           sampler,
+                                                                           params['alpha_sent'],
+                                                                           extra)
         return loss_version
 
 
@@ -242,9 +235,9 @@ def parse_loss_old(params):
     rare = params.get('rare_tfidf', 0)
     sub = params.get('sub_idf', 0)
     if 'tfidf' in loss_version:
-        loss_version = "TFIDF n=%d, idf_select=%d, idf_sub=%d" % (params.get('ngram_length', 0), rare, sub)
+        loss_version = "TFIDF, n=%d, idf_select=%d, idf_sub=%d" % (params.get('ngram_length', 0), rare, sub)
     elif 'hamming' in loss_version:
-        loss_version = "hamming Vpool=%d" % params.get('limited_vocab_sub', 1)
+        loss_version = "Hamming, Vpool=%d" % params.get('limited_vocab_sub', 1)
     if not multi:
         if loss_version == "word2":
             loss_version = get_wl(params)
@@ -255,7 +248,7 @@ def parse_loss_old(params):
             loss_version = ' SampleP, r=%s V%d, $\\tau=%.2f, \\alpha=%.1f$' % (loss_version, ver, tau_sent, alpha[0])
         elif sample_reward:
             mc = params.get('mc_samples', 1)
-            loss_version = ' Stratify r=(%s, $\\tau=%.2f), MC=%d, \\alpha=%.1f$' % (loss_version, tau_sent, mc,  alpha[0])
+            loss_version = ' Stratify r=(%s, $\\tau=%.2f), \\alpha=%.1f$' % (loss_version, tau_sent,  alpha[0])
         else:
             # print('Model: %s - assuming baseline loss' % params['modelparams'])
             # modelparams = " ".join(params['modelparams'].split('_'))
@@ -355,7 +348,7 @@ def crawl_results(fields, filter='', exc=None):
     if exc:
         # Exclude models containg exc:
         models = [model for model in models if not sum([e in model for e in exc])]
-    print("Found:", models)
+    # print("Found:", models)
     recap = {}
     tab = PrettyTable()
     tab.field_names = fields
@@ -419,7 +412,7 @@ if __name__ == "__main__":
             # print(ss)
             f.write(ss)
         with open(filename+'.tex', 'w') as f:
-            tex = get_latex(tab, sortby="CIDEr", reversesort=True, fields=fields[:-2])
+            tex = get_latex(tab, sortby="CIDEr", reversesort=True, fields=["Model", "loss", "weights", "CIDEr", "Bleu4"])
             # print(ss)
             f.write("\n".join(tex))
         pickle.dump(dump, open(filename+".res", 'wb'))

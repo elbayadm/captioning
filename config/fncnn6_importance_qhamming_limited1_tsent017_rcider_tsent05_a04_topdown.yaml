@@ -1,0 +1,27 @@
+modelname : fncnn6_importance_qhamming_limited1_tsent017_rcider_tsent05_a04_topdown
+start_from : save/importance_qhamming_limited1_tsent017_rcider_tsent05_a04_topdown
+start_from_best : 1
+
+caption_model : top_down
+cnn_model : resnet152
+input_data : data/coco/cocotalk
+
+finetune_cnn_after : 0
+finetune_cnn_slice : 6
+
+learning_rate : 1e-4
+learning_rate_decay_start : 5
+learning_rate_decay_rate : 0.8
+learning_rate_decay_every: 4
+max_epochs : 30
+
+# loss:
+loss_version : seq
+stratify_reward : 0
+reward : cider
+importance_sampler : hamming
+alpha_sent : 0.4
+tau_sent : 0.5
+tau_sent_q : 0.17
+limited_vocab_sub : 1
+lazy_rnn : 0

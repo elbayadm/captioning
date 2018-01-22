@@ -1,75 +1,77 @@
-|c|c|c|c|c|c|c|c|
+|c|c|c|c|c|
 \hline
-Model & CNN & params & loss & weights & Beam & CIDEr & Bleu4\\
+Model & loss & weights & CIDEr & Bleu4\\
 \hline
-top_down & ResNet-152 & Default &  Stratify r=(hamming Vpool=1, $\tau=0.17), MC=1, \alpha=0.4$ & RNN + CNN & 3 & 101.50 & 32.43\\
-top_down & ResNet-152 & Default &  Stratify r=(hamming Vpool=1, $\tau=0.17), MC=1, \alpha=0.6$ & RNN + CNN & 3 & 100.67 & 32.15\\
-top_down & ResNet-152 & Default &  Stratify r=(hamming Vpool=1, $\tau=0.17), MC=1, \alpha=0.2$ & RNN + CNN & 3 & 100.65 & 32.47\\
-top_down & ResNet-152 & Default &  Stratify r=(hamming Vpool=1, $\tau=0.17), MC=1, \alpha=0.5$ & RNN + CNN & 3 & 99.47 & 31.92\\
-top_down & ResNet-152 & Default &  Stratify r=(hamming Vpool=1, $\tau=0.17), MC=1, \alpha=0.4$ & RNN & 3 & 98.71 & 31.44\\
-top_down & ResNet-152 & Default & Stratify r=(hamming Vpool=2 $\tau=0.30$), MC=1, \alpha=0.4$ & RNN & 3 & 98.56 & 31.09\\
-top_down & ResNet-152 & Default &  Stratify r=(hamming Vpool=2, $\tau=0.30), MC=1, \alpha=0.4$ & RNN & 3 & 98.18 & 31.14\\
-top_down & ResNet-152 & Repeat (15) & Stratify r=(hamming Vpool=1 $\tau=0.17$), MC=1, \alpha=0.4$ & RNN & 3 & 98.13 & 31.06\\
-top_down & ResNet-152 & Default & Stratify r=(hamming Vpool=2 $\tau=0.30$), MC=1, \alpha=0.6$ & RNN & 3 & 98.09 & 31.66\\
-top_down & ResNet-152 & Default &  Stratify r=(hamming Vpool=1, $\tau=0.17), MC=1, \alpha=0.6$ & RNN & 3 & 98.06 & 30.97\\
-top_down & ResNet-152 & Default &  Stratify r=(hamming Vpool=1, $\tau=0.13), MC=1, \alpha=0.5$ & RNN & 3 & 97.99 & 31.21\\
-top_down & ResNet-152 & Default &  Stratify r=(hamming Vpool=1, $\tau=0.13), MC=1, \alpha=0.4$ & RNN & 3 & 97.95 & 31.02\\
-top_down & ResNet-152 & Default & Stratify r=(hamming Vpool=2 $\tau=0.30$), MC=1, \alpha=0.4$ & RNN & 3 & 97.90 & 31.17\\
-top_down & ResNet-152 & Default & Stratify r=(hamming Vpool=1 $\tau=0.17$), MC=1, \alpha=0.4$ & RNN & 3 & 97.85 & 31.36\\
-top_down & ResNet-152 & Default &  Stratify r=(hamming Vpool=1, $\tau=0.17), MC=1, \alpha=0.7$ & RNN & 3 & 97.75 & 31.34\\
-top_down & ResNet-152 & Default & Stratify r=(hamming Vpool=1 $\tau=0.17$), MC=1, \alpha=0.4$ & RNN & 3 & 97.74 & 31.03\\
-top_down & ResNet-152 & Default & Stratify r=(hamming Vpool=1 $\tau=0.17$), MC=1, \alpha=0.4$ & RNN & 3 & 97.72 & 30.33\\
-top_down & ResNet-152 & Default &  Stratify r=(hamming Vpool=2, $\tau=0.30), MC=1, \alpha=0.5$ & RNN & 3 & 97.42 & 31.02\\
-top_down & ResNet-152 & Default &  Stratify r=(hamming Vpool=1, $\tau=0.13), MC=1, \alpha=0.6$ & RNN & 3 & 97.41 & 30.81\\
-top_down & ResNet-152 & Default &  Stratify r=(hamming Vpool=1, $\tau=0.17), MC=1, \alpha=0.3$ & RNN & 3 & 97.19 & 30.55\\
-top_down & ResNet-152 & Default &  Stratify r=(hamming Vpool=1, $\tau=0.13), MC=1, \alpha=0.2$ & RNN & 3 & 97.18 & 31.19\\
-top_down & ResNet-152 & Default &  Stratify r=(hamming Vpool=1, $\tau=0.13), MC=1, \alpha=0.3$ & RNN & 3 & 97.10 & 30.81\\
-top_down & ResNet-152 & Default &  Stratify r=(hamming Vpool=1, $\tau=0.17), MC=1, \alpha=0.5$ & RNN & 3 & 97.03 & 31.41\\
-top_down & ResNet-152 & Default &  Stratify r=(hamming Vpool=1, $\tau=0.17), MC=1, \alpha=0.2$ & RNN & 3 & 96.78 & 31.09\\
-Show \& Tell & ResNet-50 & Default &  Stratify r=(hamming Vpool=1, $\tau=0.17), MC=1, \alpha=0.4$ & RNN + CNN & 3 & 90.97 & 30.45\\
-Show \& Tell & ResNet-50 & Default &  Stratify r=(hamming Vpool=2, $\tau=0.30), MC=1, \alpha=0.5$ & RNN & 3 & 89.94 & 28.98\\
-Show \& Tell & ResNet-50 & Default &  Stratify r=(hamming Vpool=2, $\tau=0.25), MC=1, \alpha=0.5$ & RNN & 3 & 88.76 & 28.84\\
-Show \& Tell & ResNet-50 & Default &  Stratify r=(hamming Vpool=2, $\tau=0.30), MC=1, \alpha=0.7$ & RNN & 3 & 88.54 & 28.84\\
-Show \& Tell & ResNet-50 & Default &  Stratify r=(hamming Vpool=2, $\tau=0.30), MC=1, \alpha=0.6$ & RNN & 3 & 88.46 & 28.95\\
-Show \& Tell & ResNet-50 & Default &  Stratify r=(hamming Vpool=2, $\tau=0.17), MC=1, \alpha=0.7$ & RNN & 3 & 87.77 & 28.17\\
-Show \& Tell & ResNet-50 & Default &  Stratify r=(hamming Vpool=2, $\tau=0.17), MC=2, \alpha=0.8$ & RNN & 3 & 87.66 & 28.29\\
-Show \& Tell & ResNet-50 & Default &  Stratify r=(hamming Vpool=1, $\tau=0.17), MC=1, \alpha=0.4$ & RNN & 3 & 87.52 & 29.19\\
-Show \& Tell & ResNet-50 & Default &  Stratify r=(hamming Vpool=1, $\tau=0.19), MC=1, \alpha=0.3$ & RNN & 3 & 87.50 & 29.09\\
-Show \& Tell & ResNet-50 & Default &  Stratify r=(hamming Vpool=0, $\tau=0.10), MC=1, \alpha=0.4$ & RNN & 3 & 87.42 & 28.59\\
-Show \& Tell & ResNet-50 & Default &  Stratify r=(hamming Vpool=2, $\tau=0.40), MC=1, \alpha=0.5$ & RNN & 3 & 87.33 & 28.43\\
-Show \& Tell & ResNet-50 & Default &  Stratify r=(hamming Vpool=2, $\tau=0.30), MC=1, \alpha=0.8$ & RNN & 3 & 87.31 & 28.48\\
-Show \& Tell & ResNet-50 & Default &  Stratify r=(hamming Vpool=2, $\tau=0.25), MC=1, \alpha=0.8$ & RNN & 3 & 87.26 & 28.55\\
-Show \& Tell & ResNet-50 & Default &  Stratify r=(hamming Vpool=0, $\tau=0.10), MC=1, \alpha=0.3$ & RNN & 3 & 87.25 & 28.81\\
-Show \& Tell & ResNet-50 & Default &  Stratify r=(hamming Vpool=2, $\tau=0.17), MC=1, \alpha=0.9$ & RNN & 3 & 87.24 & 28.16\\
-Show \& Tell & ResNet-50 & Default &  Stratify r=(hamming Vpool=2, $\tau=0.17), MC=1, \alpha=0.8$ & RNN & 3 & 87.22 & 27.97\\
-Show \& Tell & ResNet-50 & Default &  Stratify r=(hamming Vpool=2, $\tau=0.17), MC=2, \alpha=0.7$ & RNN & 3 & 87.10 & 28.18\\
-Show \& Tell & ResNet-50 & Default &  Stratify r=(hamming Vpool=2, $\tau=0.17), MC=1, \alpha=1.0$ & RNN & 3 & 87.03 & 27.83\\
-Show \& Tell & ResNet-50 & Default &  Stratify r=(hamming Vpool=2, $\tau=0.17), MC=5, \alpha=0.5$ & RNN & 3 & 87.02 & 27.80\\
-Show \& Tell & ResNet-50 & Default &  Stratify r=(TFIDF n=2, idf_select=1, idf_sub=0, $\tau=5.00), MC=1, \alpha=0.9$ & RNN & 3 & 86.84 & 28.85\\
-Show \& Tell & ResNet-50 & Default &  Stratify r=(hamming Vpool=2, $\tau=0.17), MC=1, \alpha=0.5$ & RNN & 3 & 86.74 & 27.64\\
-Show \& Tell & ResNet-50 & Default &  Stratify r=(hamming Vpool=2, $\tau=0.17), MC=5, \alpha=0.4$ & RNN & 3 & 86.60 & 27.51\\
-Show \& Tell & ResNet-50 & Default &  Stratify r=(hamming Vpool=2, $\tau=0.17), MC=1, \alpha=0.6$ & RNN & 3 & 86.56 & 27.86\\
-Show \& Tell & ResNet-50 & Default &  Stratify r=(hamming Vpool=1, $\tau=0.20), MC=1, \alpha=0.3$ & RNN & 3 & 86.53 & 28.64\\
-Show \& Tell & ResNet-50 & Default &  Stratify r=(TFIDF n=2, idf_select=1, idf_sub=0, $\tau=8.00), MC=1, \alpha=0.9$ & RNN & 3 & 86.51 & 28.73\\
-Show \& Tell & ResNet-50 & Default &  Stratify r=(TFIDF n=4, idf_select=1, idf_sub=0, $\tau=5.00), MC=1, \alpha=0.9$ & RNN & 3 & 86.48 & 28.89\\
-Show \& Tell & ResNet-50 & Default &  Stratify r=(hamming Vpool=1, $\tau=0.15), MC=1, \alpha=0.3$ & RNN & 3 & 86.41 & 28.15\\
-Show \& Tell & ResNet-50 & Default &  Stratify r=(hamming Vpool=1, $\tau=0.17), MC=2, \alpha=0.4$ & RNN & 3 & 86.27 & 28.03\\
-Show \& Tell & ResNet-50 & Default &  Stratify r=(TFIDF n=1, idf_select=1, idf_sub=0, $\tau=5.00), MC=1, \alpha=0.9$ & RNN & 3 & 86.21 & 28.14\\
-Show \& Tell & ResNet-50 & Default &  Stratify r=(hamming Vpool=0, $\tau=0.09), MC=1, \alpha=0.4$ & RNN & 3 & 86.19 & 28.15\\
-Show \& Tell & ResNet-50 & Default &  Stratify r=(hamming Vpool=2, $\tau=0.17), MC=1, \alpha=0.2$ & RNN & 3 & 86.18 & 27.64\\
-Show \& Tell & ResNet-50 & Default &  Stratify r=(hamming Vpool=0, $\tau=0.09), MC=1, \alpha=0.3$ & RNN & 3 & 86.18 & 28.24\\
-Show \& Tell & ResNet-50 & Default &  Stratify r=(TFIDF n=1, idf_select=1, idf_sub=0, $\tau=8.00), MC=1, \alpha=0.9$ & RNN & 3 & 86.15 & 28.37\\
-Show \& Tell & ResNet-50 & Default &  Stratify r=(hamming Vpool=2, $\tau=0.17), MC=2, \alpha=0.6$ & RNN & 3 & 86.15 & 27.56\\
-Show \& Tell & ResNet-50 & Default &  Stratify r=(hamming Vpool=1, $\tau=0.17), MC=3, \alpha=0.4$ & RNN & 3 & 86.12 & 28.34\\
-Show \& Tell & ResNet-50 & Default &  Stratify r=(hamming Vpool=2, $\tau=0.17), MC=1, \alpha=0.3$ & RNN & 3 & 86.12 & 27.83\\
-Show \& Tell & ResNet-50 & Default &  Stratify r=(TFIDF n=2, idf_select=1, idf_sub=0, $\tau=5.00), MC=1, \alpha=0.7$ & RNN & 3 & 86.09 & 28.19\\
-Show \& Tell & ResNet-50 & Default &  Stratify r=(hamming Vpool=2, $\tau=0.17), MC=1, \alpha=0.4$ & RNN & 3 & 86.07 & 27.72\\
-Show \& Tell & ResNet-50 & Default &  Stratify r=(TFIDF n=2, idf_select=1, idf_sub=0, $\tau=8.00), MC=1, \alpha=0.7$ & RNN & 3 & 86.03 & 28.40\\
-Show \& Tell & ResNet-50 & Default &  Stratify r=(hamming Vpool=2, $\tau=0.17), MC=2, \alpha=0.5$ & RNN & 3 & 86.01 & 27.95\\
-Show \& Tell & ResNet-50 & Default &  Stratify r=(hamming Vpool=2, $\tau=0.17), MC=3, \alpha=0.8$ & RNN & 3 & 85.96 & 27.63\\
-Show \& Tell & ResNet-50 & Default &  Stratify r=(TFIDF n=3, idf_select=1, idf_sub=0, $\tau=5.00), MC=1, \alpha=0.9$ & RNN & 3 & 85.76 & 28.57\\
-Show \& Tell & ResNet-50 & Default &  Stratify r=(hamming Vpool=2, $\tau=0.17), MC=2, \alpha=0.9$ & RNN & 3 & 85.69 & 27.80\\
-Show \& Tell & ResNet-50 & Default &  Stratify r=(hamming Vpool=1, $\tau=0.17), MC=1, \alpha=0.3$ & RNN & 3 & 85.53 & 28.21\\
-Show \& Tell & ResNet-50 & Default &  Stratify r=(hamming Vpool=2, $\tau=0.17), MC=1, \alpha=0.1$ & RNN & 3 & 85.23 & 27.31\\
-Show \& Tell & ResNet-50 & Default &  Stratify r=(TFIDF n=1, idf_select=1, idf_sub=0, $\tau=10.00), MC=1, \alpha=0.9$ & RNN & 3 & 85.13 & 27.93\\
+top_down &  Stratify r=(Hamming, Vpool=1, $\tau=0.17), \alpha=0.4$ & RNN + CNN & 101.50 & 32.43\\
+top_down & Stratify r=(Hamming, Vpool=2, $\tau=0.30$), \alpha=0.4$ & RNN + CNN & 101.19 & 32.37\\
+top_down &  Stratify r=(Hamming, Vpool=1, $\tau=0.17), \alpha=0.6$ & RNN + CNN & 100.67 & 32.15\\
+top_down &  Stratify r=(Hamming, Vpool=1, $\tau=0.17), \alpha=0.2$ & RNN + CNN & 100.65 & 32.47\\
+top_down &  Stratify r=(Hamming, Vpool=1, $\tau=0.17), \alpha=0.5$ & RNN + CNN & 99.47 & 31.92\\
+top_down &  Stratify r=(Hamming, Vpool=1, $\tau=0.17), \alpha=0.4$ & RNN & 98.71 & 31.44\\
+top_down & Stratify r=(Hamming, Vpool=2, $\tau=0.30$), \alpha=0.4$ & RNN & 98.56 & 31.09\\
+top_down &  Stratify r=(Hamming, Vpool=2, $\tau=0.30), \alpha=0.4$ & RNN & 98.18 & 31.14\\
+top_down & Stratify r=(Hamming, Vpool=1, $\tau=0.17$), \alpha=0.4$ & RNN & 98.13 & 31.06\\
+top_down & Stratify r=(Hamming, Vpool=2, $\tau=0.30$), \alpha=0.6$ & RNN & 98.09 & 31.66\\
+top_down &  Stratify r=(Hamming, Vpool=1, $\tau=0.17), \alpha=0.6$ & RNN & 98.06 & 30.97\\
+top_down &  Stratify r=(Hamming, Vpool=1, $\tau=0.13), \alpha=0.5$ & RNN & 97.99 & 31.21\\
+top_down &  Stratify r=(Hamming, Vpool=1, $\tau=0.13), \alpha=0.4$ & RNN & 97.95 & 31.02\\
+top_down & Stratify r=(Hamming, Vpool=2, $\tau=0.30$), \alpha=0.4$ & RNN & 97.90 & 31.17\\
+top_down & Stratify r=(Hamming, Vpool=1, $\tau=0.17$), \alpha=0.4$ & RNN & 97.85 & 31.36\\
+top_down &  Stratify r=(Hamming, Vpool=1, $\tau=0.17), \alpha=0.7$ & RNN & 97.75 & 31.34\\
+top_down & Stratify r=(Hamming, Vpool=1, $\tau=0.17$), \alpha=0.4$ & RNN & 97.74 & 31.03\\
+top_down & Stratify r=(Hamming, Vpool=1, $\tau=0.17$), \alpha=0.4$ & RNN & 97.72 & 30.33\\
+top_down &  Stratify r=(Hamming, Vpool=2, $\tau=0.30), \alpha=0.5$ & RNN & 97.42 & 31.02\\
+top_down &  Stratify r=(Hamming, Vpool=1, $\tau=0.13), \alpha=0.6$ & RNN & 97.41 & 30.81\\
+top_down &  Stratify r=(Hamming, Vpool=1, $\tau=0.17), \alpha=0.3$ & RNN & 97.19 & 30.55\\
+top_down &  Stratify r=(Hamming, Vpool=1, $\tau=0.13), \alpha=0.2$ & RNN & 97.18 & 31.19\\
+top_down &  Stratify r=(Hamming, Vpool=1, $\tau=0.13), \alpha=0.3$ & RNN & 97.10 & 30.81\\
+top_down &  Stratify r=(Hamming, Vpool=1, $\tau=0.17), \alpha=0.5$ & RNN & 97.03 & 31.41\\
+top_down &  Stratify r=(Hamming, Vpool=1, $\tau=0.17), \alpha=0.2$ & RNN & 96.78 & 31.09\\
+Show \& Tell & Stratify r=(Hamming, Vpool=2, $\tau=0.30$), \alpha=0.5$ & RNN + CNN & 92.79 & 30.00\\
+Show \& Tell &  Stratify r=(Hamming, Vpool=1, $\tau=0.17), \alpha=0.4$ & RNN + CNN & 90.97 & 30.45\\
+Show \& Tell &  Stratify r=(Hamming, Vpool=2, $\tau=0.30), \alpha=0.5$ & RNN & 89.94 & 28.98\\
+Show \& Tell &  Stratify r=(Hamming, Vpool=2, $\tau=0.25), \alpha=0.5$ & RNN & 88.76 & 28.84\\
+Show \& Tell &  Stratify r=(Hamming, Vpool=2, $\tau=0.30), \alpha=0.7$ & RNN & 88.54 & 28.84\\
+Show \& Tell &  Stratify r=(Hamming, Vpool=2, $\tau=0.30), \alpha=0.6$ & RNN & 88.46 & 28.95\\
+Show \& Tell &  Stratify r=(Hamming, Vpool=2, $\tau=0.17), \alpha=0.7$ & RNN & 87.77 & 28.17\\
+Show \& Tell &  Stratify r=(Hamming, Vpool=2, $\tau=0.17), \alpha=0.8$ & RNN & 87.66 & 28.29\\
+Show \& Tell &  Stratify r=(Hamming, Vpool=1, $\tau=0.17), \alpha=0.4$ & RNN & 87.52 & 29.19\\
+Show \& Tell &  Stratify r=(Hamming, Vpool=1, $\tau=0.19), \alpha=0.3$ & RNN & 87.50 & 29.09\\
+Show \& Tell &  Stratify r=(Hamming, Vpool=0, $\tau=0.10), \alpha=0.4$ & RNN & 87.42 & 28.59\\
+Show \& Tell &  Stratify r=(Hamming, Vpool=2, $\tau=0.40), \alpha=0.5$ & RNN & 87.33 & 28.43\\
+Show \& Tell &  Stratify r=(Hamming, Vpool=2, $\tau=0.30), \alpha=0.8$ & RNN & 87.31 & 28.48\\
+Show \& Tell &  Stratify r=(Hamming, Vpool=2, $\tau=0.25), \alpha=0.8$ & RNN & 87.26 & 28.55\\
+Show \& Tell &  Stratify r=(Hamming, Vpool=0, $\tau=0.10), \alpha=0.3$ & RNN & 87.25 & 28.81\\
+Show \& Tell &  Stratify r=(Hamming, Vpool=2, $\tau=0.17), \alpha=0.9$ & RNN & 87.24 & 28.16\\
+Show \& Tell &  Stratify r=(Hamming, Vpool=2, $\tau=0.17), \alpha=0.8$ & RNN & 87.22 & 27.97\\
+Show \& Tell &  Stratify r=(Hamming, Vpool=2, $\tau=0.17), \alpha=0.7$ & RNN & 87.10 & 28.18\\
+Show \& Tell &  Stratify r=(Hamming, Vpool=2, $\tau=0.17), \alpha=1.0$ & RNN & 87.03 & 27.83\\
+Show \& Tell &  Stratify r=(Hamming, Vpool=2, $\tau=0.17), \alpha=0.5$ & RNN & 87.02 & 27.80\\
+Show \& Tell &  Stratify r=(TFIDF, n=2, idf_select=1, idf_sub=0, $\tau=5.00), \alpha=0.9$ & RNN & 86.84 & 28.85\\
+Show \& Tell &  Stratify r=(Hamming, Vpool=2, $\tau=0.17), \alpha=0.5$ & RNN & 86.74 & 27.64\\
+Show \& Tell &  Stratify r=(Hamming, Vpool=2, $\tau=0.17), \alpha=0.4$ & RNN & 86.60 & 27.51\\
+Show \& Tell &  Stratify r=(Hamming, Vpool=2, $\tau=0.17), \alpha=0.6$ & RNN & 86.56 & 27.86\\
+Show \& Tell &  Stratify r=(Hamming, Vpool=1, $\tau=0.20), \alpha=0.3$ & RNN & 86.53 & 28.64\\
+Show \& Tell &  Stratify r=(TFIDF, n=2, idf_select=1, idf_sub=0, $\tau=8.00), \alpha=0.9$ & RNN & 86.51 & 28.73\\
+Show \& Tell &  Stratify r=(TFIDF, n=4, idf_select=1, idf_sub=0, $\tau=5.00), \alpha=0.9$ & RNN & 86.48 & 28.89\\
+Show \& Tell &  Stratify r=(Hamming, Vpool=1, $\tau=0.15), \alpha=0.3$ & RNN & 86.41 & 28.15\\
+Show \& Tell &  Stratify r=(Hamming, Vpool=1, $\tau=0.17), \alpha=0.4$ & RNN & 86.27 & 28.03\\
+Show \& Tell &  Stratify r=(TFIDF, n=1, idf_select=1, idf_sub=0, $\tau=5.00), \alpha=0.9$ & RNN & 86.21 & 28.14\\
+Show \& Tell &  Stratify r=(Hamming, Vpool=0, $\tau=0.09), \alpha=0.4$ & RNN & 86.19 & 28.15\\
+Show \& Tell &  Stratify r=(Hamming, Vpool=2, $\tau=0.17), \alpha=0.2$ & RNN & 86.18 & 27.64\\
+Show \& Tell &  Stratify r=(Hamming, Vpool=0, $\tau=0.09), \alpha=0.3$ & RNN & 86.18 & 28.24\\
+Show \& Tell &  Stratify r=(TFIDF, n=1, idf_select=1, idf_sub=0, $\tau=8.00), \alpha=0.9$ & RNN & 86.15 & 28.37\\
+Show \& Tell &  Stratify r=(Hamming, Vpool=2, $\tau=0.17), \alpha=0.6$ & RNN & 86.15 & 27.56\\
+Show \& Tell &  Stratify r=(Hamming, Vpool=1, $\tau=0.17), \alpha=0.4$ & RNN & 86.12 & 28.34\\
+Show \& Tell &  Stratify r=(Hamming, Vpool=2, $\tau=0.17), \alpha=0.3$ & RNN & 86.12 & 27.83\\
+Show \& Tell &  Stratify r=(TFIDF, n=2, idf_select=1, idf_sub=0, $\tau=5.00), \alpha=0.7$ & RNN & 86.09 & 28.19\\
+Show \& Tell &  Stratify r=(Hamming, Vpool=2, $\tau=0.17), \alpha=0.4$ & RNN & 86.07 & 27.72\\
+Show \& Tell &  Stratify r=(TFIDF, n=2, idf_select=1, idf_sub=0, $\tau=8.00), \alpha=0.7$ & RNN & 86.03 & 28.40\\
+Show \& Tell &  Stratify r=(Hamming, Vpool=2, $\tau=0.17), \alpha=0.5$ & RNN & 86.01 & 27.95\\
+Show \& Tell &  Stratify r=(Hamming, Vpool=2, $\tau=0.17), \alpha=0.8$ & RNN & 85.96 & 27.63\\
+Show \& Tell &  Stratify r=(TFIDF, n=3, idf_select=1, idf_sub=0, $\tau=5.00), \alpha=0.9$ & RNN & 85.76 & 28.57\\
+Show \& Tell &  Stratify r=(Hamming, Vpool=2, $\tau=0.17), \alpha=0.9$ & RNN & 85.69 & 27.80\\
+Show \& Tell &  Stratify r=(Hamming, Vpool=1, $\tau=0.17), \alpha=0.3$ & RNN & 85.53 & 28.21\\
+Show \& Tell &  Stratify r=(Hamming, Vpool=2, $\tau=0.17), \alpha=0.1$ & RNN & 85.23 & 27.31\\
+Show \& Tell &  Stratify r=(TFIDF, n=1, idf_select=1, idf_sub=0, $\tau=10.00), \alpha=0.9$ & RNN & 85.13 & 27.93\\
 \hline
