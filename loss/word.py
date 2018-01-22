@@ -26,7 +26,6 @@ class WordSmoothCriterion(nn.Module):
         self.logger = opt.logger
         self.seq_per_img = opt.seq_per_img
         self.margin_sim = opt.margin_sim
-        self.add_entropy = opt.word_add_entropy
         self.normalize_batch = opt.normalize_batch
         self.use_cooc = opt.use_cooc
         self.penalize_confidence = opt.penalize_confidence  #FIXME

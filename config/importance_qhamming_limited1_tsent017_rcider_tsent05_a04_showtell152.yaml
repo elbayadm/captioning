@@ -1,0 +1,14 @@
+modelname : importance_qhamming_limited1_tsent017_rcider_tsent05_a04_showtell152
+caption_model : show_tell
+cnn_model : resnet152
+input_data : data/coco/cocotalk
+# loss:
+loss_version : seq
+stratify_reward : 0
+reward : cider
+importance_sampler : hamming
+alpha_sent : 0.4
+tau_sent : 0.5
+tau_sent_q : 0.17
+limited_vocab_sub : 1
+
