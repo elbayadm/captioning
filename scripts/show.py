@@ -189,8 +189,8 @@ def parse_loss(params):
         reward += ', $\\tau=%.2f$' % params['tau_sent']
 
         if params['stratify_reward']:
-            loss_version = 'Stratify r=(%s), \\alpha=%.1f$' % (reward,
-                                                               params['alpha_sent'])
+            loss_version = 'Stratify r=(%s), $\\alpha=%.1f$' % (reward,
+                                                                params['alpha_sent'])
 
         else:
             sampler = params['importance_sampler']
@@ -206,7 +206,7 @@ def parse_loss(params):
                 sampler = '$p_\\theta$'
 
             extra = params.get('lazy_rnn', 0) * " (LAZY)"
-            loss_version = 'Importance r=(%s), q=(%s),\\alpha=%.1f$ %s' % (reward,
+            loss_version = 'Importance r=(%s), q=(%s),$\\alpha=%.1f$ %s' % (reward,
                                                                            sampler,
                                                                            params['alpha_sent'],
                                                                            extra)
