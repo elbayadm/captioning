@@ -1,0 +1,14 @@
+modelname : word_coco_tword013_a05_topdown152
+caption_model : top_down
+cnn_model : resnet152
+
+batch_size : 10
+input_data : data/coco/cocotalk
+similarity_matrix : data/Glove/train_coco_similarities.pkl
+
+# Loss:
+loss_version : word
+tau_word : 0.13
+rare_tfidf : 0
+alpha_word : 0.5
+
