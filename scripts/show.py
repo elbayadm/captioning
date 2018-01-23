@@ -191,6 +191,8 @@ def parse_loss(params):
         if params['stratify_reward']:
             loss_version = 'Stratify r=(%s), $\\alpha=%.1f$' % (reward,
                                                                 params['alpha_sent'])
+            if params.get('lazy_rnn', 0):
+                loss_version += ' (LAZY)'
 
         else:
             sampler = params['importance_sampler']

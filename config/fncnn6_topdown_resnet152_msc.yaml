@@ -3,21 +3,8 @@ start_from : save/topdown_resnet152_msc
 start_from_best : 1
 caption_model : top_down
 
-restart : 1
-val_images_use : -1
-save_checkpoint_every : 4000
-
-optim_alpha : 0.8
-
 cnn_learning_rate : 1.
 cnn_model : resnet152
-
-fc_feat_size : 2048
-att_feat_size : 2048
-region_size : 7
-use_adaptive_pooling : 0
-rnn_size : 512
-drop_feat_im : 0
 
 batch_size : 10
 input_data : data/coco/cocotalk
@@ -30,5 +17,3 @@ learning_rate_decay_rate : 0.8
 learning_rate_decay_every: 4
 max_epochs : 30
 
-grad_clip : .1
-beam_size : 3

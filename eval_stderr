@@ -108,3 +108,199 @@ PTBTokenizer tokenized 51403 tokens at 443307.31 tokens per second.
 [33m01/23 18:44:00 Starting evaluation...[0m
 PTBTokenizer tokenized 307085 tokens at 806774.17 tokens per second.
 PTBTokenizer tokenized 51784 tokens at 153366.24 tokens per second.
+[33m01/23 19:54:40 GPU ID: 1 | available memory: 12189M[0m
+[33m01/23 19:54:52 Starting from the best saved model[0m
+[33m01/23 19:54:52 Starting from save/topdown_resnet152_msc/model-best.pth[0m
+Traceback (most recent call last):
+  File "eval.py", line 76, in <module>
+    str(vars(opt)[k]) + ' vs. ' + str(vars(infos['opt'])[k]))
+AssertionError: region_size option not consistent 14 vs. 7
+[33m01/23 19:55:54 GPU ID: 1 | available memory: 12189M[0m
+[33m01/23 19:55:58 Starting from the best saved model[0m
+[33m01/23 19:55:58 Starting from save/fncnn6_topdown_resnet152_msc/model-best.pth[0m
+Traceback (most recent call last):
+  File "eval.py", line 76, in <module>
+    str(vars(opt)[k]) + ' vs. ' + str(vars(infos['opt'])[k]))
+AssertionError: region_size option not consistent 14 vs. 7
+[33m01/23 19:57:24 GPU ID: 1 | available memory: 12189M[0m
+[33m01/23 19:57:28 Starting from the best saved model[0m
+[33m01/23 19:57:28 Starting from save/fncnn6_topdown_resnet152_msc/model-best.pth[0m
+Traceback (most recent call last):
+  File "eval.py", line 76, in <module>
+    str(vars(opt)[k]) + ' vs. ' + str(vars(infos['opt'])[k]))
+AssertionError: use_adaptive_pooling option not consistent 1 vs. 0
+[33m01/23 19:57:31 GPU ID: 0 | available memory: 12205M[0m
+[33m01/23 19:57:36 Starting from the best saved model[0m
+[33m01/23 19:57:36 Starting from save/topdown_resnet152_msc/model-best.pth[0m
+Traceback (most recent call last):
+  File "eval.py", line 76, in <module>
+    str(vars(opt)[k]) + ' vs. ' + str(vars(infos['opt'])[k]))
+AssertionError: use_adaptive_pooling option not consistent 1 vs. 0
+[33m01/23 19:58:04 GPU ID: 1 | available memory: 12189M[0m
+[33m01/23 19:58:08 Starting from the best saved model[0m
+[33m01/23 19:58:08 Starting from save/topdown_resnet152_msc/model-best.pth[0m
+[36m01/23 19:58:12 Setting CNN weigths from save/topdown_resnet152_msc/model-cnn-best.pth[0m
+[33m01/23 19:58:16 Finetuning up from 0 modules in the cnn[0m
+[33m01/23 19:58:17 Top Down : OrderedDict([('embed_1', Embedding(9488, 512)), ('embed', Sequential (
+  (0): Embedding(9488, 512)
+  (1): ReLU ()
+  (2): Dropout (p = 0.5)
+)), ('att_embed', Sequential (
+  (0): Linear (2048 -> 512)
+  (1): ReLU ()
+  (2): Dropout (p = 0.0)
+)), ('logit', Linear (512 -> 9488)), ('ctx2att', Linear (512 -> 512)), ('fc_embed', Sequential (
+  (0): Linear (2048 -> 512)
+  (1): ReLU ()
+  (2): Dropout (p = 0.0)
+)), ('core', TopDownCore (
+  (att_lstm): LSTMCell(1536, 512)
+  (lang_lstm): LSTMCell(1024, 512)
+  (attention): Attention (
+    (h2att): Linear (512 -> 512)
+    (alpha_net): Linear (512 -> 1)
+  )
+))])[0m
+[33m01/23 19:58:17 Loading the model dict (last checkpoint) ['embed_1.weight', 'embed.0.weight', 'att_embed.0.weight', 'att_embed.0.bias', 'logit.weight', 'logit.bias', 'ctx2att.weight', 'ctx2att.bias', 'fc_embed.0.weight', 'fc_embed.0.bias', 'core.att_lstm.weight_ih', 'core.att_lstm.weight_hh', 'core.att_lstm.bias_ih', 'core.att_lstm.bias_hh', 'core.lang_lstm.weight_ih', 'core.lang_lstm.weight_hh', 'core.lang_lstm.bias_ih', 'core.lang_lstm.bias_hh', 'core.attention.h2att.weight', 'core.attention.h2att.bias', 'core.attention.alpha_net.weight', 'core.attention.alpha_net.bias'][0m
+[33m01/23 19:58:17 DataLoader loading json file: data/coco/cocotalk.json[0m
+[33m01/23 19:58:17 vocab size is 9487 [0m
+[33m01/23 19:58:17 DataLoader loading h5 file: data/coco/cocotalk.h5[0m
+[33m01/23 19:58:17 read 123287 images of size 3x256x256[0m
+[33m01/23 19:58:17 max sequence length in data is 16[0m
+[33m01/23 19:58:17 assigned 82783 images to split train[0m
+[33m01/23 19:58:17 assigned 5000 images to split val[0m
+[33m01/23 19:58:17 assigned 5000 images to split test[0m
+[32m01/23 19:58:17 Default ML loss[0m
+[33m01/23 19:58:17 Evaluating the test split (-1)[0m
+[33m01/23 19:58:45 GPU ID: 0 | available memory: 12205M[0m
+[33m01/23 19:58:50 Starting from the best saved model[0m
+[33m01/23 19:58:50 Starting from save/fncnn6_topdown_resnet152_msc/model-best.pth[0m
+[36m01/23 19:58:55 Setting CNN weigths from save/fncnn6_topdown_resnet152_msc/model-cnn-best.pth[0m
+[33m01/23 19:59:02 Finetuning up from 6 modules in the cnn[0m
+[33m01/23 19:59:02 Top Down : OrderedDict([('embed_1', Embedding(9488, 512)), ('embed', Sequential (
+  (0): Embedding(9488, 512)
+  (1): ReLU ()
+  (2): Dropout (p = 0.5)
+)), ('att_embed', Sequential (
+  (0): Linear (2048 -> 512)
+  (1): ReLU ()
+  (2): Dropout (p = 0.0)
+)), ('logit', Linear (512 -> 9488)), ('ctx2att', Linear (512 -> 512)), ('fc_embed', Sequential (
+  (0): Linear (2048 -> 512)
+  (1): ReLU ()
+  (2): Dropout (p = 0.0)
+)), ('core', TopDownCore (
+  (att_lstm): LSTMCell(1536, 512)
+  (lang_lstm): LSTMCell(1024, 512)
+  (attention): Attention (
+    (h2att): Linear (512 -> 512)
+    (alpha_net): Linear (512 -> 1)
+  )
+))])[0m
+[33m01/23 19:59:04 Loading the model dict (last checkpoint) ['embed_1.weight', 'embed.0.weight', 'att_embed.0.weight', 'att_embed.0.bias', 'logit.weight', 'logit.bias', 'ctx2att.weight', 'ctx2att.bias', 'fc_embed.0.weight', 'fc_embed.0.bias', 'core.att_lstm.weight_ih', 'core.att_lstm.weight_hh', 'core.att_lstm.bias_ih', 'core.att_lstm.bias_hh', 'core.lang_lstm.weight_ih', 'core.lang_lstm.weight_hh', 'core.lang_lstm.bias_ih', 'core.lang_lstm.bias_hh', 'core.attention.h2att.weight', 'core.attention.h2att.bias', 'core.attention.alpha_net.weight', 'core.attention.alpha_net.bias'][0m
+[33m01/23 19:59:04 DataLoader loading json file: data/coco/cocotalk.json[0m
+[33m01/23 19:59:04 vocab size is 9487 [0m
+[33m01/23 19:59:04 DataLoader loading h5 file: data/coco/cocotalk.h5[0m
+[33m01/23 19:59:04 read 123287 images of size 3x256x256[0m
+[33m01/23 19:59:04 max sequence length in data is 16[0m
+[33m01/23 19:59:04 assigned 82783 images to split train[0m
+[33m01/23 19:59:04 assigned 5000 images to split val[0m
+[33m01/23 19:59:04 assigned 5000 images to split test[0m
+[32m01/23 19:59:04 Default ML loss[0m
+[33m01/23 19:59:04 Evaluating the test split (-1)[0m
+[33m01/23 20:02:25 Loading reference captions..[0m
+[33m01/23 20:02:26 Reference captions loaded![0m
+[33m01/23 20:02:27 using 5000/5000 predictions[0m
+[33m01/23 20:02:28 Loading model captions[0m
+[33m01/23 20:02:28 Model captions loaded[0m
+[33m01/23 20:02:28 Starting evaluation...[0m
+PTBTokenizer tokenized 307085 tokens at 1256736,39 tokens per second.
+PTBTokenizer tokenized 51828 tokens at 413418,32 tokens per second.
+[33m01/23 20:04:14 Loading reference captions..[0m
+[33m01/23 20:04:15 Reference captions loaded![0m
+[33m01/23 20:04:17 using 5000/5000 predictions[0m
+[33m01/23 20:04:17 Loading model captions[0m
+[33m01/23 20:04:17 Model captions loaded[0m
+[33m01/23 20:04:17 Starting evaluation...[0m
+PTBTokenizer tokenized 307085 tokens at 525931.13 tokens per second.
+PTBTokenizer tokenized 51957 tokens at 320091.68 tokens per second.
+[33m01/23 20:11:38 GPU ID: 3 | available memory: 16276M[0m
+[33m01/23 20:11:46 Starting from the best saved model[0m
+[33m01/23 20:11:46 Starting from save/strat_lazy_rhamming_pool1_tsent017_a04_topdown/model-best.pth[0m
+[36m01/23 20:11:50 Setting CNN weigths from save/strat_lazy_rhamming_pool1_tsent017_a04_topdown/model-cnn-best.pth[0m
+[33m01/23 20:11:53 Finetuning up from 0 modules in the cnn[0m
+[33m01/23 20:11:54 Top Down : OrderedDict([('embed_1', Embedding(9488, 512)), ('embed', Sequential (
+  (0): Embedding(9488, 512)
+  (1): ReLU ()
+  (2): Dropout (p = 0.5)
+)), ('att_embed', Sequential (
+  (0): Linear (2048 -> 512)
+  (1): ReLU ()
+  (2): Dropout (p = 0.0)
+)), ('logit', Linear (512 -> 9488)), ('ctx2att', Linear (512 -> 512)), ('fc_embed', Sequential (
+  (0): Linear (2048 -> 512)
+  (1): ReLU ()
+  (2): Dropout (p = 0.0)
+)), ('core', TopDownCore (
+  (att_lstm): LSTMCell(1536, 512)
+  (lang_lstm): LSTMCell(1024, 512)
+  (attention): Attention (
+    (h2att): Linear (512 -> 512)
+    (alpha_net): Linear (512 -> 1)
+  )
+))])[0m
+[33m01/23 20:11:54 Loading the model dict (last checkpoint) ['embed_1.weight', 'embed.0.weight', 'att_embed.0.weight', 'att_embed.0.bias', 'logit.weight', 'logit.bias', 'ctx2att.weight', 'ctx2att.bias', 'fc_embed.0.weight', 'fc_embed.0.bias', 'core.att_lstm.weight_ih', 'core.att_lstm.weight_hh', 'core.att_lstm.bias_ih', 'core.att_lstm.bias_hh', 'core.lang_lstm.weight_ih', 'core.lang_lstm.weight_hh', 'core.lang_lstm.bias_ih', 'core.lang_lstm.bias_hh', 'core.attention.h2att.weight', 'core.attention.h2att.bias', 'core.attention.alpha_net.weight', 'core.attention.alpha_net.bias'][0m
+[33m01/23 20:11:54 DataLoader loading json file: data/coco/cocotalk.json[0m
+[33m01/23 20:11:54 vocab size is 9487 [0m
+[33m01/23 20:11:54 DataLoader loading h5 file: data/coco/cocotalk.h5[0m
+[33m01/23 20:11:54 read 123287 images of size 3x256x256[0m
+[33m01/23 20:11:54 max sequence length in data is 16[0m
+[33m01/23 20:11:54 assigned 82783 images to split train[0m
+[33m01/23 20:11:54 assigned 5000 images to split val[0m
+[33m01/23 20:11:54 assigned 5000 images to split test[0m
+[32m01/23 20:11:54 RewardSampler (stratified sampling), r=Hamming (Vpool=1, tau=0.17)[0m
+[33m01/23 20:11:54 Evaluating the test split (-1)[0m
+[33m01/23 20:17:15 Loading reference captions..[0m
+[33m01/23 20:17:15 Reference captions loaded![0m
+[33m01/23 20:17:18 using 5000/5000 predictions[0m
+[33m01/23 20:17:18 Loading model captions[0m
+[33m01/23 20:17:18 Model captions loaded[0m
+[33m01/23 20:17:18 Starting evaluation...[0m
+PTBTokenizer tokenized 307085 tokens at 1184015.35 tokens per second.
+PTBTokenizer tokenized 51523 tokens at 355437.63 tokens per second.
+[33m01/23 20:17:43 GPU ID: 3 | available memory: 16276M[0m
+[33m01/23 20:17:51 Starting from the best saved model[0m
+[33m01/23 20:17:51 Starting from save/strat_rhamming_pool1_tsent017_a04_topdown/model-best.pth[0m
+[36m01/23 20:17:56 Setting CNN weigths from save/strat_rhamming_pool1_tsent017_a04_topdown/model-cnn-best.pth[0m
+[33m01/23 20:17:59 Finetuning up from 0 modules in the cnn[0m
+[33m01/23 20:18:00 Top Down : OrderedDict([('embed_1', Embedding(9488, 512)), ('embed', Sequential (
+  (0): Embedding(9488, 512)
+  (1): ReLU ()
+  (2): Dropout (p = 0.5)
+)), ('att_embed', Sequential (
+  (0): Linear (2048 -> 512)
+  (1): ReLU ()
+  (2): Dropout (p = 0.0)
+)), ('logit', Linear (512 -> 9488)), ('ctx2att', Linear (512 -> 512)), ('fc_embed', Sequential (
+  (0): Linear (2048 -> 512)
+  (1): ReLU ()
+  (2): Dropout (p = 0.0)
+)), ('core', TopDownCore (
+  (att_lstm): LSTMCell(1536, 512)
+  (lang_lstm): LSTMCell(1024, 512)
+  (attention): Attention (
+    (h2att): Linear (512 -> 512)
+    (alpha_net): Linear (512 -> 1)
+  )
+))])[0m
+[33m01/23 20:18:00 Loading the model dict (last checkpoint) ['embed_1.weight', 'embed.0.weight', 'att_embed.0.weight', 'att_embed.0.bias', 'logit.weight', 'logit.bias', 'ctx2att.weight', 'ctx2att.bias', 'fc_embed.0.weight', 'fc_embed.0.bias', 'core.att_lstm.weight_ih', 'core.att_lstm.weight_hh', 'core.att_lstm.bias_ih', 'core.att_lstm.bias_hh', 'core.lang_lstm.weight_ih', 'core.lang_lstm.weight_hh', 'core.lang_lstm.bias_ih', 'core.lang_lstm.bias_hh', 'core.attention.h2att.weight', 'core.attention.h2att.bias', 'core.attention.alpha_net.weight', 'core.attention.alpha_net.bias'][0m
+[33m01/23 20:18:00 DataLoader loading json file: data/coco/cocotalk.json[0m
+[33m01/23 20:18:00 vocab size is 9487 [0m
+[33m01/23 20:18:00 DataLoader loading h5 file: data/coco/cocotalk.h5[0m
+[33m01/23 20:18:00 read 123287 images of size 3x256x256[0m
+[33m01/23 20:18:00 max sequence length in data is 16[0m
+[33m01/23 20:18:00 assigned 82783 images to split train[0m
+[33m01/23 20:18:00 assigned 5000 images to split val[0m
+[33m01/23 20:18:00 assigned 5000 images to split test[0m
+[32m01/23 20:18:00 RewardSampler (stratified sampling), r=Hamming (Vpool=1, tau=0.17)[0m
+[33m01/23 20:18:00 Evaluating the test split (-1)[0m
