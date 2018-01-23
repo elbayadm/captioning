@@ -1,0 +1,16 @@
+|c|c|c|c|c|c|c|c|
+\hline
+Model & CNN & params & loss & weights & Beam & CIDEr & Bleu4\\
+\hline
+Show \& Tell & ResNet-152 & Default &  Word, Sim=Glove-Coco xIDF, $\tau=0.09$, $\alpha=0.7$ & RNN & 3 & 92.03 & 30.06\\
+Show \& Tell & ResNet-152 & Default &  Word, Sim=Glove-Coco xIDF, $\tau=0.09$, $\alpha=0.7$ & RNN & 3 & 91.87 & 29.49\\
+Show \& Tell & ResNet-152 & Default &  Word, Sim=Glove-Coco, $\tau=0.15$, $\alpha=0.7$ & RNN & 3 & 91.51 & 29.26\\
+Show \& Tell & ResNet-152 & Default & Stratify r=(Hamming, Vpool=2, $\tau=0.30$), \alpha=0.5$ & RNN & 3 & 90.97 & 29.13\\
+Show \& Tell & ResNet-152 & Default & Importance r=(cider, $\tau=0.50$), q=(Hamming, Vpool=1 $\tau=0.17$),\alpha=0.4$  & RNN & 3 & 90.76 & 29.01\\
+Show \& Tell & ResNet-152 & Default & Stratify r=(Hamming, Vpool=1, $\tau=0.17$), \alpha=0.4$ & RNN & 3 & 90.50 & 28.83\\
+Show \& Tell & ResNet-152 & Default & Importance r=(cider, $\tau=0.50$), q=(Hamming, Vpool=1 $\tau=0.17$),\alpha=0.4$  (LAZY) & RNN & 3 & 90.21 & 28.38\\
+Show \& Tell & ResNet-152 & W_Decoder glove_coco_d512_w15_matrix frozen & ML & RNN & 3 & 88.64 & 28.48\\
+Show \& Tell & ResNet-152 & W_Decoder glove_coco_d512_w15_matrix & ML & RNN & 3 & 88.61 & 28.03\\
+Show \& Tell & ResNet-152 & W_Decoder cocotalk_glove_v2 frozen & ML & RNN & 3 & 87.96 & 27.78\\
+Show \& Tell & ResNet-152 & W_Decoder cocotalk_glove_v2 & ML & RNN & 3 & 87.93 & 27.65\\
+\hline

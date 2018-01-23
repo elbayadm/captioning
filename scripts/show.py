@@ -13,6 +13,9 @@ from html import escape
 FIELDS = ['Beam', 'Temperature', 'CIDEr', 'Bleu4', 'Perplexity']
 
 def correct(word):
+    """
+    Printable names for key options
+    """
     if word == "show_tell":
         return 'Show \\& Tell'
     elif word == "resnet50":
@@ -26,6 +29,9 @@ def correct(word):
 
 
 def get_latex(ptab, **kwargs):
+    """
+    Print prettytable into latex table
+    """
     options = ptab._get_options(kwargs)
     lines = []
     rows = ptab._get_rows(options)
@@ -102,20 +108,10 @@ def get_results(model, split='val'):
     return compiled
 
 
-def gather_results(model):
-    outputs = get_results(model)
-    tab = PrettyTable()
-    tab.field_names = ['Sorter'] + FIELDS
-    for (p, res) in outputs:
-        print('params:', len(p))
-        print('res:', res)
-        tab.add_row([p['beam_size'] + p['temperature'],
-                     p['beam_size'], p['temperature'],
-                     round(res['CIDEr'] * 100, 2), round(res['Bleu_4'] * 100, 2),
-                     round(exp(res['ml_loss']), 2)])
-    return tab
-
 def get_wl(params):
+    """
+    Word loss settings
+    """
     if 'alpha_word' in params:
         alpha = params['alpha_word']
     else:
@@ -137,33 +133,31 @@ def get_wl(params):
 
 
 def parse_name_clean(params):
-    modelparams = ""
-    # get the model parameters
-    # modelparams = ' base lr: %.1e decay: %d, Adam(%.1f,%.3f), batch: %d, seq: %d' % (params['learning_rate'],
-                                                                                     # params['learning_rate_decay_start'],
-                                                                                     # params['optim_alpha'],
-                                                                                     # params['optim_beta'],
-                                                                                     # params['batch_size'],
-                                                                                     # params["seq_length"])
+    modelparams = []
+    if not params['batch_size'] == 10:
+        modelparams.append("Batch=%d" % params['batch_size'])
+    if not params['seq_length'] == 16:
+        modelparams.append('SEQ=%d' % params["seq_length"])
+    if not params['learning_rate_decay_start'] == 5:
+        modelparams.append('DecayStart=%d' % params['learning_rate_decay_start'])
+    # Special for adaptive attention
     if params['caption_model'] == "adaptive_attention":
         if params.get('use_maxout', 0):
-            modelparams += "Maxout"
+            modelparams.append("Maxout")
         if not params.get('add_fc_img', 1):
-            modelparams += "xt = wt"
+            modelparams.append("xt = wt")
     aug = 0
     if 'gen' in params.get('input_data'):
-        modelparams += "Augment (%d)" % params['seq_per_img']
+        modelparams.append("Augment (%d)" % params['seq_per_img'])
         aug = 1
     if not aug:
         if not params['seq_per_img'] == 5:
-            modelparams += "Repeat (%d)" % params['seq_per_img']
+            modelparams.append("Repeat (%d)" % params['seq_per_img'])
 
     if params.get('init_decoder_W', ""):
-        # print('Initializing the word emebddings')
-        # print('Freezing:', params.get('freeze_decoder_W', 0))
-        modelparams += "W(init): %s" % params['init_decoder_W'].split('/')[-1].split('.')[0]
+        modelparams.append("W_Decoder %s" % params['init_decoder_W'].split('/')[-1].split('.')[0])
         if params.get('freeze_decoder_W', 0):
-            modelparams += ' frozen'
+            modelparams.append('frozen')
 
     # Get the loss:
     if "sample_cap" in params:
@@ -171,8 +165,9 @@ def parse_name_clean(params):
     else:
         loss_version = parse_loss(params)
     # finetuning:
-    if not modelparams:
-        # print('Couldnt name ', params['modelname'])
+    if len(modelparams):
+        modelparams = ' '.join(modelparams)
+    else:
         modelparams = 'Default'
     return modelparams, loss_version
 
@@ -270,73 +265,6 @@ def parse_loss_old(params):
     return loss_version
 
 
-
-def parse_name(model):
-    rewards = ['hamming', 'cider', 'bleu2', 'bleu3', 'bleu4']
-    if '/' in model:
-        model = model.split('/')[-1]
-        # parse parameters from name:
-        if model.startswith("word2"):
-            modelparams = ['WL v2']
-            if 'tsent' in model:
-                modelparams.append('& SL')
-        elif model.startswith('word'):
-            modelparams = ['WL']
-            if 'tsent' in model:
-                modelparams.append('& SL')
-        elif model.startswith("sample"):
-            modelparams = ['Reward sampling']
-        elif model.split('_')[0] in rewards:
-            modelparams = ['SL']
-        elif model.split('_')[0] in [r+'2' for r in rewards]:
-            modelparams = ['SL v2']
-        else:
-            modelparams = []
-
-        chunks = model.split('_')
-        for c in chunks:
-            if c in rewards:
-                modelparams.append(c)
-            elif c in [r+'2' for r in rewards]:
-                modelparams.append(c[:-1])
-            elif 'tword' in c:
-                tau = c[5:]
-                if tau.startswith('0'):
-                    div = tau.count('0') * (len(tau) - tau.count('0'))
-                    tau = float(tau)/(10 ** div)
-                else:
-                    try:
-                        tau = float(tau)
-                    except:
-                        print('Other case:', tau)
-                        tau = 0
-                modelparams.append('$\\tau(w) = %.2f$' % tau)
-            elif 'tsent' in c:
-                tau = c[5:]
-                if tau.startswith('0'):
-                    div = tau.count('0') * (len(tau) - tau.count('0'))
-                    tau = float(tau)/(10 ** div)
-                else:
-                    try:
-                        tau = float(tau)
-                    except:
-                        print('Other case:', tau)
-                        tau = 0
-
-                modelparams.append('$\\tau(s) = %.2f$' % tau)
-            elif c.startswith('a'):
-                modelparams.append('$\\alpha = %.2f$' % (float(c[1:])/10))
-            elif c in ['word', 'word2', 'sample', 'sample2']:
-                continue
-            else:
-                # print('Unknown', c)
-                modelparams.append(c)
-
-    if modelparams:
-        return ' '.join(modelparams)
-    else:
-        return model
-
 def highlight(score, tresh):
     if score >= tresh:
         return '<b> %.2f </b>' % score
@@ -395,25 +323,29 @@ if __name__ == "__main__":
     # print(tab.get_html_string(fields=FIELDS, sortby="Sorter"))
     parser.add_argument('--filter', '-f', type=str, default='', help='kewyord to include')
     parser.add_argument('--exclude', '-e', nargs="+", help='keyword to exculdeh')
-    parser.add_argument('--save', '-s', action='store_true', help="save results")
+    parser.add_argument('--tex', '-t', action='store_true', help="save results into latex table")
+    parser.add_argument('--html', action='store_true', help="save results into html")
+    parser.add_argument('--pkl', action='store_true', help="save results into pkl")
     args = parser.parse_args()
+    save_latex = args.tex
+    save_html = args.html
+    save_pkl = args.pkl
 
-    save = args.save
     filter = args.filter
     exc = args.exclude
-    print('filter:', filter, 'exclude:', exc, 'saving:', save)
+    print('filter:', filter, 'exclude:', exc)
     fields = ["Model", "CNN", "params", 'loss', 'weights', 'Beam', 'CIDEr', 'Bleu4', 'Perplexity', 'best/last']
     tab, dump = crawl_results(fields, filter, exc)
     print(tab.get_string(sortby='CIDEr', reversesort=True))
     filename = "results/res%s_%s" % (filter, socket.gethostname())
-    if save:
+    if save_html:
         with open(filename+'.html', 'w') as f:
             ss = tab.get_html_string(sortby="CIDEr", reversesort=True)
-            # print(ss)
             f.write(ss)
+    if save_latex:
         with open(filename+'.tex', 'w') as f:
-            tex = get_latex(tab, sortby="CIDEr", reversesort=True, fields=["Model", "loss", "weights", "CIDEr", "Bleu4"])
-            # print(ss)
+            tex = get_latex(tab, sortby="CIDEr", reversesort=True, fields=fields[:-2])
             f.write("\n".join(tex))
+    if save_pkl:
         pickle.dump(dump, open(filename+".res", 'wb'))
 
