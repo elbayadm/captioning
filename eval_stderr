@@ -304,3 +304,201 @@ PTBTokenizer tokenized 51523 tokens at 355437.63 tokens per second.
 [33m01/23 20:18:00 assigned 5000 images to split test[0m
 [32m01/23 20:18:00 RewardSampler (stratified sampling), r=Hamming (Vpool=1, tau=0.17)[0m
 [33m01/23 20:18:00 Evaluating the test split (-1)[0m
+[33m01/23 20:23:37 Loading reference captions..[0m
+[33m01/23 20:23:38 Reference captions loaded![0m
+[33m01/23 20:23:40 using 5000/5000 predictions[0m
+[33m01/23 20:23:40 Loading model captions[0m
+[33m01/23 20:23:40 Model captions loaded[0m
+[33m01/23 20:23:40 Starting evaluation...[0m
+PTBTokenizer tokenized 307085 tokens at 1333179.83 tokens per second.
+PTBTokenizer tokenized 51726 tokens at 372999.92 tokens per second.
+[33m01/23 20:24:08 GPU ID: 3 | available memory: 16276M[0m
+[33m01/23 20:24:15 Starting from the best saved model[0m
+[33m01/23 20:24:15 Starting from save/word2_coco_tword013_a03_topdown_resnet152_msc/model-best.pth[0m
+[36m01/23 20:24:20 Setting CNN weigths from save/word2_coco_tword013_a03_topdown_resnet152_msc/model-cnn-best.pth[0m
+[33m01/23 20:24:23 Finetuning up from 0 modules in the cnn[0m
+[33m01/23 20:24:23 Top Down : OrderedDict([('embed_1', Embedding(9488, 512)), ('embed', Sequential (
+  (0): Embedding(9488, 512)
+  (1): ReLU ()
+  (2): Dropout (p = 0.5)
+)), ('att_embed', Sequential (
+  (0): Linear (2048 -> 512)
+  (1): ReLU ()
+  (2): Dropout (p = 0.0)
+)), ('logit', Linear (512 -> 9488)), ('ctx2att', Linear (512 -> 512)), ('fc_embed', Sequential (
+  (0): Linear (2048 -> 512)
+  (1): ReLU ()
+  (2): Dropout (p = 0.0)
+)), ('core', TopDownCore (
+  (att_lstm): LSTMCell(1536, 512)
+  (lang_lstm): LSTMCell(1024, 512)
+  (attention): Attention (
+    (h2att): Linear (512 -> 512)
+    (alpha_net): Linear (512 -> 1)
+  )
+))])[0m
+[33m01/23 20:24:24 Loading the model dict (last checkpoint) ['embed_1.weight', 'embed.0.weight', 'att_embed.0.weight', 'att_embed.0.bias', 'logit.weight', 'logit.bias', 'ctx2att.weight', 'ctx2att.bias', 'fc_embed.0.weight', 'fc_embed.0.bias', 'core.att_lstm.weight_ih', 'core.att_lstm.weight_hh', 'core.att_lstm.bias_ih', 'core.att_lstm.bias_hh', 'core.lang_lstm.weight_ih', 'core.lang_lstm.weight_hh', 'core.lang_lstm.bias_ih', 'core.lang_lstm.bias_hh', 'core.attention.h2att.weight', 'core.attention.h2att.bias', 'core.attention.alpha_net.weight', 'core.attention.alpha_net.bias'][0m
+[33m01/23 20:24:24 DataLoader loading json file: data/coco/cocotalk.json[0m
+[33m01/23 20:24:24 vocab size is 9487 [0m
+[33m01/23 20:24:24 DataLoader loading h5 file: data/coco/cocotalk.h5[0m
+[33m01/23 20:24:24 read 123287 images of size 3x256x256[0m
+[33m01/23 20:24:24 max sequence length in data is 16[0m
+[33m01/23 20:24:24 assigned 82783 images to split train[0m
+[33m01/23 20:24:24 assigned 5000 images to split val[0m
+[33m01/23 20:24:24 assigned 5000 images to split test[0m
+[32m01/23 20:24:26 Initialized Word2 loss tau=0.130, alpha=0.3[0m
+[33m01/23 20:24:26 Evaluating the test split (-1)[0m
+[33m01/23 20:30:00 Loading reference captions..[0m
+[33m01/23 20:30:01 Reference captions loaded![0m
+[33m01/23 20:30:03 using 5000/5000 predictions[0m
+[33m01/23 20:30:04 Loading model captions[0m
+[33m01/23 20:30:04 Model captions loaded[0m
+[33m01/23 20:30:04 Starting evaluation...[0m
+PTBTokenizer tokenized 307085 tokens at 1260668.94 tokens per second.
+PTBTokenizer tokenized 51076 tokens at 388268.45 tokens per second.
+[33m01/23 20:30:31 GPU ID: 3 | available memory: 16276M[0m
+[33m01/23 20:30:39 Starting from the best saved model[0m
+[33m01/23 20:30:39 Starting from save/fncnn6_word2_coco_tword013_a03_topdown_resnet152_msc/model-best.pth[0m
+[36m01/23 20:30:44 Setting CNN weigths from save/fncnn6_word2_coco_tword013_a03_topdown_resnet152_msc/model-cnn-best.pth[0m
+[33m01/23 20:30:48 Finetuning up from 6 modules in the cnn[0m
+[33m01/23 20:30:48 Top Down : OrderedDict([('embed_1', Embedding(9488, 512)), ('embed', Sequential (
+  (0): Embedding(9488, 512)
+  (1): ReLU ()
+  (2): Dropout (p = 0.5)
+)), ('att_embed', Sequential (
+  (0): Linear (2048 -> 512)
+  (1): ReLU ()
+  (2): Dropout (p = 0.0)
+)), ('logit', Linear (512 -> 9488)), ('ctx2att', Linear (512 -> 512)), ('fc_embed', Sequential (
+  (0): Linear (2048 -> 512)
+  (1): ReLU ()
+  (2): Dropout (p = 0.0)
+)), ('core', TopDownCore (
+  (att_lstm): LSTMCell(1536, 512)
+  (lang_lstm): LSTMCell(1024, 512)
+  (attention): Attention (
+    (h2att): Linear (512 -> 512)
+    (alpha_net): Linear (512 -> 1)
+  )
+))])[0m
+[33m01/23 20:30:49 Loading the model dict (last checkpoint) ['embed_1.weight', 'embed.0.weight', 'att_embed.0.weight', 'att_embed.0.bias', 'logit.weight', 'logit.bias', 'ctx2att.weight', 'ctx2att.bias', 'fc_embed.0.weight', 'fc_embed.0.bias', 'core.att_lstm.weight_ih', 'core.att_lstm.weight_hh', 'core.att_lstm.bias_ih', 'core.att_lstm.bias_hh', 'core.lang_lstm.weight_ih', 'core.lang_lstm.weight_hh', 'core.lang_lstm.bias_ih', 'core.lang_lstm.bias_hh', 'core.attention.h2att.weight', 'core.attention.h2att.bias', 'core.attention.alpha_net.weight', 'core.attention.alpha_net.bias'][0m
+[33m01/23 20:30:49 DataLoader loading json file: data/coco/cocotalk.json[0m
+[33m01/23 20:30:49 vocab size is 9487 [0m
+[33m01/23 20:30:49 DataLoader loading h5 file: data/coco/cocotalk.h5[0m
+[33m01/23 20:30:49 read 123287 images of size 3x256x256[0m
+[33m01/23 20:30:49 max sequence length in data is 16[0m
+[33m01/23 20:30:49 assigned 82783 images to split train[0m
+[33m01/23 20:30:49 assigned 5000 images to split val[0m
+[33m01/23 20:30:49 assigned 5000 images to split test[0m
+[32m01/23 20:30:50 Initialized Word2 loss tau=0.130, alpha=0.3[0m
+[33m01/23 20:30:50 Evaluating the test split (-1)[0m
+[33m01/23 20:36:25 Loading reference captions..[0m
+[33m01/23 20:36:26 Reference captions loaded![0m
+[33m01/23 20:36:28 using 5000/5000 predictions[0m
+[33m01/23 20:36:28 Loading model captions[0m
+[33m01/23 20:36:28 Model captions loaded[0m
+[33m01/23 20:36:28 Starting evaluation...[0m
+PTBTokenizer tokenized 307085 tokens at 1168434.10 tokens per second.
+PTBTokenizer tokenized 50931 tokens at 379725.54 tokens per second.
+[33m01/23 20:36:54 GPU ID: 3 | available memory: 16276M[0m
+[33m01/23 20:37:02 Starting from the best saved model[0m
+[33m01/23 20:37:02 Starting from save/importance_qhamming_limited1_tsent017_rcider_tsent05_a04_topdown/model-best.pth[0m
+Traceback (most recent call last):
+  File "eval.py", line 76, in <module>
+    str(vars(opt)[k]) + ' vs. ' + str(vars(infos['opt'])[k]))
+AssertionError: clip_reward option not consistent 1 vs. 0
+[33m01/23 20:37:17 GPU ID: 3 | available memory: 16276M[0m
+[33m01/23 20:37:24 Starting from the best saved model[0m
+[33m01/23 20:37:24 Starting from save/importance_lazy_qhamming_limited1_tsent017_rcider_tsent05_a04_topdown/model-best.pth[0m
+Traceback (most recent call last):
+  File "eval.py", line 76, in <module>
+    str(vars(opt)[k]) + ' vs. ' + str(vars(infos['opt'])[k]))
+AssertionError: clip_reward option not consistent 1 vs. 0
+[33m01/23 20:37:39 GPU ID: 3 | available memory: 16276M[0m
+[33m01/23 20:37:46 Starting from the best saved model[0m
+[33m01/23 20:37:46 Starting from save/fncnn6_importance_qhamming_limited1_tsent017_rcider_tsent05_a04_topdown/model-best.pth[0m
+[36m01/23 20:37:50 Setting CNN weigths from save/fncnn6_importance_qhamming_limited1_tsent017_rcider_tsent05_a04_topdown/model-cnn-best.pth[0m
+[33m01/23 20:37:55 Finetuning up from 6 modules in the cnn[0m
+[33m01/23 20:37:56 Top Down : OrderedDict([('embed_1', Embedding(9488, 512)), ('embed', Sequential (
+  (0): Embedding(9488, 512)
+  (1): ReLU ()
+  (2): Dropout (p = 0.5)
+)), ('att_embed', Sequential (
+  (0): Linear (2048 -> 512)
+  (1): ReLU ()
+  (2): Dropout (p = 0.0)
+)), ('logit', Linear (512 -> 9488)), ('ctx2att', Linear (512 -> 512)), ('fc_embed', Sequential (
+  (0): Linear (2048 -> 512)
+  (1): ReLU ()
+  (2): Dropout (p = 0.0)
+)), ('core', TopDownCore (
+  (att_lstm): LSTMCell(1536, 512)
+  (lang_lstm): LSTMCell(1024, 512)
+  (attention): Attention (
+    (h2att): Linear (512 -> 512)
+    (alpha_net): Linear (512 -> 1)
+  )
+))])[0m
+[33m01/23 20:37:56 Loading the model dict (last checkpoint) ['embed_1.weight', 'embed.0.weight', 'att_embed.0.weight', 'att_embed.0.bias', 'logit.weight', 'logit.bias', 'ctx2att.weight', 'ctx2att.bias', 'fc_embed.0.weight', 'fc_embed.0.bias', 'core.att_lstm.weight_ih', 'core.att_lstm.weight_hh', 'core.att_lstm.bias_ih', 'core.att_lstm.bias_hh', 'core.lang_lstm.weight_ih', 'core.lang_lstm.weight_hh', 'core.lang_lstm.bias_ih', 'core.lang_lstm.bias_hh', 'core.attention.h2att.weight', 'core.attention.h2att.bias', 'core.attention.alpha_net.weight', 'core.attention.alpha_net.bias'][0m
+[33m01/23 20:37:56 DataLoader loading json file: data/coco/cocotalk.json[0m
+[33m01/23 20:37:57 vocab size is 9487 [0m
+[33m01/23 20:37:57 DataLoader loading h5 file: data/coco/cocotalk.h5[0m
+[33m01/23 20:37:57 read 123287 images of size 3x256x256[0m
+[33m01/23 20:37:57 max sequence length in data is 16[0m
+[33m01/23 20:37:57 assigned 82783 images to split train[0m
+[33m01/23 20:37:57 assigned 5000 images to split val[0m
+[33m01/23 20:37:57 assigned 5000 images to split test[0m
+[32m01/23 20:37:59 using importance sampling r=CIDEr (tau=0.50) and q=Hamming (Vpool=1, tau=0.17)[0m
+[33m01/23 20:37:59 Evaluating the test split (-1)[0m
+[33m01/23 20:44:46 Loading reference captions..[0m
+[33m01/23 20:44:48 Reference captions loaded![0m
+[33m01/23 20:44:50 using 5000/5000 predictions[0m
+[33m01/23 20:44:50 Loading model captions[0m
+[33m01/23 20:44:50 Model captions loaded[0m
+[33m01/23 20:44:50 Starting evaluation...[0m
+PTBTokenizer tokenized 307085 tokens at 1314263.51 tokens per second.
+PTBTokenizer tokenized 51938 tokens at 394509.39 tokens per second.
+[33m01/23 20:45:17 GPU ID: 3 | available memory: 16276M[0m
+[33m01/23 20:45:25 Starting from the best saved model[0m
+[33m01/23 20:45:25 Starting from save/fncnn6_importance_lazy_qhamming_limited1_tsent017_rcider_tsent05_a04_topdown/model-best.pth[0m
+[36m01/23 20:45:29 Setting CNN weigths from save/fncnn6_importance_lazy_qhamming_limited1_tsent017_rcider_tsent05_a04_topdown/model-cnn-best.pth[0m
+[33m01/23 20:45:33 Finetuning up from 6 modules in the cnn[0m
+[33m01/23 20:45:33 Top Down : OrderedDict([('embed_1', Embedding(9488, 512)), ('embed', Sequential (
+  (0): Embedding(9488, 512)
+  (1): ReLU ()
+  (2): Dropout (p = 0.5)
+)), ('att_embed', Sequential (
+  (0): Linear (2048 -> 512)
+  (1): ReLU ()
+  (2): Dropout (p = 0.0)
+)), ('logit', Linear (512 -> 9488)), ('ctx2att', Linear (512 -> 512)), ('fc_embed', Sequential (
+  (0): Linear (2048 -> 512)
+  (1): ReLU ()
+  (2): Dropout (p = 0.0)
+)), ('core', TopDownCore (
+  (att_lstm): LSTMCell(1536, 512)
+  (lang_lstm): LSTMCell(1024, 512)
+  (attention): Attention (
+    (h2att): Linear (512 -> 512)
+    (alpha_net): Linear (512 -> 1)
+  )
+))])[0m
+[33m01/23 20:45:34 Loading the model dict (last checkpoint) ['embed_1.weight', 'embed.0.weight', 'att_embed.0.weight', 'att_embed.0.bias', 'logit.weight', 'logit.bias', 'ctx2att.weight', 'ctx2att.bias', 'fc_embed.0.weight', 'fc_embed.0.bias', 'core.att_lstm.weight_ih', 'core.att_lstm.weight_hh', 'core.att_lstm.bias_ih', 'core.att_lstm.bias_hh', 'core.lang_lstm.weight_ih', 'core.lang_lstm.weight_hh', 'core.lang_lstm.bias_ih', 'core.lang_lstm.bias_hh', 'core.attention.h2att.weight', 'core.attention.h2att.bias', 'core.attention.alpha_net.weight', 'core.attention.alpha_net.bias'][0m
+[33m01/23 20:45:34 DataLoader loading json file: data/coco/cocotalk.json[0m
+[33m01/23 20:45:34 vocab size is 9487 [0m
+[33m01/23 20:45:34 DataLoader loading h5 file: data/coco/cocotalk.h5[0m
+[33m01/23 20:45:34 read 123287 images of size 3x256x256[0m
+[33m01/23 20:45:34 max sequence length in data is 16[0m
+[33m01/23 20:45:34 assigned 82783 images to split train[0m
+[33m01/23 20:45:34 assigned 5000 images to split val[0m
+[33m01/23 20:45:34 assigned 5000 images to split test[0m
+[32m01/23 20:45:37 using importance sampling r=CIDEr (tau=0.50) and q=Hamming (Vpool=1, tau=0.17)[0m
+[33m01/23 20:45:37 Evaluating the test split (-1)[0m
+[33m01/23 20:51:51 Loading reference captions..[0m
+[33m01/23 20:51:53 Reference captions loaded![0m
+[33m01/23 20:51:55 using 5000/5000 predictions[0m
+[33m01/23 20:51:55 Loading model captions[0m
+[33m01/23 20:51:55 Model captions loaded[0m
+[33m01/23 20:51:55 Starting evaluation...[0m
+PTBTokenizer tokenized 307085 tokens at 1200000.01 tokens per second.
+PTBTokenizer tokenized 51629 tokens at 427947.76 tokens per second.

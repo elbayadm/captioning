@@ -98,8 +98,6 @@ def get_results(model, split='val'):
         for res in results:
             out = pickle.load(open(res, 'rb'))
             params.update(out['params'])
-            print('modelname:', model_dir)
-            print('finetuning:', params.get('finetune_cnn_after', "Missing"))
             del out['params']
             out['best/last'] = "--"
             compiled.append([params, out])

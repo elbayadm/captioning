@@ -68,7 +68,8 @@ if __name__ == "__main__":
     ignore = ["batch_size", "beam_size", "start_from",
               'cnn_start_from', 'infos_start_from',
               "start_from_best", "language_eval", "logger",
-              "val_images_use", 'input_data', "loss_version", "region_size", "use_adaptive_pooling"]
+              "val_images_use", 'input_data', "loss_version", "region_size",
+              "use_adaptive_pooling", "clip_reward"]
     for k in list(vars(infos['opt']).keys()):
         if k not in ignore and "learning" not in k:
             if k in vars(opt):
