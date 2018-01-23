@@ -2,8 +2,8 @@
 \hline
 Model & CNN & params & loss & weights & Beam & CIDEr & Bleu4\\
 \hline
-Show \& Tell & ResNet-152 & Default &  Word, Sim=Glove-Coco xIDF, $\tau=0.09$, $\alpha=0.7$ & RNN & 3 & 92.03 & 30.06\\
-Show \& Tell & ResNet-152 & Default &  Word, Sim=Glove-Coco xIDF, $\tau=0.09$, $\alpha=0.7$ & RNN & 3 & 91.87 & 29.49\\
+Show \& Tell & ResNet-152 & Default &  Word, Sim=Glove-Coco xIDF(1.0), $\tau=0.09$, $\alpha=0.7$ & RNN & 3 & 92.03 & 30.06\\
+Show \& Tell & ResNet-152 & Default &  Word, Sim=Glove-Coco xIDF(0.1), $\tau=0.09$, $\alpha=0.7$ & RNN & 3 & 91.87 & 29.49\\
 Show \& Tell & ResNet-152 & Default &  Word, Sim=Glove-Coco, $\tau=0.15$, $\alpha=0.7$ & RNN & 3 & 91.51 & 29.26\\
 Show \& Tell & ResNet-152 & Default & Stratify r=(Hamming, Vpool=2, $\tau=0.30$), \alpha=0.5$ & RNN & 3 & 90.97 & 29.13\\
 Show \& Tell & ResNet-152 & Default & Importance r=(cider, $\tau=0.50$), q=(Hamming, Vpool=1 $\tau=0.17$),\alpha=0.4$  & RNN & 3 & 90.76 & 29.01\\

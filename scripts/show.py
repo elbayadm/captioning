@@ -123,7 +123,7 @@ def get_wl(params):
     else:
         G = "Glove-Wiki"
     if params.get('rare_tfidf', 0):
-        G += ' xIDF'
+        G += ' xIDF(%.1f)' % params.get('rare_tfidf')
     if params.get('word_add_entropy', 0):
         G += ' +H'
     if params.get('exact_dkl', 0):
