@@ -1,0 +1,64 @@
+[33m01/23 17:32:01 GPU ID: 1 | available memory: 12207M[0m
+[33m01/23 17:32:05 Starting from the best saved model[0m
+[33m01/23 17:32:05 Starting from save/fncnn6_baseline_resnet152/model-best.pth[0m
+[36m01/23 17:32:10 Setting CNN weigths from save/fncnn6_baseline_resnet152/model-cnn-best.pth[0m
+[33m01/23 17:32:20 Finetuning up from 6 modules in the cnn[0m
+[33m01/23 17:32:21 Show & Tell : OrderedDict([('img_embed', Linear (2048 -> 512)), ('core', LSTM(512, 512, bias=False, dropout=0.5)), ('embed', Embedding(9488, 512)), ('drop_x_lm', Dropout (p = 0.5)), ('logit', Linear (512 -> 9488))])[0m
+[33m01/23 17:32:22 Loading the model dict (last checkpoint) ['img_embed.weight', 'img_embed.bias', 'core.weight_ih_l0', 'core.weight_hh_l0', 'embed.weight', 'logit.weight', 'logit.bias'][0m
+[33m01/23 17:32:24 DataLoader loading json file: data/coco/cocotalk.json[0m
+[33m01/23 17:32:24 vocab size is 9487 [0m
+[33m01/23 17:32:24 DataLoader loading h5 file: data/coco/cocotalk.h5[0m
+[33m01/23 17:32:24 read 123287 images of size 3x256x256[0m
+[33m01/23 17:32:24 max sequence length in data is 16[0m
+[33m01/23 17:32:24 assigned 82783 images to split train[0m
+[33m01/23 17:32:24 assigned 5000 images to split val[0m
+[33m01/23 17:32:24 assigned 5000 images to split test[0m
+[32m01/23 17:32:24 Default ML loss[0m
+[33m01/23 17:32:24 Evaluating the test split (-1)[0m
+[33m01/23 17:33:42 GPU ID: 1 | available memory: 12207M[0m
+[33m01/23 17:34:09 Starting from the best saved model[0m
+[33m01/23 17:34:09 Starting from save/baseline_resnet152_msc/model-best.pth[0m
+Traceback (most recent call last):
+  File "eval.py", line 76, in <module>
+    str(vars(opt)[k]) + ' vs. ' + str(vars(infos['opt'])[k]))
+AssertionError: cnn_learning_rate option not consistent 1.0 vs. 0.1
+[33m01/23 17:35:36 GPU ID: 1 | available memory: 12207M[0m
+[33m01/23 17:35:41 Starting from the best saved model[0m
+[33m01/23 17:35:41 Starting from save/baseline_resnet152_msc/model-best.pth[0m
+Traceback (most recent call last):
+  File "eval.py", line 76, in <module>
+    str(vars(opt)[k]) + ' vs. ' + str(vars(infos['opt'])[k]))
+AssertionError: start_from_best option not consistent 1 vs. 0
+[33m01/23 17:36:39 GPU ID: 1 | available memory: 12207M[0m
+[33m01/23 17:36:43 Starting from the best saved model[0m
+[33m01/23 17:36:43 Starting from save/baseline_resnet152_msc/model-best.pth[0m
+[36m01/23 17:36:47 Setting CNN weigths from save/baseline_resnet152_msc/model-cnn-best.pth[0m
+[33m01/23 17:37:12 Finetuning up from 0 modules in the cnn[0m
+[33m01/23 17:37:13 Show & Tell : OrderedDict([('img_embed', Linear (2048 -> 512)), ('core', LSTM(512, 512, bias=False, dropout=0.5)), ('embed', Embedding(9488, 512)), ('drop_x_lm', Dropout (p = 0.5)), ('logit', Linear (512 -> 9488))])[0m
+[33m01/23 17:37:17 Loading the model dict (last checkpoint) ['img_embed.weight', 'img_embed.bias', 'core.weight_ih_l0', 'core.weight_hh_l0', 'embed.weight', 'logit.weight', 'logit.bias'][0m
+[33m01/23 17:37:23 DataLoader loading json file: data/coco/cocotalk.json[0m
+[33m01/23 17:37:23 vocab size is 9487 [0m
+[33m01/23 17:37:23 DataLoader loading h5 file: data/coco/cocotalk.h5[0m
+[33m01/23 17:37:23 read 123287 images of size 3x256x256[0m
+[33m01/23 17:37:23 max sequence length in data is 16[0m
+[33m01/23 17:37:24 assigned 82783 images to split train[0m
+[33m01/23 17:37:24 assigned 5000 images to split val[0m
+[33m01/23 17:37:24 assigned 5000 images to split test[0m
+[32m01/23 17:37:24 Default ML loss[0m
+[33m01/23 17:37:24 Evaluating the test split (-1)[0m
+[33m01/23 17:38:32 Loading reference captions..[0m
+[33m01/23 17:38:33 Reference captions loaded![0m
+[33m01/23 17:38:36 using 5000/5000 predictions[0m
+[33m01/23 17:38:36 Loading model captions[0m
+[33m01/23 17:38:36 Model captions loaded[0m
+[33m01/23 17:38:36 Starting evaluation...[0m
+PTBTokenizer tokenized 307085 tokens at 659038.18 tokens per second.
+PTBTokenizer tokenized 51985 tokens at 289301.72 tokens per second.
+[33m01/23 17:43:21 Loading reference captions..[0m
+[33m01/23 17:43:25 Reference captions loaded![0m
+[33m01/23 17:43:27 using 5000/5000 predictions[0m
+[33m01/23 17:43:27 Loading model captions[0m
+[33m01/23 17:43:27 Model captions loaded[0m
+[33m01/23 17:43:27 Starting evaluation...[0m
+PTBTokenizer tokenized 307085 tokens at 1048109.11 tokens per second.
+PTBTokenizer tokenized 51816 tokens at 300371.93 tokens per second.

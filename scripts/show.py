@@ -10,7 +10,7 @@ from prettytable import PrettyTable
 from tabulate import tabulate
 from html import escape
 
-FIELDS = ['Beam', 'Temperature', 'CIDEr', 'Bleu4', 'Perplexity']
+FIELDS = ["Model", "CNN", "params", 'loss', 'weights', 'Beam', 'CIDEr', 'Bleu4', 'Perplexity', 'best/last']
 
 def correct(word):
     """
@@ -58,53 +58,54 @@ def get_latex(ptab, **kwargs):
 
 def get_results(model, split='val'):
     model_dir = model
-    # Read training results:
-    if osp.exists('%s/infos.pkl' % model_dir):
-        infos = pickle.load(open('%s/infos.pkl' % model_dir, 'rb'))
-        tr_res = infos['val_result_history']
-        iters = list(tr_res)
-        cids = [tr_res[it]['lang_stats']['CIDEr'] for it in iters]
-        best_iter = iters[cids.index(max(cids))]
-        last_iter = max(iters)
-        tr_res = tr_res[best_iter]
-        out = tr_res['lang_stats']
-        out['best/last'] = '%dk / %dk' % (best_iter/1000, last_iter/1000)
-        # print('best.last:', out['best/last'])
-        try:
-            out['ml_loss'] = tr_res['ml_loss']
-        except:
-            print('%s: ml loss set to 0' % model)
-            out["ml_loss"] = 0
-        # Defaults
-        params = {'beams_size': 1, 'sample_max': 1, 'temperature': 0.5, 'flip': 0}
-        params.update(vars(infos['opt']))
-        compiled = [[params, out]]
-    else:
-        print('infos not found in %s' % model_dir)
-        compiled = []
+    if split == "val":
+        # Read training results:
+        if osp.exists('%s/infos.pkl' % model_dir):
+            infos = pickle.load(open('%s/infos.pkl' % model_dir, 'rb'))
+            tr_res = infos['val_result_history']
+            iters = list(tr_res)
+            cids = [tr_res[it]['lang_stats']['CIDEr'] for it in iters]
+            best_iter = iters[cids.index(max(cids))]
+            last_iter = max(iters)
+            tr_res = tr_res[best_iter]
+            out = tr_res['lang_stats']
+            out['best/last'] = '%dk / %dk' % (best_iter/1000, last_iter/1000)
+            # print('best.last:', out['best/last'])
+            try:
+                out['ml_loss'] = tr_res['ml_loss']
+            except:
+                print('%s: ml loss set to 0' % model)
+                out["ml_loss"] = 0
+            # Defaults
+            params = {'beams_size': 1, 'sample_max': 1, 'temperature': 0.5, 'flip': 0}
+            params.update(vars(infos['opt']))
+            compiled = [[params, out]]
+        else:
+            print('infos not found in %s' % model_dir)
+            compiled = []
 
-    # Read post-results
-    # val_results = sorted(glob.glob('%s/val_*.res' % model_dir))
-    # for res in val_results:
-        # eval_params = res.split('/')[-1].split('_')
-        # beam = int(eval_params[1][2:])
-        # sample_max = 1 if eval_params[3] == "max" else 0
-        # temp = 0
-        # if not sample_max:
-            # temp = float(eval_params[4])
-            # index = 5
+    elif split == "test":
+        # Read post-results
+        results = sorted(glob.glob('%s/evaluations/test/*.res' % model_dir))
+        params = {}
+        # if osp.exists('%s/infos.pkl' % model_dir):
+            # infos = pickle.load(open('%s/infos.pkl' % model_dir, 'rb'))
+            # params = vars(infos['opt'])
+            # del infos
         # else:
-            # index = 4
-        # flip = int(eval_params[index][4])
-        # eval_params = {'beam_size': beam, 'sample_max': sample_max,
-                       # 'temperature': temp, 'flip': flip}
-        # if params:
-            # params.update(eval_params)
-        # else:
-            # params = eval_params
-        # # Load results:
-        # out = pickle.load(open(res, 'rb'))
-        # compiled.append([params, out])
+            # params = {}
+        compiled = []
+        for res in results:
+            out = pickle.load(open(res, 'rb'))
+            params.update(out['params'])
+            print('modelname:', model_dir)
+            print('finetuning:', params.get('finetune_cnn_after', "Missing"))
+            del out['params']
+            out['best/last'] = "--"
+            compiled.append([params, out])
+    else:
+        raise ValueError('Unknown split %s' % split)
+
     return compiled
 
 
@@ -160,11 +161,10 @@ def parse_name_clean(params):
             modelparams.append('frozen')
 
     # Get the loss:
-    if "sample_cap" in params:
-        loss_version = parse_loss_old(params)
-    else:
+    if "stratify_reward" in params:
         loss_version = parse_loss(params)
-    # finetuning:
+    else:
+        loss_version = parse_loss_old(params)
     if len(modelparams):
         modelparams = ' '.join(modelparams)
     else:
@@ -265,13 +265,7 @@ def parse_loss_old(params):
     return loss_version
 
 
-def highlight(score, tresh):
-    if score >= tresh:
-        return '<b> %.2f </b>' % score
-    else:
-        return '%.2f' % score
-
-def crawl_results(fields, filter='', exc=None):
+def crawl_results(filter='', exc=None, split="val", save_pkl=False):
     models = sorted(glob.glob('save/*%s*' % filter))
     if exc:
         # Exclude models containg exc:
@@ -279,13 +273,14 @@ def crawl_results(fields, filter='', exc=None):
     # print("Found:", models)
     recap = {}
     tab = PrettyTable()
-    tab.field_names = fields
+    tab.field_names = FIELDS
     dump = []
     for model in models:
-        outputs = get_results(model)
+        outputs = get_results(model, split)
         if len(outputs):
             modelparams, loss_version = parse_name_clean(outputs[0][0])
-            dump.append(outputs)
+            if save_pkl:
+                dump.append(outputs)
             for (p, res) in outputs:
                 finetuning = p.get('finetune_cnn_after', -1)
                 if finetuning > -1:
@@ -318,15 +313,15 @@ def crawl_results(fields, filter='', exc=None):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    # tab = gather_results("save/baseline")
-    # print(tab.get_string(fields=FIELDS, sortby="Sorter"))
-    # print(tab.get_html_string(fields=FIELDS, sortby="Sorter"))
     parser.add_argument('--filter', '-f', type=str, default='', help='kewyord to include')
     parser.add_argument('--exclude', '-e', nargs="+", help='keyword to exculdeh')
     parser.add_argument('--tex', '-t', action='store_true', help="save results into latex table")
     parser.add_argument('--html', action='store_true', help="save results into html")
     parser.add_argument('--pkl', action='store_true', help="save results into pkl")
+    parser.add_argument('--split', type=str, default="val", help="split on which to report")
+
     args = parser.parse_args()
+    split = args.split
     save_latex = args.tex
     save_html = args.html
     save_pkl = args.pkl
@@ -334,17 +329,16 @@ if __name__ == "__main__":
     filter = args.filter
     exc = args.exclude
     print('filter:', filter, 'exclude:', exc)
-    fields = ["Model", "CNN", "params", 'loss', 'weights', 'Beam', 'CIDEr', 'Bleu4', 'Perplexity', 'best/last']
-    tab, dump = crawl_results(fields, filter, exc)
+    tab, dump = crawl_results(filter, exc, split, save_pkl)
     print(tab.get_string(sortby='CIDEr', reversesort=True))
-    filename = "results/res%s_%s" % (filter, socket.gethostname())
+    filename = "results/%s_res%s_%s" % (split, filter, socket.gethostname())
     if save_html:
         with open(filename+'.html', 'w') as f:
             ss = tab.get_html_string(sortby="CIDEr", reversesort=True)
             f.write(ss)
     if save_latex:
         with open(filename+'.tex', 'w') as f:
-            tex = get_latex(tab, sortby="CIDEr", reversesort=True, fields=fields[:-2])
+            tex = get_latex(tab, sortby="CIDEr", reversesort=True, fields=FIELDS[:-2])
             f.write("\n".join(tex))
     if save_pkl:
         pickle.dump(dump, open(filename+".res", 'wb'))

@@ -16,11 +16,5 @@ rnn_size : 512
 batch_size : 10
 input_data : data/coco/cocotalk
 
-grad_clip : .1
-learning_rate : 4e-4
-learning_rate_decay_start : 5
-learning_rate_decay_rate : 0.6
-learning_rate_decay_every: 3
-
 beam_size : 3
 

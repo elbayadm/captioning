@@ -195,6 +195,7 @@ def train(opt):
             eval_kwargs = {'split': 'val',
                            'dataset': opt.input_data + '.json'}
             eval_kwargs.update(vars(opt))
+            eval_kwargs['batch_size'] = 5  #FIXME
             # print("eval kwargs: ", eval_kwargs)
             (val_ml_loss, val_loss,
              predictions, lang_stats) = evald.eval_split(cnn_model,

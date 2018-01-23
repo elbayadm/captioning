@@ -32,7 +32,7 @@ def add_eval_params(parser):
                help='used when sample_max = 1, indicates number of beams in beam search. Usually 2 or 3 works well. More is not better. Set this to 1 for faster runtime but a bit worse performance.')
     parser.add('--temperature', type=float, default=0.5,
                help='temperature when sampling from distributions (i.e. when sample_max = 0). Lower = "safer" predictions.')
-    parser.add('--val_images_us_', type=int,
+    parser.add('--val_images_use', type=int,
                default=-1, help='how many images to use when evaluating (-1 = all)')
     parser.add('--save_checkpoint_every', type=int,
                default=4000, help='how often to save a model checkpoint (in iterations)?')

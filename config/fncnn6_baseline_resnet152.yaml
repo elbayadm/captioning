@@ -1,5 +1,3 @@
-# Generic
-# -------------------------
 modelname : fncnn6_baseline_resnet152
 start_from : save/baseline_resnet152_msc
 start_from_best : 1
@@ -22,6 +20,6 @@ learning_rate_decay_rate : 0.8
 learning_rate_decay_every: 4
 max_epochs : 25
 # Loss:
-bootstrap : 0
-sample_cap : 0
-
+# bootstrap : 0
+# sample_cap : 0
+loss_version : ml

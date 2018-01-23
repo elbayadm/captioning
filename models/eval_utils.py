@@ -155,15 +155,13 @@ def eval_split(cnn_model, model, loader, logger, eval_kwargs={}):
     dataset = eval_kwargs.get('dataset', 'coco')
     split = eval_kwargs.get('split', 'val')
     val_images_use = eval_kwargs.get('val_images_use', -1)
-
     lang_eval = eval_kwargs.get('language_eval', 1)
     language_creativity = eval_kwargs.get('language_creativity', 1)
-
     beam_size = eval_kwargs.get('beam_size', 1)
     sample_max = eval_kwargs.get('sample_max', 1)
     temperature = eval_kwargs.get('temperature', 0.5)
     forbid_unk = eval_kwargs.get('forbid_unk', 1)
-
+    batch_size = eval_kwargs.get('batch_size', 1)
     seq_per_img = eval_kwargs.get('seq_per_img')
     region_size = model.region_size
     # Make sure to be in the evaluation mode
@@ -178,7 +176,7 @@ def eval_split(cnn_model, model, loader, logger, eval_kwargs={}):
     loss_evals = 0
     predictions = []
     while True:
-        data = loader.get_batch(split, batch_size=5, seq_per_img=seq_per_img)
+        data = loader.get_batch(split, batch_size=batch_size, seq_per_img=seq_per_img)
         n = n + loader.batch_size
         images = data['images']
         images = Variable(torch.from_numpy(images), requires_grad=False).cuda()
