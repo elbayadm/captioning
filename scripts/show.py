@@ -7,7 +7,6 @@ import pickle
 import argparse
 from math import exp
 from prettytable import PrettyTable
-from tabulate import tabulate
 from html import escape
 
 FIELDS = ["Model", "CNN", "params", 'loss', 'weights', 'Beam', 'CIDEr', 'Bleu4', 'Perplexity', 'best/last']

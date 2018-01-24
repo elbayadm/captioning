@@ -925,3 +925,7 @@ PTBTokenizer tokenized 51813 tokens at 340422.93 tokens per second.
 [33m01/24 13:57:00 Starting evaluation...[0m
 PTBTokenizer tokenized 307085 tokens at 392781,31 tokens per second.
 PTBTokenizer tokenized 51616 tokens at 162317,83 tokens per second.
+[33m01/24 14:08:57 GPU ID: 0 | available memory: 12207M[0m
+[33m01/24 14:09:34 Starting from the best saved model[0m
+[33m01/24 14:09:34 Starting from save/fncnn6_sample2_hamming_tsent03_limited2_a04_topdown_resnet152/model-best.pth[0m
+[36m01/24 14:09:40 Setting CNN weigths from save/fncnn6_sample2_hamming_tsent03_limited2_a04_topdown_resnet152/model-cnn-best.pth[0m
