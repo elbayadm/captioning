@@ -2,14 +2,17 @@
 \hline
 Model & CNN & params & loss & weights & Beam & CIDEr & Bleu4\\
 \hline
-top_down & ResNet-152 & Default & Importance r=(cider, $\tau=0.50$), q=(Hamming, Vpool=1 $\tau=0.17$),$\alpha=0.4$  & RNN + CNN & 3 & 101.98 & 32.58\\
-top_down & ResNet-152 & Default &  Word, Sim=Glove-Coco, $\tau=0.13$, $\alpha=0.3$ & RNN + CNN & 3 & 101.61 & 32.93\\
-top_down & ResNet-152 & Default & ML & RNN + CNN & 3 & 100.27 & 32.29\\
-top_down & ResNet-152 & Default & Importance r=(cider, $\tau=0.50$), q=(Hamming, Vpool=1 $\tau=0.17$),$\alpha=0.4$  (LAZY) & RNN + CNN & 3 & 99.41 & 31.93\\
-top_down & ResNet-152 & Default & Stratify r=(Hamming, Vpool=1, $\tau=0.17$), $\alpha=0.4$ & RNN & 3 & 98.34 & 31.60\\
-top_down & ResNet-152 & Default & Stratify r=(Hamming, Vpool=1, $\tau=0.17$), $\alpha=0.4$ (LAZY) & RNN & 3 & 98.21 & 31.72\\
-top_down & ResNet-152 & Default & ML & RNN & 3 & 97.97 & 31.55\\
-top_down & ResNet-152 & Default & Importance r=(cider, $\tau=0.50$), q=(Hamming, Vpool=1 $\tau=0.17$),$\alpha=0.4$  (LAZY) & RNN & 3 & 97.91 & 31.53\\
-top_down & ResNet-152 & Default & Importance r=(cider, $\tau=0.50$), q=(Hamming, Vpool=1 $\tau=0.17$),$\alpha=0.4$  & RNN & 3 & 97.83 & 31.27\\
-top_down & ResNet-152 & Default &  Word, Sim=Glove-Coco, $\tau=0.13$, $\alpha=0.3$ & RNN & 3 & 97.72 & 31.47\\
+Top-down & ResNet-152 & Default & Importance r=(cider, $\tau=0.50$), q=(Hamming, Vpool=1 $\tau=0.17$),$\alpha=0.4$  & RNN + CNN & 3 & 101.98 & 32.58\\
+Top-down & ResNet-152 & Default &  Word, Sim=Glove-Coco, $\tau=0.13$, $\alpha=0.3$ & RNN + CNN & 3 & 101.61 & 32.93\\
+Top-down & ResNet-152 & Default & Stratify r=(Hamming, Vpool=1, $\tau=0.17$), $\alpha=0.4$ (LAZY) & RNN + CNN & 3 & 100.84 & 32.59\\
+Top-down & ResNet-152 & Default & ML & RNN + CNN & 3 & 100.27 & 32.29\\
+Top-down & ResNet-152 & Default & Importance r=(cider, $\tau=0.50$), q=(Hamming, Vpool=2 $\tau=0.30$),$\alpha=0.4$  & RNN & 3 & 99.60 & 31.91\\
+Top-down & ResNet-152 & Default & Importance r=(cider, $\tau=0.50$), q=(Hamming, Vpool=1 $\tau=0.17$),$\alpha=0.4$  (LAZY) & RNN + CNN & 3 & 99.41 & 31.93\\
+Top-down & ResNet-152 & Default & Stratify r=(Hamming, Vpool=1, $\tau=0.17$), $\alpha=0.4$ & RNN & 3 & 98.34 & 31.60\\
+Top-down & ResNet-152 & Default & Stratify r=(Hamming, Vpool=2, $\tau=0.30$), $\alpha=0.4$ & RNN & 3 & 98.23 & 31.58\\
+Top-down & ResNet-152 & Default & Stratify r=(Hamming, Vpool=1, $\tau=0.17$), $\alpha=0.4$ (LAZY) & RNN & 3 & 98.21 & 31.72\\
+Top-down & ResNet-152 & Default & ML & RNN & 3 & 97.97 & 31.55\\
+Top-down & ResNet-152 & Default & Importance r=(cider, $\tau=0.50$), q=(Hamming, Vpool=1 $\tau=0.17$),$\alpha=0.4$  (LAZY) & RNN & 3 & 97.91 & 31.53\\
+Top-down & ResNet-152 & Default & Importance r=(cider, $\tau=0.50$), q=(Hamming, Vpool=1 $\tau=0.17$),$\alpha=0.4$  & RNN & 3 & 97.83 & 31.27\\
+Top-down & ResNet-152 & Default &  Word, Sim=Glove-Coco, $\tau=0.13$, $\alpha=0.3$ & RNN & 3 & 97.72 & 31.47\\
 \hline

@@ -267,6 +267,45 @@ def parse_loss_old(params):
     return loss_version
 
 
+def crawl_paper_results(filter='', exc=None, split="test", save_pkl=False):
+    models = sorted(glob.glob('save/*%s*' % filter))
+    if exc:
+        # Exclude models containg exc:
+        models = [model for model in models if not sum([e in model for e in exc])]
+    print("Found:", models)
+    recap = {}
+    tab = PrettyTable()
+    tab.field_names = FIELDS
+    dump = []
+    for model in models:
+        outputs = get_paper_results(model, split)
+        if len(outputs):
+            modelparams, loss_version = parse_name_clean(outputs[0][0])
+            if save_pkl:
+                dump.append(outputs)
+            for (p, res) in outputs:
+                cid = float(res['CIDEr'] * 100)
+                try:
+                    recap[p['alpha']] = cid
+                except:
+                    recap[p['alpha_sent']] = cid
+                    recap[p['alpha_word']] = cid
+                bl = float(res['Bleu_4'] * 100)
+                try:
+                    perpl = float(exp(res['ml_loss']))
+                except:
+                    perpl = 1.
+                row = [p['caption_model'],
+                       p['cnn_model'],
+                       modelparams,
+                       loss_version,
+                       finetuning,
+                       p['beam_size'],
+                       cid, bl, perpl, res['best/last']]
+                tab.add_row(row)
+    return tab, dump
+
+
 def crawl_results(filter='', exc=None, split="val", save_pkl=False):
     models = sorted(glob.glob('save/*%s*' % filter))
     if exc:
