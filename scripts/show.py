@@ -18,6 +18,8 @@ def correct(word):
     """
     if word == "show_tell":
         return 'Show \\& Tell'
+    elif word == 'top_down':
+        return "Top-down"
     elif word == "resnet50":
         return "ResNet-50"
     elif word == "resnet152":
