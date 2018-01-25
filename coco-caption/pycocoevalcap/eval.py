@@ -7,12 +7,13 @@ from .cider.cider import Cider
 from .spice.spice import Spice
 
 class COCOEvalCap:
-    def __init__(self, coco, cocoRes):
+    def __init__(self, coco, cocoRes, all_metrics=False):
         self.evalImgs = []
         self.eval = {}
         self.imgToEval = {}
         self.coco = coco
         self.cocoRes = cocoRes
+        self.all_metrics = all_metrics
         self.params = {'image_id': coco.getImgIds()}
 
     def evaluate(self):
@@ -29,20 +30,26 @@ class COCOEvalCap:
         # =================================================
         print('tokenization...')
         tokenizer = PTBTokenizer()
-        gts  = tokenizer.tokenize(gts)
+        gts = tokenizer.tokenize(gts)
         res = tokenizer.tokenize(res)
 
         # =================================================
         # Set up scorers
         # =================================================
         print('setting up scorers...')
-        scorers = [
-            (Bleu(4), ["Bleu_1", "Bleu_2", "Bleu_3", "Bleu_4"]),
-            #  (Meteor(),"METEOR"),
-            # (Rouge(), "ROUGE_L"),
-            (Cider(), "CIDEr"),
-            # (Spice(), "SPICE")
-        ]
+        if self.all_metrics:
+            scorers = [
+                (Bleu(4), ["Bleu_1", "Bleu_2", "Bleu_3", "Bleu_4"]),
+                (Meteor(), "METEOR"),
+                (Rouge(), "ROUGE_L"),
+                (Cider(), "CIDEr"),
+                (Spice(), "SPICE")
+            ]
+        else:
+            scorers = [
+                (Bleu(4), ["Bleu_1", "Bleu_2", "Bleu_3", "Bleu_4"]),
+                (Cider(), "CIDEr")
+            ]
 
         # =================================================
         # Compute scores

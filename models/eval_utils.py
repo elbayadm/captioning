@@ -157,6 +157,7 @@ def eval_split(cnn_model, model, loader, logger, eval_kwargs={}):
     val_images_use = eval_kwargs.get('val_images_use', -1)
     lang_eval = eval_kwargs.get('language_eval', 1)
     language_creativity = eval_kwargs.get('language_creativity', 1)
+    all_metrics = eval_kwargs.get('all_metrics', 0)
     beam_size = eval_kwargs.get('beam_size', 1)
     sample_max = eval_kwargs.get('sample_max', 1)
     temperature = eval_kwargs.get('temperature', 0.5)
@@ -227,6 +228,7 @@ def eval_split(cnn_model, model, loader, logger, eval_kwargs={}):
     lang_stats = None
     if lang_eval:
         lang_stats, _ = language_eval(dataset, predictions, logger,
+                                      all_metrics,
                                       language_creativity)
     # Back to training:
     model.train()

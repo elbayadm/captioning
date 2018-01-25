@@ -340,7 +340,7 @@ def crawl_results_paper(fltr=[], exclude=[], split="test", verbose=False, reset=
 
 def get_perf(res):
     formatted_res = OrderedDict()
-    for k in ['Bleu_1', 'Bleu_4', 'METEOR', 'ROUGE', 'CIDEr', 'Spice']:
+    for k in ['Bleu_1', 'Bleu_4', 'METEOR', 'ROUGE_L', 'CIDEr', 'SPICE']:
         if k in res:
             formatted_res[k] = float(res[k] * 100)
         else:
@@ -437,11 +437,11 @@ if __name__ == "__main__":
             f.write("\n".join(tex))
     else:
         tab, dump = crawl_results(fltr, exc, split,
-                                  args.save_pkl, verbose)
+                                  args.pkl, verbose)
         print(tab.get_string(sortby='CIDEr', reversesort=True))
-        if args.save_pkl:
+        if args.pkl:
             pickle.dump(dump, open(filename+".res", 'wb'))
-        if args.save_html:
+        if args.html:
             with open(filename+'.html', 'w') as f:
                 ss = tab.get_html_string(sortby="CIDEr", reversesort=True)
                 f.write(ss)
