@@ -171,5 +171,5 @@ if __name__ == "__main__":
                                       all_metrics=True,
                                       get_creativity=True)
         perf.update(lang_stats)
-        pickle.dump(perf, open(pt.output + '.res', 'wb'))
+        pickle.dump(perf, open(opt.output + ".res", 'wb'))
 
