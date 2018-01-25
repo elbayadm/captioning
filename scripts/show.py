@@ -436,12 +436,13 @@ if __name__ == "__main__":
         fltr_concat = '_' + fltr_concat
     if args.reset:
         fltr_concat += '_reset'
-    filename = "results/%s%s_%s" % (split, fltr_concat, socket.gethostname())
     if args.paper:
         print('Setting up split=test')
-        split  ='test'
+        split = 'test'
+        filename = "results/%s%s_%s" % (split, fltr_concat, socket.gethostname())
         tab = crawl_results_paper(fltr, exc, split, verbose, args.reset)
         print(tab.get_string(sortby='CIDEr-D_ph1', reversesort=True, fields=PAPER_FIELDS_SELECT))
+        print('saving latex table in %s.tex' % filename)
         with open(filename+'.tex', 'w') as f:
             tex = get_latex(tab, sortby="CIDEr-D_ph1",
                             reversesort=True, fields=PAPER_FIELDS_SELECT)
@@ -450,6 +451,7 @@ if __name__ == "__main__":
         tab, dump = crawl_results(fltr, exc, split,
                                   args.pkl, verbose)
         print(tab.get_string(sortby='CIDEr', reversesort=True))
+        filename = "results/%s%s_%s" % (split, fltr_concat, socket.gethostname())
         if args.pkl:
             pickle.dump(dump, open(filename+".res", 'wb'))
         if args.html:
