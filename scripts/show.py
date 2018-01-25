@@ -177,9 +177,9 @@ def parse_loss(params):
     combine_loss = params.get('combine_loss', 0)
     loss_version = params['loss_version'].lower()
     if loss_version == "ml":
-        return 'ML'
+        loss_version ='ML'
     elif loss_version == "word":
-        return get_wl(params)
+        loss_version = get_wl(params)
     elif loss_version == "seq":
         reward = params['reward']
         if reward == "tfidf":
@@ -213,7 +213,10 @@ def parse_loss(params):
                                                                            sampler,
                                                                            params['alpha_sent'],
                                                                            extra)
-        return loss_version
+    if params.get('penalize_confidence', 0):
+        loss_version += " Peanlize: %.2f" % params['penalize_confidence']
+    return loss_version
+
 
 
 def parse_loss_old(params):
@@ -329,6 +332,8 @@ def crawl_results(filter='', exc=None, split="val", save_pkl=False, verbose=Fals
                 if finetuning > -1:
                     finetuning = "RNN + %.1f x cnn(%d:)" % (p.get('cnn_learning_rate'),
                                                             p.get('finetune_cnn_slice', -1))
+                    if p.get('reset_optimize', 0):
+                        finetuning += '(RESET)'
                 else:
                     finetuning = "RNN"
 
