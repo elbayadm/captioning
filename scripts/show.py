@@ -21,6 +21,15 @@ PAPER_FIELDS = ["Model", "CNN", 'Loss', 'Beam',
                 'ROUGE-L_ph2', 'CIDEr-D_ph2', 'SPICE_ph2',
                 'Perplexity_ph2']
 
+PAPER_FIELDS_SELECT = ["Model", 'Loss',
+                       'Bleu4_ph1',
+                       'CIDEr-D_ph1', 'SPICE_ph1',
+                       'Perplexity_ph1',
+                       'Bleu1_ph2', 'Bleu4_ph2',
+                       'ROUGE-L_ph2', 'CIDEr-D_ph2', 'SPICE_ph2',
+                       'Perplexity_ph2']
+
+
 def correct(word):
     """
     Printable names for key options
@@ -433,7 +442,7 @@ if __name__ == "__main__":
         print(tab.get_string(sortby='CIDEr-D_ph1', reversesort=True))
         with open(filename+'.tex', 'w') as f:
             tex = get_latex(tab, sortby="CIDEr-D_ph1",
-                            reversesort=True, fields=PAPER_FIELDS)
+                            reversesort=True, fields=PAPER_FIELDS_SELECT)
             f.write("\n".join(tex))
     else:
         tab, dump = crawl_results(fltr, exc, split,
