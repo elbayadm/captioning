@@ -14,10 +14,10 @@ FIELDS = ["Model", "CNN", "params", 'loss', 'weights', 'Beam',
           'CIDEr', 'Bleu4', 'Perplexity', 'best/last']
 
 PAPER_FIELDS = ["Model", "CNN", 'Loss', 'Beam',
-                'Bleu1_ph1', 'Bleu4_ph1', 'Meteor_ph1',
+                'Bleu1_ph1', 'Bleu4_ph1',
                 'ROUGE-L_ph1', 'CIDEr-D_ph1', 'SPICE_ph1',
                 'Perplexity_ph1',
-                'Bleu1_ph2', 'Bleu4_ph2', 'Meteor_ph2',
+                'Bleu1_ph2', 'Bleu4_ph2',
                 'ROUGE-L_ph2', 'CIDEr-D_ph2', 'SPICE_ph2',
                 'Perplexity_ph2']
 
@@ -333,14 +333,14 @@ def crawl_results_paper(fltr=[], exclude=[], split="test", verbose=False, reset=
             if len(fn_outputs):
                 row += get_perf(fn_res)
             else:
-                row += 7 * [0]
+                row += 6 * [0]
             tab.add_row(row)
     return tab
 
 
 def get_perf(res):
     formatted_res = OrderedDict()
-    for k in ['Bleu_1', 'Bleu_4', 'METEOR', 'ROUGE_L', 'CIDEr', 'SPICE']:
+    for k in ['Bleu_1', 'Bleu_4', 'ROUGE_L', 'CIDEr', 'SPICE']:
         if k in res:
             formatted_res[k] = float(res[k] * 100)
         else:
