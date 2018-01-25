@@ -5,11 +5,21 @@ import glob
 import operator
 import pickle
 import argparse
+from collections import OrderedDict
 from math import exp
 from prettytable import PrettyTable
 from html import escape
 
-FIELDS = ["Model", "CNN", "params", 'loss', 'weights', 'Beam', 'CIDEr', 'Bleu4', 'Perplexity', 'best/last']
+FIELDS = ["Model", "CNN", "params", 'loss', 'weights', 'Beam',
+          'CIDEr', 'Bleu4', 'Perplexity', 'best/last']
+
+PAPER_FIELDS = ["Model", "CNN", 'Loss', 'Beam',
+                'Bleu1_ph1', 'Bleu4_ph1', 'Meteor_ph1',
+                'ROUGE-L_ph1', 'CIDEr-D_ph1', 'SPICE_ph1',
+                'Perplexity_ph1',
+                'Bleu1_ph2', 'Bleu4_ph2', 'Meteor_ph2',
+                'ROUGE-L_ph2', 'CIDEr-D_ph2', 'SPICE_ph2',
+                'Perplexity_ph2']
 
 def correct(word):
     """
@@ -166,6 +176,11 @@ def parse_name_clean(params):
         loss_version = parse_loss(params)
     else:
         loss_version = parse_loss_old(params)
+    if params.get('init_decoder_W', ""):
+        wdec = ", $W_{dec}=Glove_{coco, 512}$"
+        if params.get('freeze_decoder_W', 0):
+            wdec += " frozen"
+        loss_version += wdec
     if len(modelparams):
         modelparams = ' '.join(modelparams)
     else:
@@ -214,7 +229,7 @@ def parse_loss(params):
                                                                            params['alpha_sent'],
                                                                            extra)
     if params.get('penalize_confidence', 0):
-        loss_version += " Peanlize: %.2f" % params['penalize_confidence']
+        loss_version += ", Penalize(%.2f)" % params['penalize_confidence']
     return loss_version
 
 
@@ -271,50 +286,73 @@ def parse_loss_old(params):
     return loss_version
 
 
-def crawl_paper_results(filter='', exc=None, split="test", save_pkl=False):
-    models = sorted(glob.glob('save/*%s*' % filter))
-    if exc:
-        # Exclude models containg exc:
-        models = [model for model in models if not sum([e in model for e in exc])]
-    print("Found:", models)
-    recap = {}
+def is_required(model, fltr, exclude):
+    for fl in fltr:
+        if fl not in model:
+            return 0
+    for exc in exclude:
+        if exc in model:
+            return 0
+    return 1
+
+
+def crawl_results_paper(fltr=[], exclude=[], split="test", verbose=False, reset=False):
+    models = glob.glob('save/*')
+    models = [model for model in models if is_required(model, fltr, exclude)]
     tab = PrettyTable()
-    tab.field_names = FIELDS
-    dump = []
+    tab.field_names = PAPER_FIELDS
+    fn_prefix = 'fncnn6_'
+    if reset:
+        fn_prefix += 'reset_'
+    fn_models = [model for model in models if fn_prefix in model]
+    models = list(set(models) - set(fn_models))
     for model in models:
-        outputs = get_paper_results(model, split)
+        if "fncnn" in model:
+            continue
+        outputs = get_results(model, split, verbose)
         if len(outputs):
-            modelparams, loss_version = parse_name_clean(outputs[0][0])
-            if save_pkl:
-                dump.append(outputs)
-            for (p, res) in outputs:
-                cid = float(res['CIDEr'] * 100)
-                try:
-                    recap[p['alpha']] = cid
-                except:
-                    recap[p['alpha_sent']] = cid
-                    recap[p['alpha_word']] = cid
-                bl = float(res['Bleu_4'] * 100)
-                try:
-                    perpl = float(exp(res['ml_loss']))
-                except:
-                    perpl = 1.
-                row = [p['caption_model'],
-                       p['cnn_model'],
-                       modelparams,
-                       loss_version,
-                       finetuning,
-                       p['beam_size'],
-                       cid, bl, perpl, res['best/last']]
-                tab.add_row(row)
-    return tab, dump
+            if verbose:
+                print(model.split('/')[-1])
+            params, res = outputs[0]
+            _, loss_version = parse_name_clean(params)
+            fn_model = "save/" + fn_prefix + model.split('/')[-1]
+            if fn_model in fn_models:
+                if verbose:
+                    print('finetuned model exists')
+                fn_outputs = get_results(fn_model, split, verbose)
+            else:
+                fn_outputs = []
+            if len(fn_outputs):
+                fn_res = fn_outputs[0][1]
+            perf = get_perf(res)
+            row = [params['caption_model'],
+                   params['cnn_model'],
+                   loss_version,
+                   params["beam_size"]]
+            row += perf
+            if len(fn_outputs):
+                row += get_perf(fn_res)
+            else:
+                row += 7 * [0]
+            tab.add_row(row)
+    return tab
 
 
-def crawl_results(filter='', exc=None, split="val", save_pkl=False, verbose=False):
-    models = sorted(glob.glob('save/*%s*' % filter))
-    if exc:
-        # Exclude models containg exc:
-        models = [model for model in models if not sum([e in model for e in exc])]
+def get_perf(res):
+    formatted_res = OrderedDict()
+    for k in ['Bleu_1', 'Bleu_4', 'METEOR', 'ROUGE', 'CIDEr', 'Spice']:
+        if k in res:
+            formatted_res[k] = float(res[k] * 100)
+        else:
+            formatted_res[k] = 0
+    out = list(formatted_res.values())
+    out.append(float(exp(res['ml_loss'])))
+    return out
+
+
+def crawl_results(fltr='', exclude=None, split="val", save_pkl=False, verbose=False):
+    models = glob.glob('save/*')
+    models = [model for model in models if is_required(model, fltr, exclude)]
     recap = {}
     tab = PrettyTable()
     tab.field_names = FIELDS
@@ -361,35 +399,50 @@ def crawl_results(filter='', exc=None, split="val", save_pkl=False, verbose=Fals
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--filter', '-f', type=str, default='', help='kewyord to include')
-    parser.add_argument('--exclude', '-e', nargs="+", help='keyword to exculdeh')
-    parser.add_argument('--tex', '-t', action='store_true', help="save results into latex table")
+    parser.add_argument('--filter', '-f', nargs="+", help='keyword to include')
+    parser.add_argument('--exclude', '-e', nargs="+", help='keyword to exculde')
+    # parser.add_argument('--tex', '-t', action='store_true', help="save results into latex table")
+    parser.add_argument('--paper', '-p', action='store_true', help="run paper mode")
+    parser.add_argument('--reset', '-r', action='store_true', help="run paper mode and get finetuned with optimizer reset")
     parser.add_argument('--html', action='store_true', help="save results into html")
     parser.add_argument('--pkl', action='store_true', help="save results into pkl")
     parser.add_argument('--split', type=str, default="val", help="split on which to report")
     parser.add_argument('--verbose', '-v', action="store_true", help="script verbosity")
-
     args = parser.parse_args()
-    split = args.split
-    save_latex = args.tex
-    save_html = args.html
-    save_pkl = args.pkl
-    verbose = args.verbose
 
-    filter = args.filter
+    split = args.split
+    verbose = args.verbose
+    fltr = args.filter
+    if not fltr:
+        fltr = []
     exc = args.exclude
-    print('filter:', filter, 'exclude:', exc)
-    tab, dump = crawl_results(filter, exc, split, save_pkl, verbose)
-    print(tab.get_string(sortby='CIDEr', reversesort=True))
-    filename = "results/%s_res%s_%s" % (split, filter, socket.gethostname())
-    if save_html:
-        with open(filename+'.html', 'w') as f:
-            ss = tab.get_html_string(sortby="CIDEr", reversesort=True)
-            f.write(ss)
-    if save_latex:
+    if not exc:
+        exc = []
+    print(vars(args))
+
+    fltr_concat = "_".join(fltr)
+    if not fltr_concat:
+        fltr_concat = ''
+    else:
+        fltr_concat = '_' + fltr_concat
+    if args.reset:
+        fltr_concat += '_reset'
+    filename = "results/%s%s_%s" % (split, fltr_concat, socket.gethostname())
+    if args.paper:
+        tab = crawl_results_paper(fltr, exc, split, verbose, args.reset)
+        print(tab.get_string(sortby='CIDEr-D_ph1', reversesort=True))
         with open(filename+'.tex', 'w') as f:
-            tex = get_latex(tab, sortby="CIDEr", reversesort=True, fields=FIELDS[:-2])
+            tex = get_latex(tab, sortby="CIDEr-D_ph1",
+                            reversesort=True, fields=PAPER_FIELDS)
             f.write("\n".join(tex))
-    if save_pkl:
-        pickle.dump(dump, open(filename+".res", 'wb'))
+    else:
+        tab, dump = crawl_results(fltr, exc, split,
+                                  args.save_pkl, verbose)
+        print(tab.get_string(sortby='CIDEr', reversesort=True))
+        if args.save_pkl:
+            pickle.dump(dump, open(filename+".res", 'wb'))
+        if args.save_html:
+            with open(filename+'.html', 'w') as f:
+                ss = tab.get_html_string(sortby="CIDEr", reversesort=True)
+                f.write(ss)
 
