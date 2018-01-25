@@ -133,10 +133,14 @@ def language_eval(dataset, preds, logger,
     valids = coco.getImgIds()
 
     # filter results to only those in MSCOCO validation set (will be about a third)
-    preds_filt = [p for p in preds if p['image_id'] in valids]
-    logger.warn('using %d/%d predictions' % (len(preds_filt), len(preds)))
-    json.dump(preds_filt, open(tmp_name + '.json', 'w'))  # serialize to temporary json file. Sigh, COCO API...
-    resFile = tmp_name + '.json'
+    if isinstance(preds, str):
+        assert(preds.endswith('.json'))
+        resFile = preds
+    else:
+        preds_filt = [p for p in preds if p['image_id'] in valids]
+        logger.warn('using %d/%d predictions' % (len(preds_filt), len(preds)))
+        json.dump(preds_filt, open(tmp_name + '.json', 'w'))  # serialize to temporary json file. Sigh, COCO API...
+        resFile = tmp_name + '.json'
     logger.warn('Loading model captions')
     cocoRes = coco.loadRes(resFile)
     logger.warn('Model captions loaded')
