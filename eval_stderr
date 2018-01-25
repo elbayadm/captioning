@@ -1099,3 +1099,5 @@ PTBTokenizer tokenized 51824 tokens at 406516.04 tokens per second.
 [33m01/25 04:46:16 Starting evaluation...[0m
 PTBTokenizer tokenized 307085 tokens at 720018.06 tokens per second.
 PTBTokenizer tokenized 51226 tokens at 302618.13 tokens per second.
+[33m01/25 17:29:04 GPU ID: 0 | available memory: 3760M[0m
+## OAR [2018-01-25 17:30:03] Job 138933 KILLED ##

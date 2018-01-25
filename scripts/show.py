@@ -438,8 +438,10 @@ if __name__ == "__main__":
         fltr_concat += '_reset'
     filename = "results/%s%s_%s" % (split, fltr_concat, socket.gethostname())
     if args.paper:
+        print('Setting up split=test')
+        split  ='test'
         tab = crawl_results_paper(fltr, exc, split, verbose, args.reset)
-        print(tab.get_string(sortby='CIDEr-D_ph1', reversesort=True))
+        print(tab.get_string(sortby='CIDEr-D_ph1', reversesort=True, fields=PAPER_FIELDS_SELECT))
         with open(filename+'.tex', 'w') as f:
             tex = get_latex(tab, sortby="CIDEr-D_ph1",
                             reversesort=True, fields=PAPER_FIELDS_SELECT)
