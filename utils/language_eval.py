@@ -132,6 +132,7 @@ def language_eval(dataset, preds, logger,
     logger.warn('Reference captions loaded!')
     valids = coco.getImgIds()
 
+    remove_tmp = False
     # filter results to only those in MSCOCO validation set (will be about a third)
     if isinstance(preds, str):
         assert(preds.endswith('.json'))
@@ -141,6 +142,7 @@ def language_eval(dataset, preds, logger,
         logger.warn('using %d/%d predictions' % (len(preds_filt), len(preds)))
         json.dump(preds_filt, open(tmp_name + '.json', 'w'))  # serialize to temporary json file. Sigh, COCO API...
         resFile = tmp_name + '.json'
+        remove_tmp = True
     logger.warn('Loading model captions')
     cocoRes = coco.loadRes(resFile)
     logger.warn('Model captions loaded')
@@ -149,8 +151,9 @@ def language_eval(dataset, preds, logger,
     logger.warn('Starting evaluation...')
     cocoEval.evaluate()
 
-    # delete the temp file
-    os.remove(tmp_name + '.json')
+    if remove_tmp:
+        # delete the temp file
+        os.remove(tmp_name + '.json')
 
     # create output dictionary
     out = {}
