@@ -57,7 +57,7 @@ def get_latex(ptab, **kwargs):
     return lines
 
 
-def get_results(model, split='val'):
+def get_results(model, split='val', verbose=False):
     model_dir = model
     if split == "val":
         # Read training results:
@@ -75,14 +75,16 @@ def get_results(model, split='val'):
             try:
                 out['ml_loss'] = tr_res['ml_loss']
             except:
-                print('%s: ml loss set to 0' % model)
+                if verbose:
+                    print('%s: ml loss set to 0' % model)
                 out["ml_loss"] = 0
             # Defaults
             params = {'beams_size': 1, 'sample_max': 1, 'temperature': 0.5, 'flip': 0}
             params.update(vars(infos['opt']))
             compiled = [[params, out]]
         else:
-            print('infos not found in %s' % model_dir)
+            if verbose:
+                print('infos not found in %s' % model_dir)
             compiled = []
 
     elif split == "test":
@@ -305,19 +307,20 @@ def crawl_paper_results(filter='', exc=None, split="test", save_pkl=False):
     return tab, dump
 
 
-def crawl_results(filter='', exc=None, split="val", save_pkl=False):
+def crawl_results(filter='', exc=None, split="val", save_pkl=False, verbose=False):
     models = sorted(glob.glob('save/*%s*' % filter))
     if exc:
         # Exclude models containg exc:
         models = [model for model in models if not sum([e in model for e in exc])]
-    # print("Found:", models)
     recap = {}
     tab = PrettyTable()
     tab.field_names = FIELDS
     dump = []
     for model in models:
-        outputs = get_results(model, split)
+        outputs = get_results(model, split, verbose)
         if len(outputs):
+            if verbose:
+                print(model.split('/')[-1])
             modelparams, loss_version = parse_name_clean(outputs[0][0])
             if save_pkl:
                 dump.append(outputs)
@@ -359,17 +362,19 @@ if __name__ == "__main__":
     parser.add_argument('--html', action='store_true', help="save results into html")
     parser.add_argument('--pkl', action='store_true', help="save results into pkl")
     parser.add_argument('--split', type=str, default="val", help="split on which to report")
+    parser.add_argument('--verbose', '-v', action="store_true", help="script verbosity")
 
     args = parser.parse_args()
     split = args.split
     save_latex = args.tex
     save_html = args.html
     save_pkl = args.pkl
+    verbose = args.verbose
 
     filter = args.filter
     exc = args.exclude
     print('filter:', filter, 'exclude:', exc)
-    tab, dump = crawl_results(filter, exc, split, save_pkl)
+    tab, dump = crawl_results(filter, exc, split, save_pkl, verbose)
     print(tab.get_string(sortby='CIDEr', reversesort=True))
     filename = "results/%s_res%s_%s" % (split, filter, socket.gethostname())
     if save_html:
