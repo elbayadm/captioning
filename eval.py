@@ -169,7 +169,7 @@ if __name__ == "__main__":
             perf = {}
         lang_stats, _ = language_eval('coco', opt.output+'.json', opt.logger,
                                       all_metrics=True,
-                                      language_creativity=True)
+                                      get_creativity=True)
         perf.update(lang_stats)
         pickle.dump(perf, open(pt.output + '.res', 'wb'))
 
