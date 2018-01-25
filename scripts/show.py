@@ -332,8 +332,8 @@ def crawl_results(filter='', exc=None, split="val", save_pkl=False, verbose=Fals
                 if finetuning > -1:
                     finetuning = "RNN + %.1f x cnn(%d:)" % (p.get('cnn_learning_rate'),
                                                             p.get('finetune_cnn_slice', -1))
-                    if p.get('reset_optimize', 0):
-                        finetuning += '(RESET)'
+                    if p.get('reset_optimizer', 0):
+                        finetuning += ', RESET'
                 else:
                     finetuning = "RNN"
 

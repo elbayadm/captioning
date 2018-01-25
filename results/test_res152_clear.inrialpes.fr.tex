@@ -2,6 +2,7 @@
 \hline
 Model & CNN & params & loss & weights & Beam & CIDEr & Bleu4\\
 \hline
+Show \& Tell & ResNet-152 & Batch=5 &  Word, Sim=Glove-Coco xIDF(1.0), $\tau=0.09$, $\alpha=0.7$ & RNN + CNN & 3 & 97.47 & 31.76\\
 Show \& Tell & ResNet-152 & Default &  Word, Sim=Glove-Coco xIDF(1.0), $\tau=0.09$, $\alpha=0.7$ & RNN + CNN & 3 & 96.97 & 31.89\\
 Show \& Tell & ResNet-152 & Default & Stratify r=(Hamming, Vpool=2, $\tau=0.30$), $\alpha=0.5$ & RNN + CNN & 3 & 95.56 & 31.15\\
 Show \& Tell & ResNet-152 & Default & Stratify r=(Hamming, Vpool=1, $\tau=0.17$), $\alpha=0.4$ & RNN + CNN & 3 & 95.43 & 30.99\\
@@ -18,8 +19,11 @@ Show \& Tell & ResNet-152 & Default & Stratify r=(Hamming, Vpool=2, $\tau=0.30$)
 Show \& Tell & ResNet-152 & Default & Importance r=(cider, $\tau=0.50$), q=(Hamming, Vpool=1 $\tau=0.17$),$\alpha=0.4$  & RNN & 3 & 91.07 & 29.46\\
 Show \& Tell & ResNet-152 & Default & Importance r=(cider, $\tau=0.50$), q=(Hamming, Vpool=1 $\tau=0.17$),$\alpha=0.4$  (LAZY) & RNN & 3 & 90.81 & 29.29\\
 Show \& Tell & ResNet-152 & Default & Stratify r=(Hamming, Vpool=1, $\tau=0.17$), $\alpha=0.4$ & RNN & 3 & 90.79 & 29.44\\
+Show \& Tell & ResNet-152 & Batch=5 & Stratify r=(Hamming, Vpool=2, $\tau=0.30$), $\alpha=0.5$ (LAZY) & RNN & 3 & 90.79 & 29.67\\
+Show \& Tell & ResNet-152 & Batch=5 & Stratify r=(Hamming, Vpool=0, $\tau=0.10$), $\alpha=0.4$ & RNN & 3 & 90.08 & 29.08\\
 Show \& Tell & ResNet-152 & W_Decoder glove_coco_d512_w15_matrix & ML & RNN & 3 & 89.67 & 28.92\\
 Show \& Tell & ResNet-152 & Default & ML & RNN & 3 & 88.30 & 28.34\\
+Show \& Tell & ResNet-152 & Batch=5 & ML Peanlize: 0.10 & RNN & 3 & 88.17 & 28.59\\
 Show \& Tell & ResNet-152 & W_Decoder glove_coco_d512_w15_matrix frozen & ML & RNN & 3 & 88.16 & 28.54\\
-Show \& Tell & ResNet-152 & Default & ML & RNN & 3 & 87.93 & 28.77\\
+Show \& Tell & ResNet-152 & Default & ML Peanlize: 0.30 & RNN & 3 & 87.93 & 28.77\\
 \hline
