@@ -135,6 +135,8 @@ def language_eval(dataset, preds, logger,
     if isinstance(preds, str):
         assert(preds.endswith('.json'))
         resFile = preds
+        load_preds = json.load(open(preds))
+        preds_filt = [p for p in load_preds if p['image_id'] in valids]
     else:
         random.seed(time.time())
         tmp_name = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(6))
