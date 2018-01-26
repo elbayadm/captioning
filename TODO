@@ -7,8 +7,6 @@ IMPORTANCE: lazy pool2 showtel fncnn (wait)
 
 EVAL
 ---------------------------------------------
-cmp word idf01 showtell 
-cmp ml_penalize03 
 cmp fncnn strat pool1 showtell
 cmp fncnn ml topdown
 cmp fncnn strat lazy pool1 topd
