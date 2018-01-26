@@ -1308,3 +1308,42 @@ org.fusesource.lmdbjni.LMDBException: MDB_CURSOR_FULL: Internal error - cursor s
 	at edu.anu.spice.SpiceParser.parseCaptions(SpiceParser.java:251)
 	at edu.anu.spice.SpiceScorer.scoreBatch(SpiceScorer.java:109)
 	at edu.anu.spice.SpiceScorer.main(SpiceScorer.java:60)
+[33m01/26 09:02:11 GPU ID: 1 | available memory: 12207M[0m
+[33m01/26 09:02:40 Starting from the best saved model[0m
+[33m01/26 09:02:40 Starting from save/fncnn6_reset_word_coco_tword015_a07_showtell152/model-best.pth[0m
+[36m01/26 09:02:51 Setting CNN weigths from save/fncnn6_reset_word_coco_tword015_a07_showtell152/model-cnn-best.pth[0m
+[33m01/26 09:03:05 Finetuning up from 6 modules in the cnn[0m
+[33m01/26 09:03:06 Show & Tell : OrderedDict([('img_embed', Linear (2048 -> 512)), ('core', LSTM(512, 512, bias=False, dropout=0.5)), ('embed', Embedding(9488, 512)), ('drop_x_lm', Dropout (p = 0.5)), ('logit', Linear (512 -> 9488))])[0m
+[33m01/26 09:03:07 Loading the model dict (last checkpoint) ['img_embed.weight', 'img_embed.bias', 'core.weight_ih_l0', 'core.weight_hh_l0', 'embed.weight', 'logit.weight', 'logit.bias'][0m
+[33m01/26 09:03:10 DataLoader loading json file: data/coco/cocotalk.json[0m
+[33m01/26 09:03:11 vocab size is 9487 [0m
+[33m01/26 09:03:11 DataLoader loading h5 file: data/coco/cocotalk.h5[0m
+[33m01/26 09:03:11 read 123287 images of size 3x256x256[0m
+[33m01/26 09:03:11 max sequence length in data is 16[0m
+[33m01/26 09:03:11 assigned 82783 images to split train[0m
+[33m01/26 09:03:11 assigned 5000 images to split val[0m
+[33m01/26 09:03:11 assigned 5000 images to split test[0m
+[32m01/26 09:03:27 Initialized Word2 loss tau=0.150, alpha=0.7[0m
+[33m01/26 09:03:27 Evaluating the test split (-1)[0m
+[33m01/26 09:11:05 Loading reference captions..[0m
+[33m01/26 09:11:07 Reference captions loaded![0m
+[33m01/26 09:11:13 using 5000/5000 predictions[0m
+[33m01/26 09:11:13 Loading model captions[0m
+[33m01/26 09:11:13 Model captions loaded[0m
+[33m01/26 09:11:13 Starting evaluation...[0m
+PTBTokenizer tokenized 307085 tokens at 415495.18 tokens per second.
+PTBTokenizer tokenized 50059 tokens at 169377.98 tokens per second.
+Parsing reference captions
+Error: Could not score batched file input:
+org.fusesource.lmdbjni.LMDBException: MDB_CURSOR_FULL: Internal error - cursor stack limit reached
+	at org.fusesource.lmdbjni.Util.checkErrorCode(Util.java:44)
+	at org.fusesource.lmdbjni.Database.get(Database.java:202)
+	at org.fusesource.lmdbjni.Database.get(Database.java:193)
+	at org.fusesource.lmdbjni.Database.get(Database.java:186)
+	at org.fusesource.lmdbjni.Database.get(Database.java:161)
+	at edu.anu.spice.LmdbTupleDB.getTransaction(LmdbTupleDB.java:96)
+	at edu.anu.spice.SpiceParser.loadTuplesFromDB(SpiceParser.java:195)
+	at edu.anu.spice.SpiceParser.loadTuples(SpiceParser.java:245)
+	at edu.anu.spice.SpiceParser.parseCaptions(SpiceParser.java:251)
+	at edu.anu.spice.SpiceScorer.scoreBatch(SpiceScorer.java:109)
+	at edu.anu.spice.SpiceScorer.main(SpiceScorer.java:60)
