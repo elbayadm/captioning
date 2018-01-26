@@ -1364,3 +1364,78 @@ org.fusesource.lmdbjni.LMDBException: MDB_CURSOR_FULL: Internal error - cursor s
 [33m01/26 11:26:50 assigned 5000 images to split test[0m
 [32m01/26 11:26:50 RewardSampler (stratified sampling), r=Hamming (Vpool=1, tau=0.17)[0m
 [33m01/26 11:26:50 Evaluating the test split (-1)[0m
+## OAR [2018-01-26 11:30:05] Job 139357 KILLED ##
+[33m01/26 11:30:15 GPU ID: 3 | available memory: 11162M[0m
+[33m01/26 11:30:19 Starting from the best saved model[0m
+[33m01/26 11:30:19 Starting from save/fncnn6_reset_topdown_resnet152_msc/model-best.pth[0m
+[36m01/26 11:30:25 Setting CNN weigths from save/fncnn6_reset_topdown_resnet152_msc/model-cnn-best.pth[0m
+[33m01/26 11:30:32 Finetuning up from 6 modules in the cnn[0m
+[33m01/26 11:30:32 Top Down : OrderedDict([('embed_1', Embedding(9488, 512)), ('embed', Sequential (
+  (0): Embedding(9488, 512)
+  (1): ReLU ()
+  (2): Dropout (p = 0.5)
+)), ('att_embed', Sequential (
+  (0): Linear (2048 -> 512)
+  (1): ReLU ()
+  (2): Dropout (p = 0.0)
+)), ('logit', Linear (512 -> 9488)), ('ctx2att', Linear (512 -> 512)), ('fc_embed', Sequential (
+  (0): Linear (2048 -> 512)
+  (1): ReLU ()
+  (2): Dropout (p = 0.0)
+)), ('core', TopDownCore (
+  (att_lstm): LSTMCell(1536, 512)
+  (lang_lstm): LSTMCell(1024, 512)
+  (attention): Attention (
+    (h2att): Linear (512 -> 512)
+    (alpha_net): Linear (512 -> 1)
+  )
+))])[0m
+[33m01/26 11:30:34 Loading the model dict (last checkpoint) ['embed_1.weight', 'embed.0.weight', 'att_embed.0.weight', 'att_embed.0.bias', 'logit.weight', 'logit.bias', 'ctx2att.weight', 'ctx2att.bias', 'fc_embed.0.weight', 'fc_embed.0.bias', 'core.att_lstm.weight_ih', 'core.att_lstm.weight_hh', 'core.att_lstm.bias_ih', 'core.att_lstm.bias_hh', 'core.lang_lstm.weight_ih', 'core.lang_lstm.weight_hh', 'core.lang_lstm.bias_ih', 'core.lang_lstm.bias_hh', 'core.attention.h2att.weight', 'core.attention.h2att.bias', 'core.attention.alpha_net.weight', 'core.attention.alpha_net.bias'][0m
+[33m01/26 11:30:34 DataLoader loading json file: data/coco/cocotalk.json[0m
+[33m01/26 11:30:34 vocab size is 9487 [0m
+[33m01/26 11:30:34 DataLoader loading h5 file: data/coco/cocotalk.h5[0m
+[33m01/26 11:30:34 read 123287 images of size 3x256x256[0m
+[33m01/26 11:30:34 max sequence length in data is 16[0m
+[33m01/26 11:30:34 assigned 82783 images to split train[0m
+[33m01/26 11:30:34 assigned 5000 images to split val[0m
+[33m01/26 11:30:34 assigned 5000 images to split test[0m
+[32m01/26 11:30:34 Default ML loss[0m
+[33m01/26 11:30:34 Evaluating the test split (-1)[0m
+## OAR [2018-01-26 11:35:04] Job 139358 KILLED ##
+[33m01/26 11:35:14 GPU ID: 3 | available memory: 11162M[0m
+[33m01/26 11:35:17 Starting from the best saved model[0m
+[33m01/26 11:35:17 Starting from save/fncnn6_reset_strat_lazy_rhamming_pool1_tsent017_a04_topdown/model-best.pth[0m
+[36m01/26 11:35:23 Setting CNN weigths from save/fncnn6_reset_strat_lazy_rhamming_pool1_tsent017_a04_topdown/model-cnn-best.pth[0m
+[33m01/26 11:35:30 Finetuning up from 6 modules in the cnn[0m
+[33m01/26 11:35:30 Top Down : OrderedDict([('embed_1', Embedding(9488, 512)), ('embed', Sequential (
+  (0): Embedding(9488, 512)
+  (1): ReLU ()
+  (2): Dropout (p = 0.5)
+)), ('att_embed', Sequential (
+  (0): Linear (2048 -> 512)
+  (1): ReLU ()
+  (2): Dropout (p = 0.0)
+)), ('logit', Linear (512 -> 9488)), ('ctx2att', Linear (512 -> 512)), ('fc_embed', Sequential (
+  (0): Linear (2048 -> 512)
+  (1): ReLU ()
+  (2): Dropout (p = 0.0)
+)), ('core', TopDownCore (
+  (att_lstm): LSTMCell(1536, 512)
+  (lang_lstm): LSTMCell(1024, 512)
+  (attention): Attention (
+    (h2att): Linear (512 -> 512)
+    (alpha_net): Linear (512 -> 1)
+  )
+))])[0m
+[33m01/26 11:35:32 Loading the model dict (last checkpoint) ['embed_1.weight', 'embed.0.weight', 'att_embed.0.weight', 'att_embed.0.bias', 'logit.weight', 'logit.bias', 'ctx2att.weight', 'ctx2att.bias', 'fc_embed.0.weight', 'fc_embed.0.bias', 'core.att_lstm.weight_ih', 'core.att_lstm.weight_hh', 'core.att_lstm.bias_ih', 'core.att_lstm.bias_hh', 'core.lang_lstm.weight_ih', 'core.lang_lstm.weight_hh', 'core.lang_lstm.bias_ih', 'core.lang_lstm.bias_hh', 'core.attention.h2att.weight', 'core.attention.h2att.bias', 'core.attention.alpha_net.weight', 'core.attention.alpha_net.bias'][0m
+[33m01/26 11:35:32 DataLoader loading json file: data/coco/cocotalk.json[0m
+[33m01/26 11:35:32 vocab size is 9487 [0m
+[33m01/26 11:35:32 DataLoader loading h5 file: data/coco/cocotalk.h5[0m
+[33m01/26 11:35:32 read 123287 images of size 3x256x256[0m
+[33m01/26 11:35:32 max sequence length in data is 16[0m
+[33m01/26 11:35:32 assigned 82783 images to split train[0m
+[33m01/26 11:35:32 assigned 5000 images to split val[0m
+[33m01/26 11:35:32 assigned 5000 images to split test[0m
+[32m01/26 11:35:32 RewardSampler (stratified sampling), r=Hamming (Vpool=1, tau=0.17)[0m
+[33m01/26 11:35:32 Evaluating the test split (-1)[0m
+## OAR [2018-01-26 11:38:52] Job 139359 KILLED ##

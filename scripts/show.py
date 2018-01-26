@@ -441,7 +441,7 @@ if __name__ == "__main__":
         split = 'test'
         filename = "results/%s%s_%s" % (split, fltr_concat, socket.gethostname())
         tab = crawl_results_paper(fltr, exc, split, verbose, args.reset)
-        print(tab.get_string(sortby='CIDEr-D_ph1', reversesort=True, fields=PAPER_FIELDS_SELECT))
+        print(tab.get_string(sortby='SPICE_ph2', reversesort=True, fields=PAPER_FIELDS_SELECT))
         print('saving latex table in %s.tex' % filename)
         with open(filename+'.tex', 'w') as f:
             tex = get_latex(tab, sortby="CIDEr-D_ph1",

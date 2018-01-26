@@ -3,12 +3,12 @@ TRAIN
 STRATIFY: lazy pool2 topdown fncnn (wait)
 IMPORTANCE: lazy pool2 topdown fncnn (wait)
 IMPORTANCE: lazy pool2 showtel fncnn (wait)
+
+check pool0 
+
 ---------------------------------------------
 
 EVAL
 ---------------------------------------------
-cmp fncnn strat pool1 showtell
-cmp fncnn ml topdown
-cmp fncnn strat lazy pool1 topd
 
 
