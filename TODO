@@ -11,5 +11,3 @@ check pool0
 EVAL
 ---------------------------------------------
 
-cmp_eval fncnn6_reset_importance_lazy_qhamming_limited1_tsent017_rcider_tsent05_a04_showtell152
-cmp_eval fncnn6_reset_importance_qhamming_limited1_tsent017_rcider_tsent05_a04_showtell152
