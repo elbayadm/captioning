@@ -1,24 +1,20 @@
-# Generic
-# -------------------------
-modelname : baseline_resnet152
-restart : 1
-
+modelname : baseline_resnet152_msc
 caption_model : show_tell
-cnn_model : resnet152
 
-batch_size : 10
-input_data : data/coco/cocotalk
-seq_per_img : 5
+restart : 1
 val_images_use : -1
 save_checkpoint_every : 4000
 
-finetune_cnn_after : -1
-learning_rate : 5e-4
-learning_rate_decay_start : 5
-learning_rate_decay_rate : 0.6
-learning_rate_decay_every: 3
+optim_alpha : 0.8
 
-# Loss:
-bootstrap : 0
-sample_cap : 0
+finetune_cnn_after : -1
+cnn_model : resnet152
+
+fc_feat_size : 2048
+rnn_size : 512
+
+batch_size : 10
+input_data : data/coco/cocotalk
+
+beam_size : 3
 
