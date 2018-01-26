@@ -1,6 +1,5 @@
 ---------------------------------------------
 STRATIFY:
-pool2 topdown fncnn (wait)
 lazy pool2 topdown fncnn (wait)
 ---------------------------------------------
 IMPORTANCE:
