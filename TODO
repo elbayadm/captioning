@@ -1,9 +1,16 @@
+TRAIN
 ---------------------------------------------
-STRATIFY:
-lazy pool2 topdown fncnn (wait)
+STRATIFY: lazy pool2 topdown fncnn (wait)
+IMPORTANCE: lazy pool2 topdown fncnn (wait)
+IMPORTANCE: lazy pool2 showtel fncnn (wait)
 ---------------------------------------------
-IMPORTANCE:
+
+EVAL
 ---------------------------------------------
-lazy pool2 topdown fncnn (wait)
-lazy pool2 showtel fncnn (wait)
----------------------------------------------
+cmp word idf01 showtell 
+cmp ml_penalize03 
+cmp fncnn strat pool1 showtell
+cmp fncnn ml topdown
+cmp fncnn strat lazy pool1 topd
+
+
