@@ -1,4 +1,4 @@
-modelname : baseline_resnet152_msc
+modelname : baseline_resnet152
 caption_model : show_tell
 
 restart : 1
