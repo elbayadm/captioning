@@ -1,4 +1,4 @@
-modelname : fncnn6_word_coco_tword009_idf10_a03_topdown
+modelname : fncnn6_reset_word_coco_tword009_idf10_a03_topdown
 start_from : save/word_coco_tword009_idf10_a03_topdown
 start_from_best : 1
 
@@ -8,6 +8,7 @@ cnn_model : resnet152
 batch_size : 10
 input_data : data/coco/cocotalk
 
+reset_optimizer : 1
 finetune_cnn_after : 0
 finetune_cnn_slice : 6
 
