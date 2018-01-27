@@ -50,3 +50,5 @@ else
     eval $cmd
 fi
 
+
+echo $JOB >> RUNNING
