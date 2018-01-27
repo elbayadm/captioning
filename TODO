@@ -12,3 +12,4 @@ EVAL
 ---------------------------------------------
 cmp_eval fncnn6_reset_importance_qhamming_limited2_tsent03_rcider_tsent05_a05_showtell152
 cmp_eval strat pool2 topdown 
+cmp_eval fncnn6_reset_word_coco_tword009_idf10_a03_topdown
