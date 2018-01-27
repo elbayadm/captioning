@@ -1,13 +1,14 @@
 TRAIN
 ---------------------------------------------
-STRATIFY: lazy pool2 topdown fncnn (wait)
-IMPORTANCE: lazy pool2 topdown fncnn (wait)
-IMPORTANCE: lazy pool2 showtel fncnn (wait)
+STRATIFY:
+lazy pool2 topdown (~)
+lazy pool2 topdown fncnn (wait)
+
 
 check pool0 
 ---------------------------------------------
 
 EVAL
 ---------------------------------------------
-
-
+cmp_eval fncnn6_reset_importance_qhamming_limited2_tsent03_rcider_tsent05_a05_showtell152
+cmp_eval strat pool2 topdown 

@@ -3,6 +3,7 @@
 Model & Loss & Bleu4_ph1 & CIDEr-D_ph1 & SPICE_ph1 & Perplexity_ph1 & Bleu1_ph2 & Bleu4_ph2 & ROUGE-L_ph2 & CIDEr-D_ph2 & SPICE_ph2 & Perplexity_ph2\\
 \hline
 Top-down & Importance r=(cider, $\tau=0.50$), q=(Hamming, Vpool=2 $\tau=0.30$),$\alpha=0.4$  & 31.91 & 99.60 & 18.51 & 10.54 & 0 & 0 & 0 & 0 & 0 & 0\\
+Top-down & Importance r=(cider, $\tau=0.50$), q=(Hamming, Vpool=2 $\tau=0.30$),$\alpha=0.5$  (LAZY) & 31.84 & 98.61 & 18.42 & 11.47 & 0 & 0 & 0 & 0 & 0 & 0\\
 Top-down & Stratify r=(Hamming, Vpool=1, $\tau=0.17$), $\alpha=0.4$ & 31.60 & 98.34 & 18.29 & 10.51 & 73.26 & 32.73 & 54.28 & 101.90 & 18.97 & 10.14\\
 Top-down &  Word, Sim=Glove-Coco xIDF(1.0), $\tau=0.09$, $\alpha=0.3$ & 31.38 & 98.27 & 18.20 & 13.60 & 0 & 0 & 0 & 0 & 0 & 0\\
 Top-down & Stratify r=(Hamming, Vpool=2, $\tau=0.30$), $\alpha=0.4$ & 31.58 & 98.23 & 18.55 & 10.59 & 0 & 0 & 0 & 0 & 0 & 0\\
@@ -19,8 +20,9 @@ Show \& Tell & Stratify r=(Hamming, Vpool=2, $\tau=0.30$), $\alpha=0.5$ & 29.88 
 Show \& Tell & Importance r=(cider, $\tau=0.50$), q=(Hamming, Vpool=1 $\tau=0.17$),$\alpha=0.4$  & 29.46 & 91.07 & 17.32 & 10.50 & 71.51 & 31.17 & 52.80 & 95.78 & 17.89 & 10.33\\
 Show \& Tell & Importance r=(cider, $\tau=0.50$), q=(Hamming, Vpool=1 $\tau=0.17$),$\alpha=0.4$  (LAZY) & 29.29 & 90.81 & 17.11 & 10.67 & 71.47 & 31.00 & 52.94 & 95.56 & 17.90 & 10.42\\
 Show \& Tell & Stratify r=(Hamming, Vpool=1, $\tau=0.17$), $\alpha=0.4$ & 29.44 & 90.79 & 17.35 & 10.52 & 71.46 & 31.15 & 52.93 & 96.53 & 18.03 & 10.25\\
-Show \& Tell & Stratify r=(Hamming, Vpool=2, $\tau=0.30$), $\alpha=0.5$ (LAZY) & 29.67 & 90.79 & 17.25 & 11.58 & 0 & 0 & 0 & 0 & 0 & 0\\
-Show \& Tell & Stratify r=(Hamming, Vpool=1, $\tau=0.17$), $\alpha=0.4$ (LAZY) & 29.14 & 90.51 & 17.11 & 10.71 & 0 & 0 & 0 & 0 & 0 & 0\\
+Show \& Tell & Stratify r=(Hamming, Vpool=2, $\tau=0.30$), $\alpha=0.5$ (LAZY) & 29.67 & 90.79 & 17.25 & 11.58 & 71.96 & 31.23 & 52.90 & 95.34 & 17.99 & 11.32\\
+Show \& Tell & Importance r=(cider, $\tau=0.50$), q=(Hamming, Vpool=2 $\tau=0.30$),$\alpha=0.5$  (LAZY) & 29.63 & 90.75 & 17.11 & 11.53 & 0 & 0 & 0 & 0 & 0 & 0\\
+Show \& Tell & Stratify r=(Hamming, Vpool=1, $\tau=0.17$), $\alpha=0.4$ (LAZY) & 29.14 & 90.51 & 17.11 & 10.71 & 71.85 & 31.13 & 52.96 & 96.65 & 18.00 & 10.40\\
 Show \& Tell & Stratify r=(Hamming, Vpool=0, $\tau=0.10$), $\alpha=0.4$ & 29.08 & 90.08 & 17.18 & 10.48 & 0 & 0 & 0 & 0 & 0 & 0\\
 Show \& Tell & ML, $W_{dec}=Glove_{coco, 512}$ & 28.92 & 89.67 & 17.16 & 10.28 & 70.66 & 30.04 & 52.14 & 93.35 & 17.70 & 10.14\\
 Show \& Tell & ML & 28.34 & 88.30 & 17.00 & 10.45 & 70.63 & 30.14 & 52.37 & 93.59 & 17.66 & 10.18\\
