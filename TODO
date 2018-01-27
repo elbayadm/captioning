@@ -11,3 +11,5 @@ check pool0
 EVAL
 ---------------------------------------------
 cmp_eval fncnn6_reset_importance_qhamming_limited2_tsent03_rcider_tsent05_a04_topdown
+eval fncnn6_reset_strat_rhamming_pool2_tsent03_a05_showtell152
+
