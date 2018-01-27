@@ -10,6 +10,5 @@ check pool0
 
 EVAL
 ---------------------------------------------
-cmp_eval fncnn6_reset_importance_qhamming_limited2_tsent03_rcider_tsent05_a05_showtell152
-cmp_eval strat pool2 topdown 
-cmp_eval fncnn6_reset_word_coco_tword009_idf10_a03_topdown
+cmp_eval fncnn6_reset_strat_rhamming_pool2_tsent03_a04_topdown
+cmp_eval strat_lazy_rhamming_pool2_tsent03_a04_topdown

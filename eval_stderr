@@ -323,3 +323,69 @@ org.fusesource.lmdbjni.LMDBException: MDB_CURSOR_FULL: Internal error - cursor s
 	at edu.anu.spice.SpiceParser.parseCaptions(SpiceParser.java:251)
 	at edu.anu.spice.SpiceScorer.scoreBatch(SpiceScorer.java:109)
 	at edu.anu.spice.SpiceScorer.main(SpiceScorer.java:60)
+[33m01/27 12:12:33 GPU ID: 2 | available memory: 16276M[0m
+[33m01/27 12:12:45 Starting from the best saved model[0m
+[33m01/27 12:12:45 Starting from save/fncnn6_reset_strat_rhamming_pool2_tsent03_a04_topdown/model-best.pth[0m
+[36m01/27 12:12:49 Setting CNN weigths from save/fncnn6_res[33m01/27 12:12:55 Starting from the best saved model[0m
+[33m01/27 12:12:55 Starting from save/strat_lazy_rhamming_pool2_tsent03_a04_topdown/model-best.pth[0m
+[36m01/27 12:13:01 Setting CNN weigths from save/strat_lazy_rhamming_pool2_tsent03_a04_topdown/model-cnn-best.pth[0m
+ Dropout (p = 0.5)
+)), ('att_embed', Sequential (
+  (0): Linear (2048 -> 512)
+  (1): ReLU ()
+  (2): Dropout (p = 0.0)
+)), ('logit', Linear (512 -> 9488)), ('ctx2att', Linear (512 -> 512)), ('fc_embed', Sequential (
+  (0): Linear (2048 -> 512)
+  (1): ReLU ()
+  (2): Dropout (p = 0.0)
+)), ('core', TopDownCore (
+  (att_lstm): LSTMCell(1536, 512)
+  (lang_lstm): LSTMCell(1024, 512)
+  (attention): Attention (
+    (h2att): Linear (512 -> 512)
+    (alpha_net): Linear (512 -> 1)
+  )
+))])[0m
+[33m01/27 12:12:53 Loading the model dict (last checkpoint) ['embed_1.weight', 'embed.0.weight', 'att_embed.0.weight', 'att_embed.0.bias', 'logit.weight', 'logit.bias', 'ctx2att.weight', 'ctx2att.bias', 'fc_embed.0.weight', 'fc_embed.0.bias', 'core.att_lstm.weight_ih', 'core.att_lstm.weight_hh', 'core.att_lstm.bias_ih', 'core.att_lstm.bias_hh', 'core.lang_lstm.weight_ih', 'core.lang_lstm.weight_hh', 'core.lang_lstm.bias_ih', 'core.lang_lstm.bias_hh', 'core.attention.h2att.weight', 'core.attention.h2att.bias', 'core.attention.alpha_net.weight', 'core.attention.alpha_net.bias'][0m
+[33m01/27 12:12:53 DataLoader loading json file: data/coco/cocotalk.json[0m
+[33m01/27 12:12:54 vocab size is 9487 [0m
+[33m01/27 12:12:54 DataLoader loading h5 file: data/coco/cocotalk.h5[0m
+[33m01/27 12:12:54 read 123287 images of size 3x256x256[0m
+[33m01/27 12:12:54 max sequence length in data is 16[0m
+[33m01/27 12:12:54 assigned 82783 images to split train[0m
+[33m01/27 12:12:54 assigned 5000 images to split val[0m
+[33m01/27 12:12:54 assigned 5000 images to split test[0m
+[32m01/27 12:12:54 RewardSampler (stratified sampling), r=Hamming (Vpool=2, tau=0.30)[0m
+[33m01/27 12:12:54 Evaluating the test split (-1)[0m
+[33m01/27 12:13:09 Finetuning up from 0 modules in the cnn[0m
+[33m01/27 12:13:11 Top Down : OrderedDict([('embed_1', Embedding(9488, 512)), ('embed', Sequential (
+  (0): Embedding(9488, 512)
+  (1): ReLU ()
+  (2): Dropout (p = 0.5)
+)), ('att_embed', Sequential (
+  (0): Linear (2048 -> 512)
+  (1): ReLU ()
+  (2): Dropout (p = 0.0)
+)), ('logit', Linear (512 -> 9488)), ('ctx2att', Linear (512 -> 512)), ('fc_embed', Sequential (
+  (0): Linear (2048 -> 512)
+  (1): ReLU ()
+  (2): Dropout (p = 0.0)
+)), ('core', TopDownCore (
+  (att_lstm): LSTMCell(1536, 512)
+  (lang_lstm): LSTMCell(1024, 512)
+  (attention): Attention (
+    (h2att): Linear (512 -> 512)
+    (alpha_net): Linear (512 -> 1)
+  )
+))])[0m
+[33m01/27 12:13:13 Loading the model dict (last checkpoint) ['embed_1.weight', 'embed.0.weight', 'att_embed.0.weight', 'att_embed.0.bias', 'logit.weight', 'logit.bias', 'ctx2att.weight', 'ctx2att.bias', 'fc_embed.0.weight', 'fc_embed.0.bias', 'core.att_lstm.weight_ih', 'core.att_lstm.weight_hh', 'core.att_lstm.bias_ih', 'core.att_lstm.bias_hh', 'core.lang_lstm.weight_ih', 'core.lang_lstm.weight_hh', 'core.lang_lstm.bias_ih', 'core.lang_lstm.bias_hh', 'core.attention.h2att.weight', 'core.attention.h2att.bias', 'core.attention.alpha_net.weight', 'core.attention.alpha_net.bias'][0m
+[33m01/27 12:13:13 DataLoader loading json file: data/coco/cocotalk.json[0m
+[33m01/27 12:13:13 vocab size is 9487 [0m
+[33m01/27 12:13:13 DataLoader loading h5 file: data/coco/cocotalk.h5[0m
+[33m01/27 12:13:13 read 123287 images of size 3x256x256[0m
+[33m01/27 12:13:13 max sequence length in data is 16[0m
+[33m01/27 12:13:13 assigned 82783 images to split train[0m
+[33m01/27 12:13:13 assigned 5000 images to split val[0m
+[33m01/27 12:13:13 assigned 5000 images to split test[0m
+[32m01/27 12:13:13 RewardSampler (stratified sampling), r=Hamming (Vpool=2, tau=0.30)[0m
+[33m01/27 12:13:13 Evaluating the test split (-1)[0m
