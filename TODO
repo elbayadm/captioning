@@ -5,10 +5,9 @@ IMPORTANCE: lazy pool2 topdown fncnn (wait)
 IMPORTANCE: lazy pool2 showtel fncnn (wait)
 
 check pool0 
-
 ---------------------------------------------
 
 EVAL
 ---------------------------------------------
 
-cmp_eval importance_lazy_qhamming_limited2_tsent03_rcider_tsent05_a05_showtell152
+
