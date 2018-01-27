@@ -1,4 +1,4 @@
-modelname : combine_strat_rhamming_pool1_tsent017_a04_word_coco_tword009_idf10ça07_showtell152
+modelname : combine_strat_rhamming_pool1_tsent017_a04_word_coco_tword009_idf10_a07_showtell152
 
 caption_model : show_tell
 cnn_model : resnet152
