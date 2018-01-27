@@ -444,7 +444,7 @@ if __name__ == "__main__":
         print(tab.get_string(sortby='SPICE_ph2', reversesort=True, fields=PAPER_FIELDS_SELECT))
         print('saving latex table in %s.tex' % filename)
         with open(filename+'.tex', 'w') as f:
-            tex = get_latex(tab, sortby="CIDEr-D_ph1",
+            tex = get_latex(tab, sortby="CIDEr-D_ph2",
                             reversesort=True, fields=PAPER_FIELDS_SELECT)
             f.write("\n".join(tex))
     else:
