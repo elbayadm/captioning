@@ -11,7 +11,4 @@ check pool0
 EVAL
 ---------------------------------------------
 
-cmp_eval fncnn6_reset_word_coco_tword013_a03_topdown
-cmp_eval fncnn6_reset_word_coco_tword013_a05_topdown
-importance_lazy_qhamming_limited2_tsent03_rcider_tsent05_a05_showtell152
-cmp_eval fncnn6_reset_strat_lazy_rhamming_pool1_tsent017_a04_showtell152
+cmp_eval importance_lazy_qhamming_limited2_tsent03_rcider_tsent05_a05_showtell152
