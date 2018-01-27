@@ -10,5 +10,3 @@ check pool0
 
 EVAL
 ---------------------------------------------
-cmp_eval fncnn6_reset_strat_rhamming_pool2_tsent03_a04_topdown
-cmp_eval strat_lazy_rhamming_pool2_tsent03_a04_topdown

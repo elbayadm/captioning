@@ -389,3 +389,47 @@ org.fusesource.lmdbjni.LMDBException: MDB_CURSOR_FULL: Internal error - cursor s
 [33m01/27 12:13:13 assigned 5000 images to split test[0m
 [32m01/27 12:13:13 RewardSampler (stratified sampling), r=Hamming (Vpool=2, tau=0.30)[0m
 [33m01/27 12:13:13 Evaluating the test split (-1)[0m
+[33m01/27 12:17:54 Loading reference captions..[0m
+[33m01/27 12:17:55 Reference captions loaded![0m
+[33m01/27 12:17:57 using 5000/5000 predictions[0m
+[33m01/27 12:17:57 Loading model captions[0m
+[33m01/27 12:17:57 Model captions loaded[0m
+[33m01/27 12:17:57 Starting evaluation...[0m
+PTBTokenizer tokenized 307085 tokens at 1261297.64 tokens per second.
+PTBTokenizer tokenized 51948 tokens at 417185.10 tokens per second.
+Parsing reference captions
+Error: Could not score batched file input:
+org.fusesource.lmdbjni.LMDBException: MDB_CURSOR_FULL: Internal error - cursor stack limit reached
+	at org.fusesource.lmdbjni.Util.checkErrorCode(Util.java:44)
+	at org.fusesource.lmdbjni.Database.get(Database.java:202)
+	at org.fusesource.lmdbjni.Database.get(Database.java:193)
+	at org.fusesource.lmdbjni.Database.get(Database.java:186)
+	at org.fusesource.lmdbjni.Database.get(Database.java:161)
+	at edu.anu.spice.LmdbTupleDB.getTransaction(LmdbTupleDB.java:96)
+	at edu.anu.spice.SpiceParser.loadTuplesFromDB(SpiceParser.java:195)
+	at edu.anu.spice.SpiceParser.loadTuples(SpiceParser.java:245)
+	at edu.anu.spice.SpiceParser.parseCaptions(SpiceParser.java:251)
+	at edu.anu.spice.SpiceScorer.scoreBatch(SpiceScorer.java:109)
+	at edu.anu.spice.SpiceScorer.main(SpiceScorer.java:60)
+[33m01/27 12:19:25 Loading reference captions..[0m
+[33m01/27 12:19:25 Reference captions loaded![0m
+[33m01/27 12:19:28 using 5000/5000 predictions[0m
+[33m01/27 12:19:28 Loading model captions[0m
+[33m01/27 12:19:28 Model captions loaded[0m
+[33m01/27 12:19:28 Starting evaluation...[0m
+PTBTokenizer tokenized 307085 tokens at 1074725.04 tokens per second.
+PTBTokenizer tokenized 51012 tokens at 336175.64 tokens per second.
+Parsing reference captions
+Error: Could not score batched file input:
+org.fusesource.lmdbjni.LMDBException: MDB_CURSOR_FULL: Internal error - cursor stack limit reached
+	at org.fusesource.lmdbjni.Util.checkErrorCode(Util.java:44)
+	at org.fusesource.lmdbjni.Database.get(Database.java:202)
+	at org.fusesource.lmdbjni.Database.get(Database.java:193)
+	at org.fusesource.lmdbjni.Database.get(Database.java:186)
+	at org.fusesource.lmdbjni.Database.get(Database.java:161)
+	at edu.anu.spice.LmdbTupleDB.getTransaction(LmdbTupleDB.java:96)
+	at edu.anu.spice.SpiceParser.loadTuplesFromDB(SpiceParser.java:195)
+	at edu.anu.spice.SpiceParser.loadTuples(SpiceParser.java:245)
+	at edu.anu.spice.SpiceParser.parseCaptions(SpiceParser.java:251)
+	at edu.anu.spice.SpiceScorer.scoreBatch(SpiceScorer.java:109)
+	at edu.anu.spice.SpiceScorer.main(SpiceScorer.java:60)
