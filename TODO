@@ -22,3 +22,4 @@ EVAL
 eval word_coco_tword006_idf10_a07_showtell152
 eval word_coco_tword009_idf15_a07_showtell152
 eval word_coco_tword012_idf10_a07_showtell152
+cmp_eval importance_qhamming_pool0_tsent01_rcider_tsent05_a04_showtell152

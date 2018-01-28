@@ -1150,3 +1150,4 @@ org.fusesource.lmdbjni.LMDBException: MDB_CURSOR_FULL: Internal error - cursor s
 	at edu.anu.spice.SpiceParser.parseCaptions(SpiceParser.java:251)
 	at edu.anu.spice.SpiceScorer.scoreBatch(SpiceScorer.java:109)
 	at edu.anu.spice.SpiceScorer.main(SpiceScorer.java:60)
+[33m01/28 21:20:03 GPU ID: 1 | available memory: 8114M[0m
