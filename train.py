@@ -44,8 +44,6 @@ def train(opt):
     from torch.autograd import Variable
     import torch.optim as optim
     import tensorflow as tf
-    from tensorflow.python.framework import dtypes
-    from tensorflow.contrib.tensorboard.plugins import projector
 
     from loader import DataLoader
     import models.eval_utils as evald
