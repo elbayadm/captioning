@@ -855,16 +855,197 @@ org.fusesource.lmdbjni.LMDBException: MDB_CURSOR_FULL: Internal error - cursor s
 [33m01/28 09:49:50 assigned 5000 images to split test[0m
 [32m01/28 09:49:52 using importance sampling r=CIDEr (tau=0.50) and q=Hamming (Vpool=2, tau=0.30)[0m
 [33m01/28 09:49:52 Evaluating the test split (-1)[0m
-[33m01/28 09:50:01 Finetuning up from 0 modules in the cnn[0m
-[33m01/28 09:50:01 Show & Tell : OrderedDict([('img_embed', Linear (2048 -> 512)), ('core', LSTM(512, 512, bias=False, dropout=0.5)), ('embed', Embedding(9488, 512)), ('drop_x_lm', Dropout (p = 0.5)), ('logit', Linear (512 -> 9488))])[0m
-[33m01/28 09:50:02 Loading the model dict (last checkpoint) ['img_embed.weight', 'img_embed.bias', 'core.weight_ih_l0', 'core.weight_hh_l0', 'embed.weight', 'logit.weight', 'logit.bias'][0m
-[33m01/28 09:50:04 DataLoader loading json file: data/coco/cocotalk.json[0m
-[33m01/28 09:50:04 vocab size is 9487 [0m
-[33m01/28 09:50:04 DataLoader loading h5 file: data/coco/cocotalk.h5[0m
-[33m01/28 09:50:04 read 123287 images of size 3x256x256[0m
-[33m01/28 09:50:04 max sequence length in data is 16[0m
-[33m01/28 09:50:04 assigned 82783 images to split train[0m
-[33m01/28 09:50:04 assigned 5000 images to split val[0m
-[33m01/28 09:50:04 assigned 5000 images to split test[0m
-[32m01/28 09:50:04 Default ML loss[0m
-[33m01/28 09:50:04 Evaluating the test split (-1)[0m
+[36m01/28 09:50:00 Setting CNN weigths from save/strat_lazy_rhamming_pool0_tsent01_a04_showtell152/model-cnn-best.pth[0m
+[33m01/28 09:50:07 Finetuning up from 0 modules in the cnn[0m
+[33m01/28 09:50:08 Show & Tell : OrderedDict([('img_embed', Linear (2048 -> 512)), ('core', LSTM(512, 512, bias=False, dropout=0.5)), ('embed', Embedding(9488, 512)), ('drop_x_lm', Dropout (p = 0.5)), ('logit', Linear (512 -> 9488))])[0m
+[33m01/28 09:50:09 Loading the model dict (last checkpoint) ['img_embed.weight', 'img_embed.bias', 'core.weight_ih_l0', 'core.weight_hh_l0', 'embed.weight', 'logit.weight', 'logit.bias'][0m
+[33m01/28 09:50:10 DataLoader loading json file: data/coco/cocotalk.json[0m
+[33m01/28 09:50:10 vocab size is 9487 [0m
+[33m01/28 09:50:10 DataLoader loading h5 file: data/coco/cocotalk.h5[0m
+[33m01/28 09:50:10 read 123287 images of size 3x256x256[0m
+[33m01/28 09:50:10 max sequence length in data is 16[0m
+[33m01/28 09:50:10 assigned 82783 images to split train[0m
+[33m01/28 09:50:10 assigned 5000 images to split val[0m
+[33m01/28 09:50:10 assigned 50[33m01/28 09:50:15 Starting from the best saved model[0m
+[33m01/28 09:50:15 Starting from save/fncnn6_reset_importance_lazy_qhamming_limited2_tsent03_rcider_tsent05_a05_sh[33m01/28 09:50:24 Finetuning up from 0 modules in the cnn[0m
+[33m01/28 09:50:25 Top Down : OrderedDict([('embed_1', Embedding(9488, 512)), ('embed', Sequential (
+  (0): Embedding(9488, 512)
+  (1): ReLU ()
+  (2): Dropout (p = 0.5)
+)), ('att_embed', Sequential (
+  (0): Linear (2048 -> 512)
+  (1): ReLU ()
+  (2): Dropout (p = 0.0)
+)), ('logit', Linear (512 -> 9488)), ('ctx2att', Linear (512 -> 512)), ('fc_embed', Sequential (
+  (0): Linear (2048 -> 512)
+  (1): ReLU ()
+  (2): Dropout (p = 0.0)
+)), ('core', TopDownCore (
+  (att_lstm): LSTMCell(1536, 512)
+  (lang_lstm): LSTMCell(1024, 512)
+  (attention): Attention (
+    (h2att): Linear (512 -> 512)
+    (alpha_net): Linear (512 -> 1)
+  )
+))])[0m
+[33m01/28 09:50:34 Loading the model dict (last checkpoint) ['embed_1.weight', 'embed.0.weight', 'att_embed.0.weight', 'att_embed.0.bias', 'logit.weight', 'logit.bias', 'ctx2att.weight', 'ctx2att.bias', 'fc_embed.0.weight', 'fc_embed.0.bias', 'core.att_lstm.weight_ih', 'core.att_lstm.weight_hh', 'core.att_lstm.bias_ih', 'core.att_lstm.bias_hh', 'core.lang_lstm.weight_ih', 'core.lang_lstm.weight_hh', 'core.lang_lstm.bias_ih', 'core.lang_lstm.bias_hh', 'core.attention.h2att.weight', 'core.attention.h2att.bias', 'core.attention.alpha_net.weight', 'core.attention.alpha_net.bias'][0m
+[33m01/28 09:50:34 DataLoader loading json file: data/coco/cocotalk.json[0m
+[33m01/28 09:50:35 vocab size is 9487 [0m
+[33m01/28 09:50:35 DataLoader loading h5 file: data/coco/cocotalk.h5[0m
+[33m01/28 09:50:35 read 123287 images of size 3x256x256[0m
+[33m01/28 09:50:35 max sequence length in data is 16[0m
+[33m01/28 09:50:35 assigned 82783 images to split train[0m
+[33m01/28 09:50:35 assigned 5000 images to split val[0m
+[33m01/28 09:50:35 assigned 5000 images to split test[0m
+[32m01/28 09:50:35 RewardSampler (stratified sampling), r=Hamming (Vpool=0, tau=0.10)[0m
+[33m01/28 09:50:35 Evaluating the test split (-1)[0m
+[33m01/28 09:51:10 Finetuning up from 6 modules in the cnn[0m
+[33m01/28 09:51:10 Show & Tell : OrderedDict([('img_embed', Linear (2048 -> 512)), ('core', LSTM(512, 512, bias=False, dropout=0.5)), ('embed', Embedding(9488, 512)), ('drop_x_lm', Dropout (p = 0.5)), ('logit', Linear (512 -> 9488))])[0m
+[33m01/28 09:51:19 Loading the model dict (last checkpoint) ['img_embed.weight', 'img_embed.bias', 'core.weight_ih_l0', 'core.weight_hh_l0', 'embed.weight', 'logit.weight', 'logit.bias'][0m
+[33m01/28 09:51:28 DataLoader loading json file: data/coco/cocotalk.json[0m
+[33m01/28 09:51:28 vocab size is 9487 [0m
+[33m01/28 09:51:28 DataLoader loading h5 file: data/coco/cocotalk.h5[0m
+[33m01/28 09:51:28 read 123287 images of size 3x256x256[0m
+[33m01/28 09:51:28 max sequence length in data is 16[0m
+[33m01/28 09:51:28 assigned 82783 images to split train[0m
+[33m01/28 09:51:28 assigned 5000 images to split val[0m
+[33m01/28 09:51:28 assigned 5000 images to split test[0m
+[32m01/28 09:51:39 using importance sampling r=CIDEr (tau=0.50) and q=Hamming (Vpool=2, tau=0.30)[0m
+[33m01/28 09:51:39 Evaluating the test split (-1)[0m
+[33m01/28 09:55:48 Loading reference captions..[0m
+[33m01/28 09:55:49 Reference captions loaded![0m
+[33m01/28 09:55:52 using 5000/5000 predictions[0m
+[33m01/28 09:55:52 Loading model captions[0m
+[33m01/28 09:55:52 Model captions loaded[0m
+[33m01/28 09:55:52 Starting evaluation...[0m
+PTBTokenizer tokenized 307085 tokens at 1071287.91 tokens per second.
+PTBTokenizer tokenized 51773 tokens at 282563.37 tokens per second.
+[33m01/28 09:56:08 Loading reference captions..[0m
+[33m01/28 09:56:04 Reference captions loaded![0m
+[33m01/28 09:56:06 using 5000/5000 predictions[0m
+[33m01/28 09:56:06 Loading model captions[0m
+[33m01/28 09:56:06 Model captions loaded[0m
+[33m01/28 09:56:06 Starting evaluation...[0m
+PTBTokenizer tokenized 307085 tokens at 1364041.29 tokens per second.
+PTBTokenizer tokenized 51238 tokens at 398802.29 tokens per second.
+[33m01/28 09:56:12 Reference captions loaded![0m
+[33m01/28 09:56:14 using 5000/5000 predictions[0m
+[33m01/28 09:56:14 Loading model captions[0m
+[33m01/28 09:56:14 Model captions loaded[0m
+[33m01/28 09:56:14 Starting evaluation...[0m
+PTBTokenizer tokenized 307085 tokens at 1007165.34 tokens per second.
+ni.Database.get(Database.java:193)
+	at org.fusesource.lmdbjni.Database.get(Database.java:186)
+	at org.fusesource.lmdbjni.Database.get(Database.java:161)
+	at edu.anu.spice.LmdbTupleDB.getTransaction(LmdbTupleDB.java:96)
+	at edu.anu.spice.SpiceParser.loadTuplesFromDB(SpiceParser.java:195)
+	at edu.anu.spice.SpiceParser.loadTuples(SpiceParser.java:245)
+	at edu.anu.spice.SpiceParser.parseCaptions(SpiceParser.java:251)
+	at edu.anu.spice.SpiceScorer.scoreBatch(SpiceScorer.java:109)
+	at edu.anu.spice.SpiceScorer.main(SpiceScorer.java:60)
+[33m01/28 09:56:14 GPU ID: 0 | available memory: 11172M[0m
+econd.
+[33m01/28 09:56:18 Starting from the best saved model[0m
+[33m01/28 09:56:19 Starting from save/fncnn6_reset_strat_rhamming_pool0_tsent01_a04_showtell152/model-best.pth[0m
+[36m01/28 09:56:23 Setting CNN weigths from save/fncnn6_reset_strat_rhamming_pool0_tsent01_a04_showtell152/model-cnn-best.pth[0m
+e.lmdbjni.Database.get(Database.java:193)
+	at org.fusesource.lmdbjni.Database.get(Database.java:186)
+	at org.fusesource.lmdbjni.Database.get(Database.java:161)
+	at edu.anu.spice.LmdbTupleDB.getTransaction(LmdbTupleDB.java:96)
+	at edu.anu.spice.SpiceParser.loadTuplesFromDB(SpiceParser.java:195)
+	at edu.anu.spice.SpiceParser.loadTuples(SpiceParser.java:245)
+	at edu.anu.spice.SpiceParser.parseCaptions(SpiceParser.java:251)
+	at edu.anu.spice.SpiceScorer.scoreBatch(SpiceScorer.java:109)
+	at edu.anu.spice.SpiceScorer.main(SpiceScorer.java:60)
+[33m01/28 09:56:25 Finetuning up from 6 modules in the cnn[0m
+[33m01/28 09:56:26 Show & Tell : OrderedDict([('img_embed', Linear (2048 -> 512)), ('core', LSTM(512, 512, bias=False, dropout=0.5)), ('embed', Embedding(9488, 512)), ('drop_x_lm', Dropout (p = 0.5)), ('logit', Linear (512 -> 9488))])[0m
+[33m01/28 09:56:26 Loading the model dict (last checkpoint) ['img_embed.weight', 'img_embed.bias', 'core.weight_ih_l0', 'core.weight_hh_l0', 'embed.weight', 'logit.weight', 'logit.bias'][0m
+[33m01/28 09:56:27 DataLoader loading json file: data/coco/cocotalk.json[0m
+[33m01/28 09:56:27 vocab size is 9487 [0m
+[33m01/28 09:56:27 DataLoader loading h5 file: data/coco/cocotalk.h5[0m
+[33m01/28 09:56:27 read 123287 images of size 3x256x256[0m
+[33m01/28 09:56:27 max sequence length in data is 16[0m
+[33m01/28 09:56:27 assigned 82783 images to split train[0m
+[33m01/28 09:56:27 assigned 5000 images to split val[0m
+[33m01/28 09:56:27 assigned 5000 images to split test[0m
+[32m01/28 09:56:27 RewardSampler (stratified sampling), r=Hamming (Vpool=0, tau=0.10)[0m
+[33m01/28 09:56:27 Evaluating the test split (-1)[0m
+Error: Could not score batched file input:
+org.fusesource.lmdbjni.LMDBException: MDB_CURSOR_FULL: Internal error - cursor stack limit reached
+	at org.fusesource.lmdbjni.Util.checkErrorCode(Util.java:44)
+	at org.fusesource.lmdbjni.Database.get(Database.java:202)
+	at org.fusesource.lmdbjni.Database.get(Database.java:193)
+	at org.fusesource.lmdbjni.Database.get(Database.java:186)
+	at org.fusesource.lmdbjni.Database.get(Database.java:161)
+	at edu.anu.spice.LmdbTupleDB.getTransaction(LmdbTupleDB.java:96)
+	at edu.anu.spice.SpiceParser.loadTuplesFromDB(SpiceParser.java:195)
+	at edu.anu.spice.SpiceParser.loadTuples(SpiceParser.java:245)
+	at edu.anu.spice.SpiceParser.parseCaptions(SpiceParser.java:251)
+	at edu.anu.spice.SpiceScorer.scoreBatch(SpiceScorer.java:109)
+	at edu.anu.spice.SpiceScorer.main(SpiceScorer.java:60)
+[33m01/28 09:58:14 Loading reference captions..[0m
+[33m01/28 09:58:18 Reference captions loaded![0m
+[33m01/28 09:58:20 using 5000/5000 predictions[0m
+[33m01/28 09:58:20 Loading model captions[0m
+[33m01/28 09:58:20 Model captions loaded[0m
+[33m01/28 09:58:20 Starting evaluation...[0m
+PTBTokenizer tokenized 307085 tokens at 714313.53 tokens per second.
+PTBTokenizer tokenized 50854 tokens at 289756.07 tokens per second.
+Parsing reference captions
+Error: Could not score batched file input:
+org.fusesource.lmdbjni.LMDBException: MDB_CURSOR_FULL: Internal error - cursor stack limit reached
+	at org.fusesource.lmdbjni.Util.checkErrorCode(Util.java:44)
+	at org.fusesource.lmdbjni.Database.get(Database.java:202)
+	at org.fusesource.lmdbjni.Database.get(Database.java:193)
+	at org.fusesource.lmdbjni.Database.get(Database.java:186)
+	at org.fusesource.lmdbjni.Database.get(Database.java:161)
+	at edu.anu.spice.LmdbTupleDB.getTransaction(LmdbTupleDB.java:96)
+	at edu.anu.spice.SpiceParser.loadTuplesFromDB(SpiceParser.java:195)
+	at edu.anu.spice.SpiceParser.loadTuples(SpiceParser.java:245)
+	at edu.anu.spice.SpiceParser.parseCaptions(SpiceParser.java:251)
+	at edu.anu.spice.SpiceScorer.scoreBatch(SpiceScorer.java:109)
+	at edu.anu.spice.SpiceScorer.main(SpiceScorer.java:60)
+[33m01/28 10:00:00 Loading reference captions..[0m
+[33m01/28 10:00:05 Reference captions loaded![0m
+[33m01/28 10:00:06 using 5000/5000 predictions[0m
+[33m01/28 10:00:06 Loading model captions[0m
+[33m01/28 10:00:07 Model captions loaded[0m
+[33m01/28 10:00:07 Starting evaluation...[0m
+PTBTokenizer tokenized 307085 tokens at 781339.19 tokens per second.
+PTBTokenizer tokenized 51619 tokens at 354848.38 tokens per second.
+Parsing reference captions
+[33m01/28 10:00:23 Loading reference captions..[0m
+[33m01/28 10:00:24 Reference captions loaded![0m
+[33m01/28 10:00:26 using 5000/5000 predictions[0m
+[33m01/28 10:00:26 Loading model captions[0m
+[33m01/28 10:00:26 Model captions loaded[0m
+[33m01/28 10:00:26 Starting evaluation...[0m
+PTBTokenizer tokenized 307085 tokens at 1316423,93 tokens per second.
+PTBTokenizer tokenized 51790 tokens at 399883,79 tokens per second.
+Parsing reference captions
+Error: Could not score batched file input:
+org.fusesource.lmdbjni.LMDBException: MDB_CURSOR_FULL: Internal error - cursor stack limit reached
+	at org.fusesource.lmdbjni.Util.checkErrorCode(Util.java:44)
+	at org.fusesource.lmdbjni.Database.get(Database.java:202)
+	at org.fusesource.lmdbjni.Database.get(Database.java:193)
+	at org.fusesource.lmdbjni.Database.get(Database.java:186)
+	at org.fusesource.lmdbjni.Database.get(Database.java:161)
+	at edu.anu.spice.LmdbTupleDB.getTransaction(LmdbTupleDB.java:96)
+	at edu.anu.spice.SpiceParser.loadTuplesFromDB(SpiceParser.java:195)
+	at edu.anu.spice.SpiceParser.loadTuples(SpiceParser.java:245)
+	at edu.anu.spice.SpiceParser.parseCaptions(SpiceParser.java:251)
+	at edu.anu.spice.SpiceScorer.scoreBatch(SpiceScorer.java:109)
+	at edu.anu.spice.SpiceScorer.main(SpiceScorer.java:60)
+Error: Could not score batched file input:
+org.fusesource.lmdbjni.LMDBException: MDB_CURSOR_FULL: Internal error - cursor stack limit reached
+	at org.fusesource.lmdbjni.Util.checkErrorCode(Util.java:44)
+	at org.fusesource.lmdbjni.Database.get(Database.java:202)
+	at org.fusesource.lmdbjni.Database.get(Database.java:193)
+	at org.fusesource.lmdbjni.Database.get(Database.java:186)
+	at org.fusesource.lmdbjni.Database.get(Database.java:161)
+	at edu.anu.spice.LmdbTupleDB.getTransaction(LmdbTupleDB.java:96)
+	at edu.anu.spice.SpiceParser.loadTuplesFromDB(SpiceParser.java:195)
+	at edu.anu.spice.SpiceParser.loadTuples(SpiceParser.java:245)
+	at edu.anu.spice.SpiceParser.parseCaptions(SpiceParser.java:251)
+	at edu.anu.spice.SpiceScorer.scoreBatch(SpiceScorer.java:109)
+	at edu.anu.spice.SpiceScorer.main(SpiceScorer.java:60)

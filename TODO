@@ -11,12 +11,13 @@ check pool0
 EVAL
 ---------------------------------------------
 
-cmp_eval strat_lazy_rhamming_pool0_tsent01_a04_topdown
+
 cmp_eval ml_penalize005_showtell152
 cmp_eval fncnn6_reset_importance_lazy_qhamming_limited2_tsent03_rcider_tsent05_a05_showtell152
 cmp_eval fncnn6_reset_importance_lazy_qhamming_limited2_tsent03_rcider_tsent05_a05_topdown
 cmp_eval strat_lazy_rhamming_pool0_tsent01_a04_showtell152
-
 cmp_eval fncnn6_reset_strat_rhamming_pool0_tsent01_a04_showtell152
-cmpàeval fncnn6_reset_ml_penalize01_showtell152
+
+cmp_eval strat_lazy_rhamming_pool0_tsent01_a04_topdown
+
 
