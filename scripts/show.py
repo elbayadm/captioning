@@ -418,6 +418,7 @@ if __name__ == "__main__":
     parser.add_argument('--html', action='store_true', help="save results into html")
     parser.add_argument('--pkl', action='store_true', help="save results into pkl")
     parser.add_argument('--split', type=str, default="val", help="split on which to report")
+    parser.add_argument('--sort', type=str, default="CIDEr-D_ph1", help="criteria by which to order the terminal printed table")
     parser.add_argument('--verbose', '-v', action="store_true", help="script verbosity")
     args = parser.parse_args()
 
@@ -443,7 +444,7 @@ if __name__ == "__main__":
         split = 'test'
         filename = "results/%s%s_%s" % (split, fltr_concat, socket.gethostname())
         tab = crawl_results_paper(fltr, exc, split, verbose, args.reset)
-        print(tab.get_string(sortby='SPICE_ph2', reversesort=True, fields=PAPER_FIELDS_SELECT))
+        print(tab.get_string(sortby=args.sort, reversesort=True, fields=PAPER_FIELDS_SELECT))
         print('saving latex table in %s.tex' % filename)
         with open(filename+'.tex', 'w') as f:
             tex = get_latex(tab, sortby="CIDEr-D_ph2",

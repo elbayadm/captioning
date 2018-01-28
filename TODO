@@ -19,5 +19,7 @@ comb importance pool2  topdown
 ---------------------------------------------
 EVAL
 ---------------------------------------------
-
-cmp_eval importance_qhamming_pool0_tsent01_rcider_tsent05_a04_topdown
+eval word_coco_tword006_idf10_a07_showtell152
+eval word_coco_tword009_idf15_a07_showtell152
+eval word_coco_tword012_idf10_a07_showtell152
+/home/thoth/melbayad/scratch/work/torchcap/save/combine_strat_rhamming_pool2_tsent03_a04_word_coco_tword009_idf10_a03_topdown

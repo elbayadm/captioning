@@ -74,7 +74,6 @@ def add_loss_params(parser):
                default=0.1, help='Scalar used to weight the losses')
     parser.add('--gamma', type=float,
                default=.33, help='Scalar used to weight the losses')
-    # Deprecated
     parser.add('--combine_loss', type=int,
                default=0, help='combine WL with SL')
 
