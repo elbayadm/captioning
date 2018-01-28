@@ -1,23 +1,29 @@
 TRAIN
 ---------------------------------------------
-STRATIFY:
-lazy pool2 topdown (~)
-lazy pool2 topdown fncnn (wait)
+strat lazy pool0 topdown fncnn ##
+
+strat pool0 topdown fncnn (wait)
+
+importance lazy pool0 topdown 
+importance lazy pool0 showtell 
+importance pool0 topdown fncnn (wait)
+importance pool0 showtell fncnn (wait)
+
+FIENTUNE COMBINE:
+comb strat pool2 showtell
+comb strat pool1 showtell
+comb importance pool1 showtell
+comb importance pool2 showtell 
+
+comb strat pool2 topdown
+comb strat pool1 topdown
+comb importance pool1 topdown
+comb importance pool2  topdown
 
 
-check pool0 
+
 ---------------------------------------------
 
 EVAL
 ---------------------------------------------
-
-
-cmp_eval ml_penalize005_showtell152
-cmp_eval fncnn6_reset_importance_lazy_qhamming_limited2_tsent03_rcider_tsent05_a05_showtell152
-cmp_eval fncnn6_reset_importance_lazy_qhamming_limited2_tsent03_rcider_tsent05_a05_topdown
-cmp_eval strat_lazy_rhamming_pool0_tsent01_a04_showtell152
-cmp_eval fncnn6_reset_strat_rhamming_pool0_tsent01_a04_showtell152
-
-cmp_eval strat_lazy_rhamming_pool0_tsent01_a04_topdown
-
 
