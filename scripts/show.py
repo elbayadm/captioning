@@ -234,9 +234,11 @@ def parse_loss(params):
 
             extra = params.get('lazy_rnn', 0) * " (LAZY)"
             loss_version = 'Importance r=(%s), q=(%s),$\\alpha=%.1f$ %s' % (reward,
-                                                                           sampler,
-                                                                           params['alpha_sent'],
-                                                                           extra)
+                                                                            sampler,
+                                                                            params['alpha_sent'],
+                                                                            extra)
+        if combine_loss:
+            loss_version = 'Combining Word \& ' + loss_version
     if params.get('penalize_confidence', 0):
         loss_version += ", Penalize(%.2f)" % params['penalize_confidence']
     return loss_version
