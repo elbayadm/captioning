@@ -15,6 +15,7 @@ import torch
 import torch.nn as nn
 from torch.autograd import Variable
 
+from .word import WordSmoothCriterion
 from .samplers import init_sampler
 from .scorers import init_scorer
 from .utils import decode_sequence, get_ml_loss
@@ -41,10 +42,20 @@ class ImportanceSampler(nn.Module):
         self.scorer = init_scorer(opt.reward.lower(),
                                   opt, vocab)
         self.vocab = vocab
+        if self.combine_loss:
+            self.loss_sampled = WordSmoothCriterion(opt)
+            self.loss_gt = WordSmoothCriterion(opt)
+
 
     def log(self):
         self.logger.info('using importance sampling r=%s and q=%s' % (self.scorer.version,
                                                                       self.sampler.version))
+        if self.combine_loss:
+            self.logger.info('GT loss:')
+            self.loss_gt.log()
+            self.logger.info('Sampled loss:')
+            self.loss_sampled.log()
+
 
     def forward(self, model, fc_feats, att_feats, labels, mask, scores=None):
         # truncate
