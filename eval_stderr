@@ -1151,3 +1151,19 @@ org.fusesource.lmdbjni.LMDBException: MDB_CURSOR_FULL: Internal error - cursor s
 	at edu.anu.spice.SpiceScorer.scoreBatch(SpiceScorer.java:109)
 	at edu.anu.spice.SpiceScorer.main(SpiceScorer.java:60)
 [33m01/28 21:20:03 GPU ID: 1 | available memory: 8114M[0m
+[33m01/28 21:20:07 Starting from the best saved model[0m
+[33m01/28 21:20:07 Starting from save/importance_qhamming_pool0_tsent01_rcider_tsent05_a04_showtell152/model-best.pth[0m
+[36m01/28 21:20:13 Setting CNN weigths from save/importance_qhamming_pool0_tsent01_rcider_tsent05_a04_showtell152/model-cnn-best.pth[0m
+[33m01/28 21:20:20 Finetuning up from 0 modules in the cnn[0m
+[33m01/28 21:20:21 Show & Tell : OrderedDict([('img_embed', Linear (2048 -> 512)), ('core', LSTM(512, 512, bias=False, dropout=0.5)), ('embed', Embedding(9488, 512)), ('drop_x_lm', Dropout (p = 0.5)), ('logit', Linear (512 -> 9488))])[0m
+[33m01/28 21:20:22 Loading the model dict (last checkpoint) ['img_embed.weight', 'img_embed.bias', 'core.weight_ih_l0', 'core.weight_hh_l0', 'embed.weight', 'logit.weight', 'logit.bias'][0m
+[33m01/28 21:20:23 DataLoader loading json file: data/coco/cocotalk.json[0m
+[33m01/28 21:20:23 vocab size is 9487 [0m
+[33m01/28 21:20:23 DataLoader loading h5 file: data/coco/cocotalk.h5[0m
+[33m01/28 21:20:23 read 123287 images of size 3x256x256[0m
+[33m01/28 21:20:23 max sequence length in data is 16[0m
+[33m01/28 21:20:23 assigned 82783 images to split train[0m
+[33m01/28 21:20:23 assigned 5000 images to split val[0m
+[33m01/28 21:20:23 assigned 5000 images to split test[0m
+[32m01/28 21:20:26 using importance sampling r=CIDEr (tau=0.50) and q=Hamming (Vpool=0, tau=0.10)[0m
+[33m01/28 21:20:26 Evaluating the test split (-1)[0m
