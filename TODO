@@ -1,7 +1,5 @@
 TRAIN
 ---------------------------------------------
-strat pool0 topdown fncnn (wait)
-
 importance lazy pool0 topdown 
 importance lazy pool0 showtell 
 importance pool0 topdown fncnn (wait)
