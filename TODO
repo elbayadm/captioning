@@ -1,7 +1,5 @@
 TRAIN
 ---------------------------------------------
-importance lazy pool0 topdown 
-importance lazy pool0 showtell 
 importance pool0 topdown fncnn (wait)
 importance pool0 showtell fncnn (wait)
 
@@ -19,7 +17,6 @@ comb importance pool2  topdown
 
 
 ---------------------------------------------
-
 EVAL
 ---------------------------------------------
 
