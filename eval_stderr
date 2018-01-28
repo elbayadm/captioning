@@ -1128,3 +1128,11 @@ org.fusesource.lmdbjni.LMDBException: MDB_CURSOR_FULL: Internal error - cursor s
 [33m01/28 13:29:34 assigned 5000 images to split test[0m
 [32m01/28 13:29:42 using importance sampling r=CIDEr (tau=0.50) and q=Hamming (Vpool=0, tau=0.10)[0m
 [33m01/28 13:29:42 Evaluating the test split (-1)[0m
+[33m01/28 13:35:18 Loading reference captions..[0m
+[33m01/28 13:35:20 Reference captions loaded![0m
+[33m01/28 13:35:21 using 5000/5000 predictions[0m
+[33m01/28 13:35:21 Loading model captions[0m
+[33m01/28 13:35:21 Model captions loaded[0m
+[33m01/28 13:35:21 Starting evaluation...[0m
+PTBTokenizer tokenized 307085 tokens at 1283720.79 tokens per second.
+PTBTokenizer tokenized 51780 tokens at 251842.51 tokens per second.

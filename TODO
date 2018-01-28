@@ -20,5 +20,4 @@ comb importance pool2  topdown
 EVAL
 ---------------------------------------------
 
-cmp_eval combine_strat_rhamming_pool2_tsent03_a05_word_coco_tword009_idf10_a07_showtell152
 cmp_eval importance_qhamming_pool0_tsent01_rcider_tsent05_a04_topdown
