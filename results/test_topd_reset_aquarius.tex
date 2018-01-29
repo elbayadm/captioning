@@ -1,0 +1,25 @@
+|c|c|c|c|c|c|c|c|c|c|c|c|
+\hline
+Model & Loss & Bleu4_ph1 & CIDEr-D_ph1 & SPICE_ph1 & Perplexity_ph1 & Bleu1_ph2 & Bleu4_ph2 & ROUGE-L_ph2 & CIDEr-D_ph2 & SPICE_ph2 & Perplexity_ph2\\
+\hline
+Top-down & Importance r=(cider, $\tau=0.50$), q=(Hamming, Vpool=1 $\tau=0.17$),$\alpha=0.4$  & 31.27 & 97.83 & 18.36 & 10.38 & 73.50 & 33.04 & 54.48 & 102.98 & 19.15 & 10.04\\
+Top-down &  Word, Sim=Glove-Coco xIDF(1.0), $\tau=0.09$, $\alpha=0.3$ & 31.38 & 98.27 & 18.20 & 13.60 & 74.01 & 33.25 & 54.53 & 102.81 & 19.02 & 13.17\\
+Top-down & Importance r=(cider, $\tau=0.50$), q=(Hamming, Vpool=2 $\tau=0.30$),$\alpha=0.5$  (LAZY) & 31.84 & 98.61 & 18.42 & 11.47 & 73.92 & 33.10 & 54.57 & 102.64 & 19.02 & 11.06\\
+Top-down & Stratify r=(Hamming, Vpool=2, $\tau=0.30$), $\alpha=0.4$ & 31.58 & 98.46 & 18.35 & 10.60 & 73.53 & 32.59 & 54.36 & 102.33 & 18.91 & 10.14\\
+Top-down &  Word, Sim=Glove-Coco, $\tau=0.13$, $\alpha=0.3$ & 31.47 & 97.72 & 18.23 & 13.71 & 73.49 & 32.93 & 54.38 & 102.33 & 18.75 & 13.31\\
+Top-down & Stratify r=(Hamming, Vpool=1, $\tau=0.17$), $\alpha=0.4$ (LAZY) & 31.72 & 98.21 & 18.32 & 10.77 & 73.43 & 32.95 & 54.35 & 102.03 & 18.91 & 10.41\\
+Top-down & Stratify r=(Hamming, Vpool=1, $\tau=0.17$), $\alpha=0.4$ & 31.60 & 98.34 & 18.29 & 10.51 & 73.26 & 32.73 & 54.28 & 101.90 & 18.97 & 10.14\\
+Top-down & Stratify r=(Hamming, Vpool=2, $\tau=0.30$), $\alpha=0.4$ (LAZY) & 31.82 & 98.35 & 18.32 & 11.25 & 73.53 & 33.09 & 54.31 & 101.89 & 18.78 & 10.87\\
+Top-down & Importance r=(cider, $\tau=0.50$), q=(Hamming, Vpool=2 $\tau=0.30$),$\alpha=0.4$  & 31.91 & 99.60 & 18.51 & 10.54 & 73.40 & 32.90 & 54.29 & 101.85 & 18.93 & 10.20\\
+Top-down & ML & 31.55 & 97.97 & 18.37 & 10.32 & 73.40 & 33.11 & 54.26 & 101.63 & 18.99 & 9.91\\
+Top-down & Stratify r=(Hamming, Vpool=0, $\tau=0.10$), $\alpha=0.4$ (LAZY) & 31.39 & 98.10 & 18.33 & 10.75 & 73.29 & 32.81 & 54.26 & 101.58 & 18.84 & 10.40\\
+Top-down & Importance r=(cider, $\tau=0.50$), q=(Hamming, Vpool=1 $\tau=0.17$),$\alpha=0.4$  (LAZY) & 31.53 & 97.91 & 18.32 & 10.67 & 73.18 & 32.60 & 54.18 & 101.30 & 18.76 & 10.34\\
+Top-down & Stratify r=(Hamming, Vpool=2, $\tau=0.30$), $\alpha=0.4$ & 31.58 & 98.23 & 18.55 & 10.59 & 0 & 0 & 0 & 0 & 0 & 0\\
+Top-down & Stratify r=(Hamming, Vpool=0, $\tau=0.10$), $\alpha=0.4$ & 31.21 & 97.40 & 18.33 & 10.44 & 0 & 0 & 0 & 0 & 0 & 0\\
+Top-down & Importance r=(cider, $\tau=0.50$), q=(Hamming, Vpool=0 $\tau=0.10$),$\alpha=0.4$  (LAZY) & 31.39 & 97.91 & 18.33 & 10.57 & 0 & 0 & 0 & 0 & 0 & 0\\
+Top-down & Importance r=(cider, $\tau=0.50$), q=(Hamming, Vpool=0 $\tau=0.10$),$\alpha=0.4$  & 31.16 & 98.16 & 18.27 & 10.32 & 0 & 0 & 0 & 0 & 0 & 0\\
+Top-down & Combining Word \& Stratify r=(Hamming, Vpool=2, $\tau=0.30$), $\alpha=0.4$ & 31.70 & 98.57 & 18.15 & 127.69 & 0 & 0 & 0 & 0 & 0 & 0\\
+Top-down & Combining Word \& Stratify r=(Hamming, Vpool=1, $\tau=0.17$), $\alpha=0.4$ & 31.37 & 98.12 & 18.12 & 126.12 & 0 & 0 & 0 & 0 & 0 & 0\\
+Top-down & Combining Word \& Importance r=(cider, $\tau=0.50$), q=(Hamming, Vpool=2 $\tau=0.30$),$\alpha=0.4$  & 31.68 & 98.51 & 18.28 & 126.92 & 0 & 0 & 0 & 0 & 0 & 0\\
+Top-down & Combining Word \& Importance r=(cider, $\tau=0.50$), q=(Hamming, Vpool=1 $\tau=0.17$),$\alpha=0.4$  & 31.79 & 98.66 & 18.28 & 125.97 & 0 & 0 & 0 & 0 & 0 & 0\\
+\hline

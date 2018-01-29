@@ -24,7 +24,6 @@ track_myjobs_lig(){
 }
 
 host=${HOST:r:r}$HOSTNAME
-echo $host
 case $host in 
     edgar) track_myjobs_edgar;;
     decore*) track_myjobs_lig;;
