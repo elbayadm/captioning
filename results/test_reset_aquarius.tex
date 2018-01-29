@@ -9,6 +9,7 @@ Top-down & Stratify r=(Hamming, Vpool=2, $\tau=0.30$), $\alpha=0.4$ & 31.58 & 98
 Top-down &  Word, Sim=Glove-Coco, $\tau=0.13$, $\alpha=0.3$ & 31.47 & 97.72 & 18.23 & 13.71 & 73.49 & 32.93 & 54.38 & 102.33 & 18.75 & 13.31\\
 Top-down & Stratify r=(Hamming, Vpool=1, $\tau=0.17$), $\alpha=0.4$ (LAZY) & 31.72 & 98.21 & 18.32 & 10.77 & 73.43 & 32.95 & 54.35 & 102.03 & 18.91 & 10.41\\
 Top-down & Stratify r=(Hamming, Vpool=1, $\tau=0.17$), $\alpha=0.4$ & 31.60 & 98.34 & 18.29 & 10.51 & 73.26 & 32.73 & 54.28 & 101.90 & 18.97 & 10.14\\
+Top-down & Stratify r=(Hamming, Vpool=2, $\tau=0.30$), $\alpha=0.4$ (LAZY) & 31.82 & 98.35 & 18.32 & 11.25 & 73.53 & 33.09 & 54.31 & 101.89 & 18.78 & 10.87\\
 Top-down & Importance r=(cider, $\tau=0.50$), q=(Hamming, Vpool=2 $\tau=0.30$),$\alpha=0.4$  & 31.91 & 99.60 & 18.51 & 10.54 & 73.40 & 32.90 & 54.29 & 101.85 & 18.93 & 10.20\\
 Top-down & ML & 31.55 & 97.97 & 18.37 & 10.32 & 73.40 & 33.11 & 54.26 & 101.63 & 18.99 & 9.91\\
 Top-down & Stratify r=(Hamming, Vpool=0, $\tau=0.10$), $\alpha=0.4$ (LAZY) & 31.39 & 98.10 & 18.33 & 10.75 & 73.29 & 32.81 & 54.26 & 101.58 & 18.84 & 10.40\\
@@ -28,13 +29,16 @@ Show \& Tell & ML, Penalize(0.10) & 28.59 & 88.17 & 17.05 & 10.07 & 70.79 & 30.2
 Show \& Tell & ML & 28.34 & 88.30 & 17.00 & 10.45 & 70.63 & 30.14 & 52.37 & 93.59 & 17.66 & 10.18\\
 Show \& Tell & ML, $W_{dec}=Glove_{coco, 512}$ & 28.92 & 89.67 & 17.16 & 10.28 & 70.66 & 30.04 & 52.14 & 93.35 & 17.70 & 10.14\\
 Show \& Tell & ML, $W_{dec}=Glove_{coco, 512}$ frozen & 28.54 & 88.16 & 16.79 & 10.87 & 70.94 & 30.24 & 52.36 & 93.10 & 17.60 & 10.74\\
-Top-down & Stratify r=(Hamming, Vpool=2, $\tau=0.30$), $\alpha=0.4$ (LAZY) & 31.82 & 98.35 & 18.32 & 11.25 & 0 & 0 & 0 & 0 & 0 & 0\\
 Top-down & Stratify r=(Hamming, Vpool=2, $\tau=0.30$), $\alpha=0.4$ & 31.58 & 98.23 & 18.55 & 10.59 & 0 & 0 & 0 & 0 & 0 & 0\\
 Top-down & Stratify r=(Hamming, Vpool=0, $\tau=0.10$), $\alpha=0.4$ & 31.21 & 97.40 & 18.33 & 10.44 & 0 & 0 & 0 & 0 & 0 & 0\\
+Top-down & Importance r=(cider, $\tau=0.50$), q=(Hamming, Vpool=0 $\tau=0.10$),$\alpha=0.4$  (LAZY) & 31.39 & 97.91 & 18.33 & 10.57 & 0 & 0 & 0 & 0 & 0 & 0\\
 Top-down & Importance r=(cider, $\tau=0.50$), q=(Hamming, Vpool=0 $\tau=0.10$),$\alpha=0.4$  & 31.16 & 98.16 & 18.27 & 10.32 & 0 & 0 & 0 & 0 & 0 & 0\\
 Top-down & Combining Word \& Stratify r=(Hamming, Vpool=2, $\tau=0.30$), $\alpha=0.4$ & 31.70 & 98.57 & 18.15 & 127.69 & 0 & 0 & 0 & 0 & 0 & 0\\
 Top-down & Combining Word \& Stratify r=(Hamming, Vpool=1, $\tau=0.17$), $\alpha=0.4$ & 31.37 & 98.12 & 18.12 & 126.12 & 0 & 0 & 0 & 0 & 0 & 0\\
+Top-down & Combining Word \& Importance r=(cider, $\tau=0.50$), q=(Hamming, Vpool=1 $\tau=0.17$),$\alpha=0.4$  & 31.79 & 98.66 & 18.28 & 125.97 & 0 & 0 & 0 & 0 & 0 & 0\\
 Show \& Tell & Stratify r=(Hamming, Vpool=0, $\tau=0.10$), $\alpha=0.4$ (LAZY) & 29.11 & 89.60 & 17.18 & 10.86 & 0 & 0 & 0 & 0 & 0 & 0\\
+Show \& Tell & Importance r=(cider, $\tau=0.50$), q=(Hamming, Vpool=0 $\tau=0.10$),$\alpha=0.4$  (LAZY) & 29.24 & 90.30 & 17.16 & 10.77 & 0 & 0 & 0 & 0 & 0 & 0\\
+Show \& Tell & Importance r=(cider, $\tau=0.50$), q=(Hamming, Vpool=0 $\tau=0.10$),$\alpha=0.4$  & 29.29 & 91.01 & 17.18 & 10.50 & 0 & 0 & 0 & 0 & 0 & 0\\
 Show \& Tell & Combining Word \& Stratify r=(Hamming, Vpool=2, $\tau=0.30$), $\alpha=0.5$ & 30.48 & 92.82 & 17.23 & 1759.32 & 0 & 0 & 0 & 0 & 0 & 0\\
 Show \& Tell & Combining Word \& Stratify r=(Hamming, Vpool=1, $\tau=0.17$), $\alpha=0.4$ & 29.90 & 91.15 & 16.97 & 1739.02 & 0 & 0 & 0 & 0 & 0 & 0\\
 Show \& Tell & Combining Word \& Importance r=(cider, $\tau=0.50$), q=(Hamming, Vpool=2 $\tau=0.30$),$\alpha=0.5$  & 30.31 & 93.16 & 17.34 & 1758.46 & 0 & 0 & 0 & 0 & 0 & 0\\
