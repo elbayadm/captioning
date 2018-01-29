@@ -1,6 +1,5 @@
 import math
 import numpy as np
-from scipy.misc import comb
 import torch
 from torch.autograd import Variable
 
@@ -34,29 +33,6 @@ def decode_sequence(ix_to_word, seq):
                 break
         out.append(txt)
     return out
-
-
-def hamming_distrib_soft(m, v, tau):
-    x = [np.log(comb(m, d, exact=False)) + d * np.log(v) -
-         d/tau * np.log(v) - d/tau for d in range(m + 1)]
-    x = np.array(x)
-    p = np.exp(x)
-    p /= np.sum(p)
-    return p
-
-
-def hamming_distrib(m, v, tau):
-    x = [comb(m, d, exact=False) * (v-1)**d * math.exp(-d/tau) for d in range(m+1)]
-    x = np.absolute(np.array(x))  # FIXME negative values occuring !!
-    Z = np.sum(x)
-    return x/Z, Z
-
-
-def hamming_Z(m, v, tau):
-    pd = hamming_distrib(m, v, tau)
-    popul = v ** m
-    Z = np.sum(pd * popul * np.exp(-np.arange(m+1)/tau))
-    return np.clip(Z, a_max=1e30, a_min=1)
 
 
 def rows_entropy(distrib):
