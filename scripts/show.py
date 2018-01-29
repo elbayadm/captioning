@@ -430,8 +430,8 @@ if __name__ == "__main__":
     exc = args.exclude
     if not exc:
         exc = []
-    print(vars(args))
-
+    if args.verbose:
+        print(vars(args))
     fltr_concat = "_".join(fltr)
     if not fltr_concat:
         fltr_concat = ''
