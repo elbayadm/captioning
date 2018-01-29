@@ -1,19 +1,5 @@
 TRAIN
 ---------------------------------------------
-importance pool0 topdown fncnn (wait)
-importance pool0 showtell fncnn (wait)
-
-FIENTUNE COMBINE:
-comb strat pool2 showtell
-comb strat pool1 showtell
-comb importance pool1 showtell
-comb importance pool2 showtell 
-
-comb strat pool2 topdown
-comb strat pool1 topdown
-comb importance pool1 topdown
-comb importance pool2  topdown
-
 
 
 ---------------------------------------------
