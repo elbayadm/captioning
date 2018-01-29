@@ -1,7 +1,7 @@
-modelname : fncnn6_reset_importance_lazy_qhamming_pool0_tsent01_rcider_tsent05_a04_topdown
-start_from : save/importance_lazy_qhamming_pool0_tsent01_rcider_tsent05_a04_topdown
+modelname : fncnn6_reset_importance_lazy_qhamming_pool0_tsent01_rcider_tsent05_a04_showtell152
+start_from : save/importance_lazy_qhamming_pool0_tsent01_rcider_tsent05_a04_showtell152
 start_from_best : 1
-caption_model : top_down
+caption_model : show_tell
 cnn_model : resnet152
 input_data : data/coco/cocotalk
 #
