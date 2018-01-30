@@ -1,10 +1,5 @@
 TRAIN
 ---------------------------------------------
-importance_qhamming_pool2_tsent03_rcstèa05_showtell152
-importance_qhamming_pool2_tsent03_rbleu4_tsent05èa05_showtell152
-importance_qhamming_pool2_tsent03_rbleu3_tsent06èa05_showtell152
-importance_qhamming_pool2_tsent03_rbleu2_tsent07èa05_showtell152
-
 
 
 
@@ -17,6 +12,3 @@ eval word_coco_tword012_idf10_a07_showtell152
 ____________________________________________
 
 
-/home/thoth/melbayad/scratch/work/torchcap/save/fncnn6_reset_combine_strat_rhamming_pool2_tsent03_a04_word_coco_tword009_idf10_a03_topdown
-/home/thoth/melbayad/scratch/work/torchcap/save/fncnn6_reset_combine_importance_qhamming_limited2_tsent03_rcider_tsent05_a04_word_coco_tword009_idf10_a03_topdown
-/home/thoth/melbayad/scratch/work/torchcap/save/fncnn6_reset_importance_lazy_qhamming_pool0_tsent01_rcider_tsent05_a04_showtell152
