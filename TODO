@@ -10,4 +10,5 @@ eval word_coco_tword006_idf10_a07_showtell152
 eval word_coco_tword009_idf15_a07_showtell152
 eval word_coco_tword012_idf10_a07_showtell152
 ____________________________________________
-cmp_eval import pool0 lazy topd
+
+
