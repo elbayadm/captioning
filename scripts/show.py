@@ -19,15 +19,17 @@ PAPER_FIELDS = ["Model", "CNN", 'Loss', 'Beam',
                 'Perplexity_ph1',
                 'Bleu1_ph2', 'Bleu4_ph2',
                 'ROUGE-L_ph2', 'CIDEr-D_ph2', 'SPICE_ph2',
-                'Perplexity_ph2']
+                'Perplexity_ph2'
+                ]
 
 PAPER_FIELDS_SELECT = ["Model", 'Loss',
                        'Bleu4_ph1',
-                       'CIDEr-D_ph1', 'SPICE_ph1',
-                       'Perplexity_ph1',
+                       'CIDEr-D_ph1',  # 'SPICE_ph1',
+                       # 'Perplexity_ph1',
                        'Bleu1_ph2', 'Bleu4_ph2',
                        'ROUGE-L_ph2', 'CIDEr-D_ph2', 'SPICE_ph2',
-                       'Perplexity_ph2']
+                       # 'Perplexity_ph2'
+                       ]
 
 
 def correct(word):
@@ -151,6 +153,41 @@ def get_wl(params):
         G += ' +ExDKL'
     modelparams = ' Word, Sim=%s, $\\tau=%.2f$, $\\alpha=%.1f$' % (G, params['tau_word'], alpha)
     return modelparams
+
+
+def parse_name_short(params):
+    # Get the loss:
+    if "stratify_reward" in params:
+        if params['loss_version'] == "ml":
+            loss_version = "ML"
+            if params['penalize_confidence']:
+                loss_version += " + penalized entropy"
+        elif params['loss_version'] == "word":
+            loss_version = "Word"
+            if params['rare_tfidf']:
+                loss_version += " xIDF"
+        elif params['loss_version'] == "seq":
+            reward = params['reward']
+            if reward == "hamming":
+                reward += " Vpool=%d" % params['limited_vocab_sub']
+            if params['stratify_reward']:
+                loss_version = 'Stratify r=%s' % reward
+            else:
+                sampler = params['importance_sampler']
+                if sampler == "hamming":
+                    sampler += " Vpool=%d" % params['limited_vocab_sub']
+                loss_version = 'Importance r=%s, q=%s' % (reward,
+                                                          sampler)
+            if params['combine_loss']:
+                loss_version = "Combining Word xIDF \\& " + loss_version
+    else:
+        loss_version = parse_loss_old(params)
+    if params.get('init_decoder_W', ""):
+        wdec = ", $W_{dec}=Glove_{coco, 512}$"
+        if params.get('freeze_decoder_W', 0):
+            wdec += " frozen"
+        loss_version += wdec
+    return loss_version
 
 
 def parse_name_clean(params):
@@ -325,7 +362,7 @@ def crawl_results_paper(fltr=[], exclude=[], split="test", verbose=False, reset=
             if verbose:
                 print(model.split('/')[-1])
             params, res = outputs[0]
-            _, loss_version = parse_name_clean(params)
+            loss_version = parse_name_short(params)
             fn_model = "save/" + fn_prefix + model.split('/')[-1]
             if fn_model in fn_models:
                 if verbose:
