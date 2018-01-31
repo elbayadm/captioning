@@ -116,6 +116,12 @@ def add_loss_params(parser):
                default=0, help='lazy estimation of the sampled sentences logp')
     parser.add('--mc_samples', type=int,
                default=1, help='Number of MC samples')
+    parser.add('--refs_mode', type=int,
+               default=1, help="How the multiple references are considered when scoring bleu \
+                                0: only the single reference is considered\
+                                1: the references are merged into one blob\
+                                2: max(score(candidate, ref_i))")
+
     parser.add('--reward', type=str, default='hamming',
                help='rewards at the seuqence level,\
                options: hamming, bleu1:4, cider, tfidf')

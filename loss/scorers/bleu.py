@@ -57,6 +57,7 @@ class BleuRewardScorer(object):
         self.seq_per_img = opt.seq_per_img
         self.clip_reward = opt.clip_reward
         self.tau_sent = opt.tau_sent
+        self.mode = opt.refs_mode
 
     def get_scores(self, preds, target):
         scores = []
@@ -66,8 +67,22 @@ class BleuRewardScorer(object):
         for e, h in enumerate(hypo):
             ix_start = e // self.seq_per_img * self.seq_per_img
             ix_end = ix_start + 5  # self.seq_per_img
-            scores.append(sentence_bleu(h, ' '.join(refs[ix_start: ix_end]),
-                                        order=self.bleu_order))
+            if not self.mode:
+                scores.append(sentence_bleu(h, refs[e],
+                                            order=self.bleu_order))
+            if self.mode == 1:  # somehow the default!!
+                scores.append(sentence_bleu(h,
+                                            ' '.join(refs[ix_start: ix_end]),
+                                            order=self.bleu_order))
+            elif self.mode == 2:
+                scores.append(max([sentence_bleu(h, refs[ix],
+                                                 order=self.bleu_order)
+                                   for ix in range(ix_start, ix_end)]))
+            elif self.mode == 3:
+                scores.append(sum([sentence_bleu(h, refs[ix],
+                                                 order=self.bleu_order)
+                                   for ix in range(ix_start, ix_end)])/5)
+
         # scale scores:
         scores = np.array(scores)
         rstats = {"r%s_raw_mean" % self.version: np.mean(scores),
