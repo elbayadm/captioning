@@ -1,0 +1,27 @@
+|c|c|c|c|c|c|c|c|c|
+\hline
+Model & Loss & Bleu4_ph1 & CIDEr-D_ph1 & Bleu1_ph2 & Bleu4_ph2 & ROUGE-L_ph2 & CIDEr-D_ph2 & SPICE_ph2\\
+\hline
+Show \& Tell & Combining Word xIDF \& Importance r=cider, q=hamming Vpool=1 & 30.24 & 92.52 & 72.13 & 31.71 & 53.06 & 96.92 & 17.70\\
+Show \& Tell & Combining Word xIDF \& Importance r=cider, q=hamming Vpool=2 & 30.31 & 93.16 & 73.08 & 32.82 & 53.86 & 99.92 & 18.22\\
+Show \& Tell & Combining Word xIDF \& Stratify r=hamming Vpool=1 & 29.90 & 91.15 & 72.28 & 31.65 & 53.19 & 96.73 & 17.72\\
+Show \& Tell & Combining Word xIDF \& Stratify r=hamming Vpool=2 & 30.48 & 92.82 & 72.69 & 32.30 & 53.52 & 98.01 & 17.87\\
+Show \& Tell & Importance r=cider, q=hamming Vpool=0 & 29.29 & 91.01 & 71.05 & 30.46 & 52.38 & 94.40 & 17.69\\
+Show \& Tell & Importance r=cider, q=hamming Vpool=0 , LAZY & 29.24 & 90.30 & 71.43 & 31.18 & 52.88 & 96.32 & 18.00\\
+Show \& Tell & Importance r=cider, q=hamming Vpool=1 & 29.46 & 91.07 & 71.51 & 31.17 & 52.80 & 95.78 & 17.89\\
+Show \& Tell & Importance r=cider, q=hamming Vpool=1 , LAZY & 29.29 & 90.81 & 71.47 & 31.00 & 52.94 & 95.56 & 17.90\\
+Show \& Tell & Importance r=cider, q=hamming Vpool=2 & 30.04 & 91.99 & 71.93 & 31.41 & 53.16 & 96.81 & 17.93\\
+Show \& Tell & Importance r=cider, q=hamming Vpool=2 , LAZY & 29.63 & 90.75 & 71.82 & 31.06 & 52.89 & 95.66 & 17.87\\
+Show \& Tell & ML & 28.34 & 88.30 & 70.63 & 30.14 & 52.37 & 93.59 & 17.66\\
+Show \& Tell & ML + penalized entropy & 28.59 & 88.17 & 70.79 & 30.29 & 52.35 & 93.61 & 17.76\\
+Show \& Tell & ML, $W_{dec}=Glove_{coco, 512}$ & 28.92 & 89.67 & 70.66 & 30.04 & 52.14 & 93.35 & 17.70\\
+Show \& Tell & ML, $W_{dec}=Glove_{coco, 512}$ frozen & 28.54 & 88.16 & 70.94 & 30.24 & 52.36 & 93.10 & 17.60\\
+Show \& Tell & Stratify r=hamming Vpool=0 & 29.08 & 90.08 & 71.76 & 31.16 & 52.99 & 96.37 & 18.08\\
+Show \& Tell & Stratify r=hamming Vpool=0 , LAZY & 29.11 & 89.60 & 70.81 & 30.43 & 52.24 & 94.26 & 17.63\\
+Show \& Tell & Stratify r=hamming Vpool=1 & 29.44 & 90.79 & 71.46 & 31.15 & 52.93 & 96.53 & 18.03\\
+Show \& Tell & Stratify r=hamming Vpool=1 , LAZY & 29.14 & 90.51 & 71.85 & 31.13 & 52.96 & 96.65 & 18.00\\
+Show \& Tell & Stratify r=hamming Vpool=2 & 29.88 & 91.66 & 71.80 & 31.63 & 53.00 & 96.22 & 17.89\\
+Show \& Tell & Stratify r=hamming Vpool=2 , LAZY & 29.67 & 90.79 & 71.96 & 31.23 & 52.90 & 95.34 & 17.99\\
+Show \& Tell & Word & 30.07 & 92.36 & 71.94 & 31.27 & 52.75 & 95.79 & 17.62\\
+Show \& Tell & Word xIDF & 30.09 & 92.73 & 72.39 & 31.76 & 53.35 & 97.47 & 17.90\\
+\hline

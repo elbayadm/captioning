@@ -180,6 +180,9 @@ def parse_name_short(params):
                                                           sampler)
             if params['combine_loss']:
                 loss_version = "Combining Word xIDF \\& " + loss_version
+            if params.get('lazy_rnn', 0):
+                loss_version += ' , LAZY'
+
     else:
         loss_version = parse_loss_old(params)
     if params.get('init_decoder_W', ""):
@@ -484,8 +487,8 @@ if __name__ == "__main__":
         print(tab.get_string(sortby=args.sort, reversesort=True, fields=PAPER_FIELDS_SELECT))
         print('saving latex table in %s.tex' % filename)
         with open(filename+'.tex', 'w') as f:
-            tex = get_latex(tab, sortby="CIDEr-D_ph2",
-                            reversesort=True, fields=PAPER_FIELDS_SELECT)
+            tex = get_latex(tab, sortby="Loss",
+                            reversesort=False, fields=PAPER_FIELDS_SELECT)
             f.write("\n".join(tex))
     else:
         tab, dump = crawl_results(fltr, exc, split,
