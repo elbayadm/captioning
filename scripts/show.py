@@ -181,7 +181,7 @@ def parse_name_short(params):
             if params['combine_loss']:
                 loss_version = "Combining Word xIDF \\& " + loss_version
             if params.get('lazy_rnn', 0):
-                loss_version += ' , LAZY'
+                loss_version += ', LAZY'
 
     else:
         loss_version = parse_loss_old(params)
@@ -251,6 +251,11 @@ def parse_loss(params):
                                                params['rare_tfidf'])
         elif reward == 'hamming':
             reward = 'Hamming, Vpool=%d' % (params['limited_vocab_sub'])
+        elif 'bleu' in reward:
+            reward = '%s, mode=%d' %(params.get('refs_mode', 1))
+
+        if not params.get('clip_reward', 1) == 1:
+            reward += ', clip@%.1f' % params['clip_reward']
         reward += ', $\\tau=%.2f$' % params['tau_sent']
 
         if params['stratify_reward']:
