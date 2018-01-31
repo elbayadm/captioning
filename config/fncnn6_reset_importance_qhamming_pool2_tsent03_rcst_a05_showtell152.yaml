@@ -1,0 +1,30 @@
+modelname : fncnn6_reset_importance_qhamming_pool2_tsent03_rcst_a05_showtell152
+start_from : save/importance_qhamming_pool2_tsent03_rcst_a05_showtell152
+start_from_best : 1
+
+
+caption_model : show_tell
+cnn_model : resnet152
+input_data : data/coco/cocotalk
+# loss:
+loss_version : seq
+stratify_reward : 0
+reward : constant
+importance_sampler : hamming
+alpha_sent : 0.5
+tau_sent : 0
+tau_sent_q : 0.3
+limited_vocab_sub : 2
+
+reset_optimizer : 1
+finetune_cnn_after : 0
+finetune_cnn_slice : 6
+
+learning_rate : 1e-4
+learning_rate_decay_start : 5
+learning_rate_decay_rate : 0.8
+learning_rate_decay_every: 4
+max_epochs : 30
+
+
+
