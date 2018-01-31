@@ -252,7 +252,7 @@ def parse_loss(params):
         elif reward == 'hamming':
             reward = 'Hamming, Vpool=%d' % (params['limited_vocab_sub'])
         elif 'bleu' in reward:
-            reward = '%s, mode=%d' %(params.get('refs_mode', 1))
+            reward = '%s, mode=%d' %(reward, params.get('refs_mode', 1))
 
         if not params.get('clip_reward', 1) == 1:
             reward += ', clip@%.1f' % params['clip_reward']
