@@ -26,16 +26,22 @@ class ShowTellModel(DecoderModel):
 
     def init_weights(self):
         initrange = 0.1
+        # intitialize the word embeddings
         if self.W is not None:
             self.embed.weight = nn.Parameter(torch.from_numpy(self.W),
                                              requires_grad=self.require_W_grad)
         else:
             self.embed.weight.data.uniform_(-initrange, initrange)
-        if self.Proj is not None:
-            self.logit.weight = nn.Parameter(torch.from_numpy(self.Proj),
-                                             requires_grad=self.require_Proj_grad)
+        if not self.tie_weights:
+            # initialize the projection weights
+            if self.Proj is not None:
+                self.logit.weight = nn.Parameter(torch.from_numpy(self.Proj),
+                                                 requires_grad=self.require_Proj_grad)
+            else:
+                self.logit.weight.data.uniform_(-initrange, initrange)
         else:
-            self.logit.weight.data.uniform_(-initrange, initrange)
+            # point to the embeddings matrix:
+            self.logit.weight = self.embed.weight
 
         self.logit.bias.data.fill_(0)
         self.img_embed.bias.data.fill_(0)

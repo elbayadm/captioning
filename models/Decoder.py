@@ -28,7 +28,7 @@ class DecoderModel(nn.Module):
             self.rnn_size = self.Proj.shape[0]
         else:
             self.Proj = None
-
+        self.tie_weights = opt.tie_decoder_W_Proj
         self.require_W_grad = not bool(opt.freeze_decoder_W)
         self.require_Proj_grad = not bool(opt.freeze_decoder_Proj)
         self.rnn_type = opt.rnn_type

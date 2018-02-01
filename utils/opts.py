@@ -318,6 +318,8 @@ def add_generic(parser):
                default="", help='Path to intialize the decoder final projection, default random')
     parser.add('--freeze_decoder_Proj', type=int,
                default=0, help='Freeze the deocder final projection matrix')
+    parser.add('--tie_decoder_W_Proj', type=int,
+               default=0, help='Tie the decoder embedding to its final projection')
 
     parser.add('--drop_x_lm', type=float,
                default=0.5, help='strength of dropout in the Language Model RNN input')
