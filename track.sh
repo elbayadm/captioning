@@ -1,7 +1,7 @@
 #! /usr/bin/env zsh
 # Run in edgar
 track_myjobs_edgar(){
-    jobs=("${(@f)$(oarstat | grep melbayad)}")
+    jobs=("${(@f)$(oarstat | grep melbayad | grep W=24)}")
     for job in $jobs; do 
         #jobn=${${job%,T=*}#*N=}
         jid="$(cut -d' ' -f1 <<< $job)"
