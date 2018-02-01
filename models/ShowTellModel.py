@@ -31,8 +31,13 @@ class ShowTellModel(DecoderModel):
                                              requires_grad=self.require_W_grad)
         else:
             self.embed.weight.data.uniform_(-initrange, initrange)
+        if self.Proj is not None:
+            self.logit.weight = nn.Parameter(torch.from_numpy(self.Proj),
+                                             requires_grad=self.require_Proj_grad)
+        else:
+            self.logit.weight.data.uniform_(-initrange, initrange)
+
         self.logit.bias.data.fill_(0)
-        self.logit.weight.data.uniform_(-initrange, initrange)
         self.img_embed.bias.data.fill_(0)
         self.img_embed.weight.data.uniform_(-initrange, initrange)
 
