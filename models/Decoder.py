@@ -23,7 +23,7 @@ class DecoderModel(nn.Module):
         if len(opt.init_decoder_Proj):
             # Load W intializer:
             self.Proj = pickle.load(open(opt.init_decoder_Proj, 'rb'),
-                                    encoding="iso-8859-1").T
+                                    encoding="iso-8859-1")
             self.logger.info('Loading weights to initialize Proj')
             self.rnn_size = self.Proj.shape[0]
         else:
