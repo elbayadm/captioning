@@ -1,0 +1,14 @@
+modelname : baseline_proj_embed_tied_Glove_coco_frozen_showtell152
+caption_model : show_tell
+cnn_model : resnet152
+init_decoder_W:  data/Glove/glove_coco_d512_w15_matrix.pkl
+freeze_decoder_W : 1
+init_decoder_Proj:  data/Glove/glove_coco_d512_w15_matrix.pkl
+freeze_decoder_Proj : 1
+tie_decoder_W_Proj : 1
+input_data : data/coco/cocotalk
+
+# Loss:
+loss_version : ml
+
+
