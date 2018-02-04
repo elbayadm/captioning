@@ -9,24 +9,25 @@ from prettytable import PrettyTable
 from html import escape
 from parse import *
 
+PERF = ['Bleu_1', 'Bleu_4', 'ROUGE_L', 'METEOR', 'CIDEr', 'SPICE']
 FIELDS = ["Model", "CNN", "params", 'loss', 'weights', 'Beam',
           'CIDEr', 'Bleu4', 'Perplexity', 'best/last']
 
-PAPER_FIELDS = ["Model", "CNN", 'Loss', 'Beam',
-                'Bleu1_ph1', 'Bleu4_ph1',
-                'ROUGE-L_ph1', 'CIDEr-D_ph1', 'SPICE_ph1',
-                'Perplexity_ph1',
-                'Bleu1_ph2', 'Bleu4_ph2',
-                'ROUGE-L_ph2', 'CIDEr-D_ph2', 'SPICE_ph2',
-                'Perplexity_ph2']
+PAPER_FIELDS = ["Model", "CNN", 'Loss', 'Beam'] + \
+               [perf + '_ph1' for perf in PERF] + \
+               ['Perplexity_ph1'] + \
+               [perf + '_ph2' for perf in PERF] + \
+               ['Perplexity_ph2']
 
 PAPER_FIELDS_SELECT = ["Model", 'Loss',
-                       'Bleu4_ph1',
-                       'CIDEr-D_ph1',  # 'SPICE_ph1',
-                       # 'Perplexity_ph1',
-                       'Bleu1_ph2', 'Bleu4_ph2',
-                       'ROUGE-L_ph2', 'CIDEr-D_ph2', 'SPICE_ph2',
-                       # 'Perplexity_ph2'
+                       'Bleu_4_ph1',
+                       'CIDEr_ph1',
+                       'Bleu_1_ph2',
+                       'Bleu_4_ph2',
+                       'ROUGE_L_ph2',
+                       'METEOR_ph2',
+                       'CIDEr_ph2',
+                       'SPICE_ph2',
                        ]
 
 
@@ -89,7 +90,7 @@ def get_latex(ptab, **kwargs):
 
 def get_perf(res):
     formatted_res = OrderedDict()
-    for k in ['Bleu_1', 'Bleu_4', 'ROUGE_L', 'CIDEr', 'SPICE']:
+    for k in PERF:
         if k in res:
             formatted_res[k] = float(res[k] * 100)
         else:
@@ -189,7 +190,7 @@ def crawl_results_paper(fltr=[], exclude=[], split="test", verbose=False, reset=
             if len(fn_outputs):
                 row += get_perf(fn_res)
             else:
-                row += 6 * [0]
+                row += 7 * [0]
             tab.add_row(row)
     return tab
 
@@ -252,7 +253,7 @@ if __name__ == "__main__":
     parser.add_argument('--html', action='store_true', help="save results into html")
     parser.add_argument('--pkl', action='store_true', help="save results into pkl")
     parser.add_argument('--split', type=str, default="val", help="split on which to report")
-    parser.add_argument('--sort', type=str, default="CIDEr-D_ph1", help="criteria by which to order the terminal printed table")
+    parser.add_argument('--sort', type=str, default="CIDEr_ph1", help="criteria by which to order the terminal printed table")
     parser.add_argument('--verbose', '-v', action="store_true", help="script verbosity")
     args = parser.parse_args()
 
