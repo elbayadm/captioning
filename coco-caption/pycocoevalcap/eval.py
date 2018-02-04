@@ -40,7 +40,7 @@ class COCOEvalCap:
         if self.all_metrics:
             scorers = [
                 (Bleu(4), ["Bleu_1", "Bleu_2", "Bleu_3", "Bleu_4"]),
-                # (Meteor(), "METEOR"),
+                (Meteor(), "METEOR"),
                 (Rouge(), "ROUGE_L"),
                 (Cider(), "CIDEr"),
                 (Spice(), "SPICE")
