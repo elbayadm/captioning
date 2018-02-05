@@ -1,0 +1,24 @@
+modelname : fncnn6_reset_baseline_proj_Glove_coco_free_showtell152
+start_from : save/baseline_proj_Glove_coco_free_showtell152
+start_from_best : 1
+
+caption_model : show_tell
+cnn_model : resnet152
+# init_decoder_W:  data/Glove/glove_coco_d512_w15_matrix.pkl
+# freeze_decoder_W : 1 
+init_decoder_Proj:  data/Glove/glove_coco_d512_w15_matrix.pkl
+freeze_decoder_Proj : 0
+input_data : data/coco/cocotalk
+
+# Loss:
+loss_version : ml
+
+reset_optimizer : 1
+finetune_cnn_after : 0
+finetune_cnn_slice : 6
+learning_rate : 1e-4
+learning_rate_decay_start : 5
+learning_rate_decay_rate : 0.8
+learning_rate_decay_every: 4
+max_epochs : 30
+
