@@ -1,37 +1,17 @@
 TRAIN
 ---------------------------------------------
 
+importance_qhamming_pool2_tsent03_rbleu4_mode3_tsent03_a05_showtell152.yaml
 
 
----------------------------------------------
+
+CHECK
+fncnn6_reset_importance_qhamming_pool2_tsent03_rcst_a05_showtell152
+
+
 EVAL
 ---------------------------------------------
-eval word_coco_tword006_idf10_a07_showtell152
-eval word_coco_tword009_idf15_a07_showtell152
-eval word_coco_tword012_idf10_a07_showtell152
-____________________________________________
+W0=G free
+W0=G frozen
 
 
-/home/thoth/melbayad/scratch/work/torchcap/save/importance_qhamming_pool2_tsent03_rbleu4_tsent07_a05_showtell152
-/home/thoth/melbayad/scratch/work/torchcap/save/fncnn6_reset_importance_qhamming_pool2_tsent03_rbleu4_tsent05_a05_showtell152
-/home/thoth/melbayad/scratch/work/torchcap/save/importance_qhamming_pool2_tsent03_rbleu3_tsent04_a05_showtell152
-/home/thoth/melbayad/scratch/work/torchcap/save/importance_qhamming_pool2_tsent03_rbleu2_tsent10_a05_showtell152
-Resume after checking
-decore0 cap fncnn6_reset_importance_qhamming_pool2_tsent03_rcst_a05_showtell152
-decore0 cap importance_qhamming_pool2_tsent03_rbleu4_mode0_tsent05_a05_showtell152
-importance_qhamming_pool2_tsent03_rbleu4_clip04_tsent05_a05_showtell152.yaml
-/home/thoth/melbayad/scratch/work/torchcap/save/importance_qhamming_pool2_tsent03_rbleu4_mode2_clip04_tsent05_a05_showtell152
-word_coco_tword008_idf10_a07_proj_embed_tied_init_free_showtell152
-baseline_proj_Glove_coco_free
-baseline_proj_Glove_coco_frozen
-/home/thoth/melbayad/scratch/work/torchcap/save/fncnn6_reset_baseline_proj_Glove_coco_frozen_showtell152
-eval config/importance_qhamming_pool2_tsent03_rbleu4_clip04_tsent05_a05_showtell152.yaml
-eval config/importance_qhamming_pool2_tsent03_rbleu4_mode2_tsent05_a05_showtell152.yaml
-proj free tuned
-/home/thoth/melbayad/scratch/work/torchcap/save/fncnn6_reset_baseline_proj_Glove_coco_free_showtell152
-/home/thoth/melbayad/scratch/work/torchcap/save/fncnn6_reset_importance_qhamming_pool2_tsent03_rbleu4_mode3_tsent05_a05_showtell152_v2
-/home/thoth/melbayad/scratch/work/torchcap/save/importance_qhamming_pool2_tsent03_rbleu4_mode2_clip07_tsent05_a05_showtell152
-/home/thoth/melbayad/scratch/work/torchcap/save/strat_rhamming_sim_pool2_tsent025_a05_showtell152
-/home/thoth/melbayad/scratch/work/torchcap/save/importance_qhamming_pool2_tsent03_rbleu4_mode2_tsent03_a05_showtell152
-/home/thoth/melbayad/scratch/work/torchcap/save/importance_qhamming_pool2_tsent03_rbleu4_mode2_tsent07_a05_showtell152
-/home/thoth/melbayad/scratch/work/torchcap/save/strat_rhamming_sim_pool2_tsent03_a05_showtell152
