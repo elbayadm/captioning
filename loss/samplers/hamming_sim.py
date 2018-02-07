@@ -134,7 +134,16 @@ class HammingSimSampler(object):
                 for ss in range(select):
                     select_index[i, ss] = np.random.choice(im_vocab[i // self.seq_per_img], p=p[i][ss])
         else:
-            select_index = np.random.randint(low=4, high=self.vocab_size, size=(batch_size, select))
+            indices = preds[rows, change_index].flatten()
+            p = self.words_distribs[indices][4:]
+            if self.tau_word:
+                p = np.exp(p/self.tau_word)
+            p = normalize_reward(p)
+            select_index = np.zeros((batch_size, select))
+            for i in range(batch_size):
+                for ss in range(select):
+                    select_index[i, ss] = np.random.choice(np.arange(4, self.vocab_size), p=p[i * select + ss])
+
         preds[rows, change_index] = select_index
         preds_matrix = np.hstack((np.zeros((batch_size, 1)), preds))  # padd <BOS>
         preds_matrix = Variable(torch.from_numpy(preds_matrix)).cuda().type_as(labels)
