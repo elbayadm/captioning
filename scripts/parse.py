@@ -37,6 +37,8 @@ def parse_name_short(params):
             reward = params['reward']
             if "hamming" in reward:
                 reward += " Vpool=%d" % params['limited_vocab_sub']
+            elif "bleu" in reward:
+                reward += ' m(%d), c(%.1f)' % (params.get('refs_mode', 1), params['clip_reward'])
             if params['stratify_reward']:
                 loss_version = 'Stratify r=%s' % reward
             else:
