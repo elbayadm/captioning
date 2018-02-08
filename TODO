@@ -15,3 +15,5 @@ W0=G free
 W0=G frozen
 
 
+train strat_rhamming_sim_pool0_tsent006_a04_showtell152
+finetune fncnn6_reset_strat_rhamming_sim_pool0_tsent01_a04_showtell152

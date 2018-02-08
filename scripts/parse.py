@@ -35,13 +35,13 @@ def parse_name_short(params):
                 loss_version += " xIDF"
         elif params['loss_version'] == "seq":
             reward = params['reward']
-            if reward == "hamming":
+            if "hamming" in reward:
                 reward += " Vpool=%d" % params['limited_vocab_sub']
             if params['stratify_reward']:
                 loss_version = 'Stratify r=%s' % reward
             else:
                 sampler = params['importance_sampler']
-                if sampler == "hamming":
+                if "hamming" in sampler:
                     sampler += " Vpool=%d" % params['limited_vocab_sub']
                 loss_version = 'Importance r=%s, q=%s' % (reward,
                                                           sampler)
@@ -139,10 +139,10 @@ def parse_loss(params):
         if reward == "tfidf":
             reward = 'TFIDF, n=%d, rare=%d' % (params['ngram_length'],
                                                params['rare_tfidf'])
-        elif reward == 'hamming':
-            reward = 'Hamming, Vpool=%d' % (params['limited_vocab_sub'])
+        elif 'hamming' in reward:
+            reward += ', Vpool=%d' % (params['limited_vocab_sub'])
         elif 'bleu' in reward:
-            reward = '%s, mode=%d' %(reward, params.get('refs_mode', 1))
+            reward = '%s, mode=%d' % (reward, params.get('refs_mode', 1))
 
         if not params.get('clip_reward', 1) == 1:
             reward += ', clip@%.1f' % params['clip_reward']
@@ -161,9 +161,9 @@ def parse_loss(params):
                 sampler = 'TFIDF, n=%d, rare=%d $\\tau=%.2f$' % (params['ngram_length'],
                                                                  params['rare_tfidf'],
                                                                  tau_q)
-            elif sampler == 'hamming':
-                sampler = 'Hamming, Vpool=%d $\\tau=%.2f$' % (params['limited_vocab_sub'],
-                                                              tau_q)
+            elif 'hamming' in sampler:
+                sampler += ', Vpool=%d $\\tau=%.2f$' % (params['limited_vocab_sub'],
+                                                        tau_q)
             elif sampler == 'greedy':
                 sampler = '$p_\\theta$'
 
