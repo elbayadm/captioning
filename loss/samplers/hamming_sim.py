@@ -135,7 +135,7 @@ class HammingSimSampler(object):
                     select_index[i, ss] = np.random.choice(im_vocab[i // self.seq_per_img], p=p[i][ss])
         else:
             indices = preds[rows, change_index].flatten()
-            p = self.words_distribs[indices][4:]
+            p = self.words_distribs[indices][:, 4:]
             if self.tau_word:
                 p = np.exp(p/self.tau_word)
             p = normalize_reward(p)
