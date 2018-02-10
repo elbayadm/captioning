@@ -1,0 +1,18 @@
+modelname : strat_rhamming_sim_pool0_tsent015_a04_showtell152
+caption_model : show_tell 
+cnn_model : resnet152
+
+batch_size : 10 
+input_data : data/coco/cocotalk
+
+# Loss:
+loss_version : seq
+reward : hamming-sim
+tau_word : 0.15
+
+limited_vocab_sub : 0
+lazy_rnn : 0
+stratify_reward  : 1
+tau_sent : .15
+alpha_sent : 0.4
+
