@@ -6,13 +6,11 @@ from six.moves import cPickle as pickle
 import numpy as np
 from scipy.stats import entropy
 sys.path.append('.')
-import opts
-from dataloader import DataLoader
-from dataloaderraw import DataLoaderRaw
-from eval_utils import track_rnn
-import misc.decoder_utils as du
-import misc.cnn as cnn
-
+from utils import opts
+from loader import DataLoader, DataLoaderRaw
+from models.eval_utils import track_rnn
+import models.setup as ms
+import models.cnn as cnn
 
 if __name__ == "__main__":
     opt = opts.parse_eval_opt()
@@ -58,14 +56,15 @@ if __name__ == "__main__":
     opt.vocab_size = loader.vocab_size + 1
     opt.seq_length = loader.seq_length
 
-    model = du.select_model(opt)
+    model = ms.select_model(opt)
     model.load()
     model.cuda()
     model.eval()
     model.define_loss(loader.get_vocab())
     # opt.n_gen = 10
     # opt.score_ground_truth = True
-    eval_kwargs = {'split': 'val',
+    eval_kwargs = {'split': 'train',
+                   'val_images_use': 3000,
                    'dataset': opt.input_data + '.json'}
     eval_kwargs.update(vars(opt))
     eval_kwargs['beam_size'] = 1

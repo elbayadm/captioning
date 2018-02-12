@@ -69,8 +69,10 @@ class ResNetModel(models.ResNet):
             opt.logger.debug('Setting CNN weigths from %s' % opt.cnn_start_from)
             self.load_state_dict(torch.load(opt.cnn_start_from))
 
+        # print('Layers: length:', len(list(self._modules.values())), list(self._modules.values()))
         opt.logger.warn('Finetuning up from %d modules in the cnn' % opt.finetune_cnn_slice)
         self.to_finetune = list(self._modules.values())[opt.finetune_cnn_slice:] #less = 6, otherwise 5
+        # print('Finetuning:', self.to_finetune)
 
     def forward(self, x):
         x = self.conv1(x)

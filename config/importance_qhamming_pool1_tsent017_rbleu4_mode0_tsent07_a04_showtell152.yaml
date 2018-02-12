@@ -1,0 +1,18 @@
+modelname : importance_qhamming_pool1_tsent017_rbleu4_mode0_tsent07_a04_showtell152
+
+caption_model : show_tell
+cnn_model : resnet152
+input_data : data/coco/cocotalk
+# loss:
+loss_version : seq
+alpha_sent : 0.4
+
+stratify_reward : 0
+reward : bleu4
+tau_sent : 0.7
+refs_mode : 0
+
+importance_sampler : hamming
+tau_sent_q : 0.17
+limited_vocab_sub : 1
+

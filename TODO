@@ -1,14 +1,13 @@
-TRAIN
+CHECK:
 ---------------------------------------------
+Unigram sampling:
+sim pool0 topdown
 
-importance_qhamming_pool2_tsent03_rbleu4_mode3_tsent03_a05_showtell152.yaml
+Bleu4 modes:
+mode0, 1, 2 & 3 for pool0, 1 & 2 on showtell
+Run the best one for topdown (pool2, mode0 alredy trained)
 
 
 
-CHECK
-fncnn6_reset_importance_qhamming_pool2_tsent03_rcst_a05_showtell152
-
-
-EVAL
----------------------------------------------
-
+Plotting:
+track the rnn classification output for gt and  y sampled then for word
