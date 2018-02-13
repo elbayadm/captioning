@@ -129,10 +129,12 @@ def track_rnn(cnn_model, model, loader, logger, eval_kwargs={}):
     n = 0
     rew = []
     logp = []
+    sids = []
     while True:
         data = loader.get_batch(split, batch_size=5, seq_per_img=seq_per_img)
         n = n + loader.batch_size
         images = data['images']
+        sids.append(data['infos'])
         images = Variable(torch.from_numpy(images), requires_grad=False).cuda()
         att_feats, fc_feats = cnn_model.forward_caps(images, seq_per_img)
         logprobs, rewards = model.step_track(data, att_feats, fc_feats, add_dirac)
@@ -147,7 +149,7 @@ def track_rnn(cnn_model, model, loader, logger, eval_kwargs={}):
         if n >= ix1:
             logger.warn('Evaluated the required samples (%s)' % n)
             break
-    return rew, logp
+    return sids, rew, logp
 
 
 def eval_split(cnn_model, model, loader, logger, eval_kwargs={}):

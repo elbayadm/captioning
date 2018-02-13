@@ -18,7 +18,8 @@ def get_wl(params):
         G += ' +H'
     if params.get('exact_dkl', 0):
         G += ' +ExDKL'
-    modelparams = ' Word, Sim=%s, $\\tau=%.2f$, $\\alpha=%.1f$' % (G, params['tau_word'], alpha)
+    drop = params['drop_x_lm']
+    modelparams = ' Word, Sim=%s, $\\tau=%.2f$, $\\alpha=%.1f$, drop(%.1f)' % (G, params['tau_word'], alpha, drop)
     return modelparams
 
 
@@ -33,6 +34,8 @@ def parse_name_short(params):
             loss_version = "Word"
             if params['rare_tfidf']:
                 loss_version += " xIDF"
+            if not params['drop_x_lm'] == .5:
+                loss_version += ' drop(0)'
         elif params['loss_version'] == "seq":
             reward = params['reward']
             if "hamming" in reward:
