@@ -4,6 +4,7 @@ events
 save
 archive
 textLM
+server_results/*.zip
 confusion_lattices
 *.txt
 *.pkl
