@@ -9,7 +9,7 @@ from prettytable import PrettyTable
 from html import escape
 from parse import *
 
-PERF = ['Bleu_1', 'Bleu_4', 'ROUGE_L', 'METEOR', 'CIDEr', 'SPICE']
+PERF = ['Bleu_1', 'Bleu_4', 'ROUGE_L', 'SPICE', 'METEOR', 'CIDEr']
 FIELDS = ["Model", "CNN", "params", 'loss', 'weights', 'Beam',
           'CIDEr', 'Bleu4', 'Perplexity', 'best/last']
 
