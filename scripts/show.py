@@ -20,16 +20,19 @@ PAPER_FIELDS = ["Model", 'Init',
                [perf + '_ph2' for perf in PERF] + \
                ['Perplexity_ph2']
 
-PAPER_FIELDS_SELECT = ['Model', 'Init', 'Loss', 'Reward', 'Sampling',
-                       'Bleu_4_ph1',
-                       'CIDEr_ph1',
-                       'Bleu_1_ph2',
-                       'Bleu_4_ph2',
-                       'ROUGE_L_ph2',
-                       'SPICE_ph2',
-                       'METEOR_ph2',
-                       'CIDEr_ph2'
-                       ]
+PAPER_FIELDS_FULL = ['Model', 'Init', 'Loss', 'Reward', 'Sampling',
+                     'Bleu_4_ph1', 'CIDEr_ph1',
+                     'Bleu_1_ph2', 'Bleu_4_ph2',
+                     'ROUGE_L_ph2', 'SPICE_ph2',
+                     'METEOR_ph2', 'CIDEr_ph2'
+                     ]
+
+PAPER_FIELDS_SHORT = ['Reward', 'Sampling',
+                      'Bleu_1_ph2',
+                      'Bleu_4_ph2',
+                      'METEOR_ph2',
+                      'CIDEr_ph2'
+                      ]
 
 
 
@@ -247,8 +250,9 @@ if __name__ == "__main__":
     parser.add_argument('--split', type=str, default="val", help="split on which to report")
     parser.add_argument('--sort', type=str, default="CIDEr_ph2", help="criteria by which to order the terminal printed table")
     parser.add_argument('--verbose', '-v', action="store_true", help="script verbosity")
-    args = parser.parse_args()
+    parser.add_argument('--abridged', '-a', action="store_true", help="script verbosity")
 
+    args = parser.parse_args()
     split = args.split
     verbose = args.verbose
     fltr = args.filter
@@ -266,16 +270,19 @@ if __name__ == "__main__":
         fltr_concat = '_' + fltr_concat
     if args.reset:
         fltr_concat += '_reset'
+    SELECT = PAPER_FIELDS_FULL
+    if args.abridged:
+        SELECT = PAPER_FIELDS_SHORT
     if args.paper:
         print('Setting up split=test')
         split = 'test'
         filename = "results/%s%s_%s" % (split, fltr_concat, socket.gethostname())
         tab = crawl_results_paper(fltr, exc, split, verbose, args.reset)
-        print(tab.get_string(sortby=args.sort, reversesort=True, fields=PAPER_FIELDS_SELECT))
+        print(tab.get_string(sortby=args.sort, reversesort=True, fields=PAPER_FIELDS_FULL))
         print('saving latex table in %s.tex' % filename)
         with open(filename+'.tex', 'w') as f:
             tex = get_latex(tab, sortby="Loss",
-                            reversesort=False, fields=PAPER_FIELDS_SELECT)
+                            reversesort=False, fields=SELECT)
             f.write("\n".join(tex))
     else:
         tab, dump = crawl_results(fltr, exc, split,
