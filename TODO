@@ -13,5 +13,3 @@ Run the best one for topdown (pool2, mode0 alredy trained)
 Plotting:
 track the rnn classification output for gt and  y sampled then for word
 
-/home/thoth/melbayad/scratch/work/torchcap/save/fncnn6_reset_importance_qhamming_pool1_tsent017_rbleu4_tsent05_a04_showtell152
-/home/thoth/melbayad/scratch/work/torchcap/save/fncnn6_reset_importance_qhamming_pool0_tsent01_rbleu4_tsent05_a04_showtell152
