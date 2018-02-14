@@ -12,3 +12,4 @@ track the rnn classification output for gt and  y sampled then for word
 
 importance_qhamming_pool1_tsent017_rbleu4_mode0_tsent07_a04_topdown
 /home/thoth/melbayad/scratch/work/torchcap/save/fncnn6_reset_strat_rhamming_sim_pool0_tsent01_a04_topdown
+/home/thoth/melbayad/scratch/work/torchcap/save/importance_qhamming_pool0_tsent01_rbleu4_mode3_tsent05_a04_topdown
