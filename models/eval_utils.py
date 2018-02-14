@@ -134,6 +134,8 @@ def track_rnn(cnn_model, model, loader, logger, eval_kwargs={}):
     n = 0
     rew = []
     logp = []
+    sampl = []
+    logp_sampl = []
     sids = []
     while True:
         data = loader.get_batch(split, batch_size=5, seq_per_img=seq_per_img)
@@ -142,9 +144,11 @@ def track_rnn(cnn_model, model, loader, logger, eval_kwargs={}):
         sids.append(data['infos'])
         images = Variable(torch.from_numpy(images), requires_grad=False).cuda()
         att_feats, fc_feats = cnn_model.forward_caps(images, seq_per_img)
-        logprobs, rewards = model.step_track(data, att_feats, fc_feats, add_dirac)
+        logprobs, rewards, sampled, logprobs_sampled = model.step_track(data, att_feats, fc_feats, add_dirac)
         rew.append(rewards)
         logp.append(logprobs)
+        sampl.append(sampled)
+        logp_sampl.append(logprobs_sampled)
         ix0 = data['bounds']['it_pos_now']
         ix1 = data['bounds']['it_max']
         if val_images_use != -1:
@@ -154,7 +158,7 @@ def track_rnn(cnn_model, model, loader, logger, eval_kwargs={}):
         if n >= ix1:
             logger.warn('Evaluated the required samples (%s)' % n)
             break
-    return sids, rew, logp
+    return sids, logp, rew, sampl, logp_sampl
 
 
 def eval_split(cnn_model, model, loader, logger, eval_kwargs={}):

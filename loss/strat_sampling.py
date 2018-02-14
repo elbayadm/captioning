@@ -42,7 +42,6 @@ class RewardSampler(nn.Module):
             self.logger.info('Sampled loss:')
             self.loss_sampled.log()
 
-
     def forward(self, model, fc_feats, att_feats, labels, mask, scores=None):
         # truncate
         logp = model.forward(fc_feats, att_feats, labels)
@@ -140,5 +139,35 @@ class RewardSampler(nn.Module):
             loss = ml
             stats = None
         return loss, stats
+
+    def track(self, model, fc_feats, att_feats, labels, mask, scores=None):
+        # truncate
+        sampled_list = []
+        logp_list = []
+        logp = model.forward(fc_feats, att_feats, labels)
+        target = labels[:, 1:]
+        seq_length = logp.size(1)
+        target = target[:, :seq_length]
+        mask = mask[:, :seq_length]
+        # labels should bet trimmed to seqlength after 1:
+        if self.training:
+            MC = self.mc_samples
+        else:
+            MC = 1
+        for mci in range(MC):
+            sampled, _, _ = self.sampler.sample(logp, target)
+            sampled_list.append(sampled.data.cpu().numpy())
+            if 1:
+                gt_s = decode_sequence(self.vocab, sampled.data[:, 1:])
+                gt = decode_sequence(self.vocab, labels.data[:, 1:])
+                for s, ss in zip(gt, gt_s):
+                    print('GT:', s, '\nSA:', ss)
+            # Forward the sampled captions
+            if not self.lazy_rnn:
+                logp_s = model.forward(fc_feats, att_feats, sampled)
+                logp_list.append(torch.exp(logp_s).data.cpu().numpy())
+
+        logp = torch.exp(logp).data.cpu().numpy()
+        return logp, logp_list, sampled_list
 
 

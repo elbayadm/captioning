@@ -13,21 +13,22 @@ PERF = ['Bleu_1', 'Bleu_4', 'ROUGE_L', 'METEOR', 'CIDEr', 'SPICE']
 FIELDS = ["Model", "CNN", "params", 'loss', 'weights', 'Beam',
           'CIDEr', 'Bleu4', 'Perplexity', 'best/last']
 
-PAPER_FIELDS = ["Model", "CNN", 'Loss', 'Beam'] + \
+PAPER_FIELDS = ["Model", 'Init',
+                'Loss', 'Reward', 'Sampling', 'Beam'] + \
                [perf + '_ph1' for perf in PERF] + \
                ['Perplexity_ph1'] + \
                [perf + '_ph2' for perf in PERF] + \
                ['Perplexity_ph2']
 
-PAPER_FIELDS_SELECT = ["Model", 'Loss',
+PAPER_FIELDS_SELECT = ['Model', 'Init', 'Loss', 'Reward', 'Sampling',
                        'Bleu_4_ph1',
                        'CIDEr_ph1',
                        'Bleu_1_ph2',
                        'Bleu_4_ph2',
                        'ROUGE_L_ph2',
-                       'METEOR_ph2',
-                       'CIDEr_ph2',
                        'SPICE_ph2',
+                       'METEOR_ph2',
+                       'CIDEr_ph2'
                        ]
 
 
@@ -134,12 +135,6 @@ def get_results(model, split='val', verbose=False):
         # Read post-results
         results = sorted(glob.glob('%s/evaluations/test/*.res' % model_dir))
         params = {}
-        # if osp.exists('%s/infos.pkl' % model_dir):
-            # infos = pickle.load(open('%s/infos.pkl' % model_dir, 'rb'))
-            # params = vars(infos['opt'])
-            # del infos
-        # else:
-            # params = {}
         compiled = []
         for res in results:
             out = pickle.load(open(res, 'rb'))
@@ -171,7 +166,7 @@ def crawl_results_paper(fltr=[], exclude=[], split="test", verbose=False, reset=
             if verbose:
                 print(model.split('/')[-1])
             params, res = outputs[0]
-            loss_version = parse_name_short(params)
+            # loss_version = parse_name_short(params)
             fn_model = "save/" + fn_prefix + model.split('/')[-1]
             if fn_model in fn_models:
                 if verbose:
@@ -182,10 +177,7 @@ def crawl_results_paper(fltr=[], exclude=[], split="test", verbose=False, reset=
             if len(fn_outputs):
                 fn_res = fn_outputs[0][1]
             perf = get_perf(res)
-            row = [params['caption_model'],
-                   params['cnn_model'],
-                   loss_version,
-                   params["beam_size"]]
+            row = nameit(params)
             row += perf
             if len(fn_outputs):
                 row += get_perf(fn_res)
@@ -253,7 +245,7 @@ if __name__ == "__main__":
     parser.add_argument('--html', action='store_true', help="save results into html")
     parser.add_argument('--pkl', action='store_true', help="save results into pkl")
     parser.add_argument('--split', type=str, default="val", help="split on which to report")
-    parser.add_argument('--sort', type=str, default="CIDEr_ph1", help="criteria by which to order the terminal printed table")
+    parser.add_argument('--sort', type=str, default="CIDEr_ph2", help="criteria by which to order the terminal printed table")
     parser.add_argument('--verbose', '-v', action="store_true", help="script verbosity")
     args = parser.parse_args()
 

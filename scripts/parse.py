@@ -22,6 +22,63 @@ def get_wl(params):
     modelparams = ' Word, Sim=%s, $\\tau=%.2f$, $\\alpha=%.1f$, drop(%.1f)' % (G, params['tau_word'], alpha, drop)
     return modelparams
 
+def nameit(params):
+    # Get the loss:
+    row = [params['caption_model']]
+    sampling = "None"
+    row_reward = ""
+    if "stratify_reward" in params:
+        if params['loss_version'] == "ml":
+            row_loss = "ML"
+            if params['penalize_confidence']:
+                row_loss += " + penalized entropy"
+        elif params['loss_version'] == "word":
+            row_loss = "Word"
+            row_reward = "Glove sim"
+            if params['rare_tfidf']:
+                row_reward += " xIDF"
+        elif params['loss_version'] == "seq":
+            row_loss = "Seq"
+            reward = params['reward']
+            if "hamming" in reward:
+                reward += " Vpool=%d" % params['limited_vocab_sub']
+            elif "bleu" in reward:
+                reward += ' mode%d' % (params.get('refs_mode', 1))
+            if not params['stratify_reward']:
+                sampler = params['importance_sampler']
+                if "hamming" in sampler:
+                    sampler += " Vpool=%d" % params['limited_vocab_sub']
+                sampling = sampler
+            else:
+                sampling = reward
+            if params['combine_loss']:
+                row_loss = 'Word-Seq'
+            if params.get('lazy_rnn', 0):
+                row_loss += ', lazy'
+            row_reward = reward
+        row += [row_loss, row_reward, sampling, params['beam_size']]
+
+    else:
+        print('Not implemented for old models || %s' % params['modelname'])
+        # loss_version = parse_loss_old(params)
+    wdec = "random"
+    if params.get('init_decoder_W', ""):
+        wdec = "E_0=G"
+        if params.get('tie_decoder_W_Proj', 0):
+            wdec = "W_0=%s" % wdec
+        if params.get('freeze_decoder_W', 0):
+            wdec = "$%s$ frozen" % wdec
+        else:
+            wdec = "$%s$ free" % wdec
+    elif params.get('init_decoder_Proj', ""):
+        wdec = "$W_0=G$"
+        if params.get('freeze_decoder_Proj', 0):
+            wdec += " frozen"
+        else:
+            wdec += " free"
+    row.insert(1, wdec)
+    return row
+
 
 def parse_name_short(params):
     # Get the loss:

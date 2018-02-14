@@ -70,11 +70,11 @@ if __name__ == "__main__":
     eval_kwargs['beam_size'] = 1
     # eval_kwargs['val_images_use'] = -1
     eval_kwargs['add_dirac'] = opt.add_dirac
-    ids, rewards, probs = track_rnn(cnn_model,
-                                    model,
-                                    loader,
-                                    opt.logger,
-                                    eval_kwargs)
+    ids, probs, rewards, sampled, probs_sampled = track_rnn(cnn_model,
+                                                            model,
+                                                            loader,
+                                                            opt.logger,
+                                                            eval_kwargs)
     # Evaluate etropy & kl div:
     kl = np.mean([entropy(rewards[batch][n, c, :], probs[batch][n, c, :])
                   for batch in range(len(probs))
@@ -93,10 +93,17 @@ if __name__ == "__main__":
     if opt.add_dirac:
         output += '_dirac'
     if opt.save_stats:
-        pickle.dump({"ids": ids[:opt.save_stats],
-                     "probas": probs[:opt.save_stats],
-                     "rewards": rewards[:opt.save_stats]},
-                    open(output+'.tr', 'wb'))
+        RES = {"ids": ids[:opt.save_stats],
+               "probas": probs[:opt.save_stats]}
+
+        if sampled[0] is not None:
+            RES['sampled'] = sampled[:opt.save_stats]
+        if probs_sampled[0] is not None:
+            RES['probs_sampled'] = probs_sampled[:opt.save_stats]
+        if rewards[0] is not None:
+            RES['rewards'] = rewards[:opt.save_stats]
+
+        pickle.dump(RES, open(output+'.tr', 'wb'))
 
     pickle.dump({"H(p)": enp,
                  "H(r)": enr,

@@ -114,12 +114,20 @@ class DecoderModel(nn.Module):
         labels, masks = tmp
         seq = labels[:, 1:]
         msk = masks[:, 1:]
-        logprobs = self.forward(fc_feats, att_feats, labels)
-        input, target = self.crit.track(logprobs,
-                                        seq,
-                                        msk,
-                                        add_dirac)
-        return input, target
+        pt_sampled = None
+        sampled = None
+        rt = None
+        if self.opt.loss_version == "seq":
+            pt, pt_sampled, sampled = self.crit.track(self, fc_feats, att_feats,
+                                                      labels, msk)
+
+        else:
+            logprobs = self.forward(fc_feats, att_feats, labels)
+            pt, rt = self.crit.track(logprobs,
+                                     seq,
+                                     msk,
+                                     add_dirac)
+        return pt, rt, sampled, pt_sampled
 
     def beam_search(self, state, logprobs, *args, **kwargs):
         # args are the miscelleous inputs to the core in addition to embedded word and state
