@@ -1,5 +1,5 @@
-modelname : fncnn6_reset_baseline_resnet152
-start_from : save/baseline_resnet152_msc
+modelname : fncnn6_reset_baseline_showtell152
+start_from : save/baseline_showtell152
 start_from_best : 1
 restart : 1
 
