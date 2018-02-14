@@ -10,3 +10,4 @@ Run the best one for topdown (pool2, mode0 alredy trained)
 Plotting:
 track the rnn classification output for gt and  y sampled then for word
 
+importance_qhamming_pool1_tsent017_rbleu4_mode0_tsent07_a04_topdown
