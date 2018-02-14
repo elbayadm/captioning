@@ -272,8 +272,10 @@ def add_generic(parser):
     parser.add('--input_data', type=str,
                default='data/coco/cocotalk',
                help='data filename, extension h5 & json will be needed')
-    parser.add('--train_only', type=int,
-               default=1, help='if true then use 80k, else use 110k')
+    parser.add('--full_train', type=int,
+               default=0, help='if true then all data is used for training')
+    parser.add('--add_restval', type=int,
+               default=0, help='if true then train with 110k images i.e train + restval')
     parser.add('--upsampling_size', type=int,
                default=300, help='upsampling size for MIL')
     parser.add('--batch_size', type=int,

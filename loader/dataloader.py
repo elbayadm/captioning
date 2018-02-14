@@ -152,9 +152,13 @@ class DataLoader(object):
                 self.split_ix['train'].append(ix)
             elif img['split'] == 'val':
                 self.split_ix['val'].append(ix)
+                if opt.full_train:
+                    self.split_ix['train'].append(ix)
             elif img['split'] == 'test':
                 self.split_ix['test'].append(ix)
-            elif opt.train_only == 0: # restval
+                if opt.full_train:
+                    self.split_ix['train'].append(ix)
+            elif opt.add_restval or opt.full_train:  # restval
                 self.split_ix['train'].append(ix)
 
         self.opt.logger.warn('assigned %d images to split train' % len(self.split_ix['train']))
