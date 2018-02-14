@@ -27,7 +27,7 @@ PAPER_FIELDS_FULL = ['Model', 'Init', 'Loss', 'Reward', 'Sampling',
                      'METEOR_ph2', 'CIDEr_ph2'
                      ]
 
-PAPER_FIELDS_SHORT = ['Reward', 'Sampling',
+PAPER_FIELDS_SHORT = ['Loss', 'Reward', 'Sampling',
                       'Bleu_1_ph2',
                       'Bleu_4_ph2',
                       'METEOR_ph2',
