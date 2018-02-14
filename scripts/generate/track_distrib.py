@@ -64,7 +64,7 @@ if __name__ == "__main__":
     # opt.n_gen = 10
     # opt.score_ground_truth = True
     eval_kwargs = {'split': 'train',
-                   'val_images_use': 3000,
+                   'val_images_use': 30,
                    'dataset': opt.input_data + '.json'}
     eval_kwargs.update(vars(opt))
     eval_kwargs['beam_size'] = 1
@@ -76,23 +76,30 @@ if __name__ == "__main__":
                                                             opt.logger,
                                                             eval_kwargs)
     # Evaluate etropy & kl div:
-    kl = np.mean([entropy(rewards[batch][n, c, :], probs[batch][n, c, :])
-                  for batch in range(len(probs))
-                  for n in range(len(probs[batch]))
-                  for c in range(len(probs[batch][n]))])
+    stats = {}
+    if rewards[0] is not None:
+        kl = np.mean([entropy(rewards[batch][n, c, :], probs[batch][n, c, :])
+                      for batch in range(len(probs))
+                      for n in range(len(probs[batch]))
+                      for c in range(len(probs[batch][n]))])
+        enr = np.mean([entropy(rewards[batch][n, c, :])
+                       for batch in range(len(probs))
+                       for n in range(len(probs[batch]))
+                       for c in range(len(probs[batch][n]))])
+        opt.logger.warn('Average KL: %.2e & average entropy(r): %.2e' % (kl, enr))
+        stats.update({"H(r)": enr, "KL(r,p)": kl})
+
     enp = np.mean([entropy(probs[batch][n, c, :])
                    for batch in range(len(probs))
                    for n in range(len(probs[batch]))
                    for c in range(len(probs[batch][n]))])
-    enr = np.mean([entropy(rewards[batch][n, c, :])
-                   for batch in range(len(probs))
-                   for n in range(len(probs[batch]))
-                   for c in range(len(probs[batch][n]))])
-    print('Average KL: %.2e & average entropy(p) :%.2e & Average entropy(r): %.2e' % (kl, enp, enr))
+    opt.logger.warn('Model average entropy: %.2f' % enp)
+    stats['H(p)'] = enp
     output = 'results/%s_track' % opt.modelname.split('/')[-1]
     if opt.add_dirac:
         output += '_dirac'
     if opt.save_stats:
+        opt.logger.info('Saving results up to %d samples' % opt.save_stats)
         RES = {"ids": ids[:opt.save_stats],
                "probas": probs[:opt.save_stats]}
 
@@ -105,9 +112,7 @@ if __name__ == "__main__":
 
         pickle.dump(RES, open(output+'.tr', 'wb'))
 
-    pickle.dump({"H(p)": enp,
-                 "H(r)": enr,
-                 "KL(r,p)": kl},
-                open(output+'.entropy', 'wb'))
+    opt.logger.info('Dumping the entropies and kl divs')
+    pickle.dump(stats, open(output+'.entropy', 'wb'))
 
 
