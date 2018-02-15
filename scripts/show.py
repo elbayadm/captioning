@@ -159,7 +159,10 @@ def get_results(model, split='val', verbose=False, get_cid=False):
     return compiled
 
 
-def crawl_results_paper(fltr=[], exclude=[], split="test", verbose=False, reset=False):
+def crawl_results_paper(fltr=[], exclude=[], split="test", verbose=False, reset=False, beam=-1):
+    """
+    if beam == -1 report all evaluated beam widths
+    """
     models = glob.glob('save/*')
     models = [model for model in models if is_required(model, fltr, exclude)]
     tab = PrettyTable()
@@ -209,7 +212,12 @@ def crawl_results_paper(fltr=[], exclude=[], split="test", verbose=False, reset=
                     row += get_perf(fn_res, get_cid=True)
                 else:
                     row += (len(PERF) + 2) * [0]
-                tab.add_row(row)
+
+                if beam == -1:
+                    tab.add_row(row)
+                else:
+                    if beam == beam_size:
+                        tab.add_row(row)
     return tab
 
 
@@ -274,6 +282,8 @@ if __name__ == "__main__":
     parser.add_argument('--sort', type=str, default="CIDEr_ph2", help="criteria by which to order the terminal printed table")
     parser.add_argument('--verbose', '-v', action="store_true", help="script verbosity")
     parser.add_argument('--abridged', '-a', action="store_true", help="script verbosity")
+    parser.add_argument('--beam', '-b', type=int, default=3, help="beam reported")
+
 
     args = parser.parse_args()
     split = args.split
@@ -301,7 +311,9 @@ if __name__ == "__main__":
         if args.abridged:
             SELECT = PAPER_FIELDS_SHORT
             filename += '_abr'
-        tab = crawl_results_paper(fltr, exc, split, verbose, args.reset)
+        if not args.beam == -1:
+            filename += '_bw%d' % args.beam
+        tab = crawl_results_paper(fltr, exc, split, verbose, args.reset, args.beam)
         print(tab.get_string(sortby=args.sort, reversesort=True, fields=PAPER_FIELDS_FULL))
         print('saving latex table in %s.tex' % filename)
         with open(filename+'.tex', 'w') as f:
