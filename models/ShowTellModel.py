@@ -192,7 +192,7 @@ class ShowTellModel(DecoderModel):
         # return the samples and their log likelihoods
         return seq.transpose(0, 1), seqLogprobs.transpose(0, 1)
 
-    def sample(self, fc_feats, att_feats, opt={}):
+    def sample(self, fc_feats, att_feats, track=False, opt={}):
         sample_max = opt.get('sample_max', 1)
         beam_size = opt.get('beam_size', 1)
         temperature = opt.get('temperature', 1.0)
@@ -203,6 +203,7 @@ class ShowTellModel(DecoderModel):
         state = self.init_hidden(batch_size)
         seq = []
         seqLogprobs = []
+        tokLogprobs = []
         for t in range(self.seq_length + 2):
             if t == 0:
                 xt = self.img_embed(fc_feats)
@@ -238,13 +239,21 @@ class ShowTellModel(DecoderModel):
 
             output, state = self.core(xt.unsqueeze(0), state)
             logprobs = F.log_softmax(self.logit(output.squeeze(0)))
+            if t:
+                tokLogprobs.append(torch.exp(logprobs))
             if forbid_unk:
                 logprobs = logprobs[:, :-1]
 
 
-        try:
-            return torch.cat([_.unsqueeze(1) for _ in seq], 1), torch.cat([_.unsqueeze(1) for _ in seqLogprobs], 1).data
-        except:  # Fix issue with Variable v. Tensor depending on the mode.
-            return torch.cat([_.unsqueeze(1) for _ in seq], 1), torch.cat([_.unsqueeze(1) for _ in seqLogprobs], 1)
+        if not track:
+            try:
+                return torch.cat([_.unsqueeze(1) for _ in seq], 1), torch.cat([_.unsqueeze(1) for _ in seqLogprobs], 1).data
+            except:  # Fix issue with Variable v. Tensor depending on the mode.
+                return torch.cat([_.unsqueeze(1) for _ in seq], 1), torch.cat([_.unsqueeze(1) for _ in seqLogprobs], 1)
+        else:
+            return torch.cat([_.unsqueeze(1) for _ in seq], 1), torch.cat([_.unsqueeze(1) for _ in tokLogprobs], 1).data
+
+
+
 
 

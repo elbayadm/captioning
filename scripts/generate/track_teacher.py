@@ -67,7 +67,6 @@ if __name__ == "__main__":
                    'val_images_use': 30,
                    'dataset': opt.input_data + '.json'}
     eval_kwargs.update(vars(opt))
-    eval_kwargs['beam_size'] = 1
     # eval_kwargs['val_images_use'] = -1
     eval_kwargs['add_dirac'] = opt.add_dirac
     ids, probs, rewards, sampled, probs_sampled = track_rnn(cnn_model,

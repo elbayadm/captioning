@@ -149,7 +149,7 @@ class AttentionModel(DecoderModel):
         # return the samples and their log likelihoods
         return seq.transpose(0, 1), seqLogprobs.transpose(0, 1)
 
-    def sample(self, fc_feats, att_feats, opt={}):
+    def sample(self, fc_feats, att_feats, track=False, opt={}):
         sample_max = opt.get('sample_max', 1)
         beam_size = opt.get('beam_size', 1)
         temperature = opt.get('temperature', 1.0)
@@ -170,6 +170,7 @@ class AttentionModel(DecoderModel):
 
         seq = []
         seqLogprobs = []
+        tokLogprobs = []
         for t in range(self.seq_length + 1):
             if t == 0: # input <bos>
                 it = fc_feats.data.new(batch_size).long().zero_()
@@ -203,8 +204,13 @@ class AttentionModel(DecoderModel):
 
             output, state = self.core(xt, fc_feats, att_feats, p_att_feats, state, t)
             logprobs = F.log_softmax(self.logit(output))
+            tokLogprobs.append(torch.exp(logprobs))
 
-        return torch.cat([_.unsqueeze(1) for _ in seq], 1), torch.cat([_.unsqueeze(1) for _ in seqLogprobs], 1)
+        if not track:
+            return torch.cat([_.unsqueeze(1) for _ in seq], 1), torch.cat([_.unsqueeze(1) for _ in seqLogprobs], 1)
+        else:
+            return torch.cat([_.unsqueeze(1) for _ in seq], 1), torch.cat([_.unsqueeze(1) for _ in tokLogprobs], 1).data
+
 
 
 

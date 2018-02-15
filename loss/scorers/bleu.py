@@ -5,6 +5,7 @@ import math
 from collections import Counter
 import numpy as np
 from ..utils import decode_sequence
+from .bleu_multi import bleu_multi
 
 
 def sentence_bleu(hypothesis, reference, smoothing=True, order=4, **kwargs):
@@ -82,6 +83,9 @@ class BleuRewardScorer(object):
                 scores.append(sum([sentence_bleu(h, refs[ix],
                                                  order=self.bleu_order)
                                    for ix in range(ix_start, ix_end)])/5)
+            elif self.mode == 4:
+                scores.append(bleu_multi(h, refs[ix_start: ix_end]))
+                # print('bleu:', scores[-1])
 
         # scale scores:
         scores = np.array(scores)

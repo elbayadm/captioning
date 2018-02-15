@@ -129,6 +129,27 @@ class DecoderModel(nn.Module):
                                      add_dirac)
         return pt, rt, sampled, pt_sampled
 
+    def step_track_decode(self, data, att_feats, fc_feats, eval_kwargs):
+        tmp = [data['labels'], data['masks']]
+        tmp = [Variable(torch.from_numpy(_), requires_grad=False).cuda() for _ in tmp]
+        labels, masks = tmp
+        seq = labels[:, 1:]
+        msk = masks[:, 1:]
+        pt_sampled = None
+        sampled = None
+        rt = None
+        if self.opt.loss_version == "seq":
+            pt, pt_sampled, sampled = self.crit.track(self, fc_feats, att_feats,
+                                                      labels, msk)
+
+        else:
+            logprobs = self.forward(fc_feats, att_feats, labels)
+            pt, rt = self.crit.track(logprobs,
+                                     seq,
+                                     msk,
+                                     add_dirac)
+        return pt, rt, sampled, pt_sampled
+
     def beam_search(self, state, logprobs, *args, **kwargs):
         # args are the miscelleous inputs to the core in addition to embedded word and state
         # kwargs only accept opt

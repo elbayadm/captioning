@@ -20,7 +20,7 @@ PAPER_FIELDS = ["Model", 'Init',
                [perf + '_ph2' for perf in PERF] + \
                ['Perplexity_ph2']
 
-PAPER_FIELDS_FULL = ['Model', 'Init', 'Loss', 'Reward', 'Sampling',
+PAPER_FIELDS_FULL = ['Model', 'Init', 'Loss', 'Reward', 'Sampling', "Beam",
                      'Bleu_4_ph1', 'CIDEr_ph1',
                      'Bleu_1_ph2', 'Bleu_4_ph2',
                      'ROUGE_L_ph2', 'SPICE_ph2',
@@ -126,7 +126,7 @@ def get_results(model, split='val', verbose=False):
                     print('%s: ml loss set to 0' % model)
                 out["ml_loss"] = 0
             # Defaults
-            params = {'beams_size': 1, 'sample_max': 1, 'temperature': 0.5, 'flip': 0}
+            params = {'beam_size': 1, 'sample_max': 1, 'temperature': 0.5, 'flip': 0}
             params.update(vars(infos['opt']))
             compiled = [[params, out]]
         else:
@@ -137,14 +137,11 @@ def get_results(model, split='val', verbose=False):
     elif split == "test":
         # Read post-results
         results = sorted(glob.glob('%s/evaluations/test/*.res' % model_dir))
-        params = {}
         compiled = []
         for res in results:
             out = pickle.load(open(res, 'rb'))
-            params.update(out['params'])
-            del out['params']
             out['best/last'] = "--"
-            compiled.append([params, out])
+            compiled.append([out['params'], out])
     else:
         raise ValueError('Unknown split %s' % split)
 
@@ -168,8 +165,6 @@ def crawl_results_paper(fltr=[], exclude=[], split="test", verbose=False, reset=
         if len(outputs):
             if verbose:
                 print(model.split('/')[-1])
-            params, res = outputs[0]
-            # loss_version = parse_name_short(params)
             fn_model = "save/" + fn_prefix + model.split('/')[-1]
             if fn_model in fn_models:
                 if verbose:
@@ -177,16 +172,36 @@ def crawl_results_paper(fltr=[], exclude=[], split="test", verbose=False, reset=
                 fn_outputs = get_results(fn_model, split, verbose)
             else:
                 fn_outputs = []
-            if len(fn_outputs):
-                fn_res = fn_outputs[0][1]
-            perf = get_perf(res)
-            row = nameit(params)
-            row += perf
-            if len(fn_outputs):
-                row += get_perf(fn_res)
-            else:
-                row += 7 * [0]
-            tab.add_row(row)
+
+            print('Retrieved:', len(outputs), len(fn_outputs))
+            outputs_dict = {}
+            for params, res in outputs:
+                outputs_dict[params['beam_size']] = [params, res]
+            if fn_outputs:
+                for params, res in fn_outputs:
+                    print('beam:', params['beam_size'], res["CIDEr"])
+                    if params['beam_size'] in outputs_dict:
+                        outputs_dict[params['beam_size']].append(res)
+                    else:
+                        outputs_dict[params['beam_size']] = [params, None, res]
+            for beam_size, results in outputs_dict.items():
+                print('len res:', len(results))
+                if len(results) == 3:
+                    params, res, fn_res = results
+                else:
+                    params, res = results
+                    fn_res = None
+                row = nameit(params)
+                if res:
+                    perf = get_perf(res)
+                else:
+                    perf = [0] * (len(PERF) + 1)
+                row += perf
+                if fn_res:
+                    row += get_perf(fn_res)
+                else:
+                    row += (len(PERF) + 1) * [0]
+                tab.add_row(row)
     return tab
 
 
