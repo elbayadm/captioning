@@ -1,0 +1,42 @@
+modelname : fncnn6_reset_combine_importance_qhamming_limited2_tsent03_rcider_tsent05_a04_word_coco_tword009_idf10_a03_topdown_WE_fulltrain_4
+start_from : save/combine_importance_qhamming_limited2_tsent03_rcider_tsent05_a04_word_coco_tword009_idf10_a03_topdown_WE_fulltrain_4
+start_from_best : 1
+
+seed : 4
+caption_model : top_down
+cnn_model : resnet152
+input_data : data/coco/cocotalk
+full_train : 1
+
+# loss:
+loss_version : seq
+stratify_reward : 0
+reward : cider
+importance_sampler : hamming
+alpha_sent : 0.4
+tau_sent : 0.5
+tau_sent_q : 0.3
+limited_vocab_sub : 2
+
+combine_loss : 1
+tau_word: 0.09
+rare_tfidf : 1
+similarity_matrix : data/Glove/train_coco_similarities.pkl
+alpha_word : 0.3
+
+# Initialize W & E
+init_decoder_W:  data/Glove/glove_coco_d512_w15_matrix.pkl
+freeze_decoder_W : 0
+init_decoder_Proj:  data/Glove/glove_coco_d512_w15_matrix.pkl
+freeze_decoder_Proj : 0
+tie_decoder_W_Proj : 1
+
+reset_optimizer : 1
+finetune_cnn_after : 0
+finetune_cnn_slice : 6
+learning_rate : 1e-4
+learning_rate_decay_start : 5
+learning_rate_decay_rate : 0.8
+learning_rate_decay_every: 4
+max_epochs : 30
+
