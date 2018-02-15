@@ -29,6 +29,7 @@ case $host in
     decore*) track_myjobs_lig;;
     dvorak*) track_myjobs_lig;;
     hyperion*) track_myjobs_lig;;
+    ceos*) track_myjobs_lig;;
     *)  echo "Unknown whereabouts!!" ;;
 esac
 
