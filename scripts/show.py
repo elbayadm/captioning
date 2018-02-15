@@ -208,7 +208,7 @@ def crawl_results_paper(fltr=[], exclude=[], split="test", verbose=False, reset=
                 if fn_res:
                     row += get_perf(fn_res, get_cid=True)
                 else:
-                    row += (len(PERF) + 1) * [0]
+                    row += (len(PERF) + 2) * [0]
                 tab.add_row(row)
     return tab
 
