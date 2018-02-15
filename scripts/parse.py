@@ -56,6 +56,17 @@ def nameit(params):
             if params.get('lazy_rnn', 0):
                 row_loss += ', lazy'
             row_reward = reward
+            if 'Vpool=1' in sampling:
+                _sampling = "$\\V_{batch}$"
+            elif 'Vpool=2' in sampling:
+                _sampling = "$\\V_{refs}$"
+            elif 'Vpool=0' in sampling:
+                _sampling = "$\\V$"
+
+            if 'sim' in sampling:
+                _sampling += ' unigram'
+            sampling = _sampling
+
         row += [row_loss, row_reward, sampling, params['beam_size']]
 
     else:

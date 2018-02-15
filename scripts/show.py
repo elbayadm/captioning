@@ -7,7 +7,10 @@ from collections import OrderedDict
 from math import exp
 from prettytable import PrettyTable
 from html import escape
+import numpy as np
+import scipy.stats as st
 from parse import *
+
 
 PERF = ['Bleu_1', 'Bleu_4', 'ROUGE_L', 'SPICE', 'METEOR', 'CIDEr']
 FIELDS = ["Model", "CNN", "params", 'loss', 'weights', 'Beam',
@@ -18,20 +21,21 @@ PAPER_FIELDS = ["Model", 'Init',
                [perf + '_ph1' for perf in PERF] + \
                ['Perplexity_ph1'] + \
                [perf + '_ph2' for perf in PERF] + \
+               ['CI CIDEr'] + \
                ['Perplexity_ph2']
 
 PAPER_FIELDS_FULL = ['Model', 'Init', 'Loss', 'Reward', 'Sampling', "Beam",
                      'Bleu_4_ph1', 'CIDEr_ph1',
                      'Bleu_1_ph2', 'Bleu_4_ph2',
                      'ROUGE_L_ph2', 'SPICE_ph2',
-                     'METEOR_ph2', 'CIDEr_ph2'
+                     'METEOR_ph2', 'CIDEr_ph2', 'CI CIDEr',
                      ]
 
-PAPER_FIELDS_SHORT = ['Loss', 'Reward', 'Sampling',
+PAPER_FIELDS_SHORT = ['Loss', 'Reward', 'Sampling', "Beam",
                       'Bleu_1_ph2',
                       'Bleu_4_ph2',
                       'METEOR_ph2',
-                      'CIDEr_ph2'
+                      'CIDEr_ph2', 'CI CIDEr'
                       ]
 
 
@@ -92,7 +96,7 @@ def get_latex(ptab, **kwargs):
     return lines
 
 
-def get_perf(res):
+def get_perf(res, get_cid=False):
     formatted_res = OrderedDict()
     for k in PERF:
         if k in res:
@@ -100,11 +104,13 @@ def get_perf(res):
         else:
             formatted_res[k] = 0
     out = list(formatted_res.values())
+    if get_cid:
+        out.append(res['CI_cider'])
     out.append(float(exp(res['ml_loss'])))
     return out
 
 
-def get_results(model, split='val', verbose=False):
+def get_results(model, split='val', verbose=False, get_cid=False):
     model_dir = model
     if split == "val":
         # Read training results:
@@ -141,6 +147,11 @@ def get_results(model, split='val', verbose=False):
         for res in results:
             out = pickle.load(open(res, 'rb'))
             out['best/last'] = "--"
+            if get_cid:
+                val = pickle.load(open('%s/infos.pkl' % model, 'rb'))['val_result_history']
+                cid = [100 * v['lang_stats']['CIDEr'] for v in val.values()][-8:]
+                ci = st.t.interval(0.95, len(cid)-1, loc=np.mean(cid), scale=st.sem(cid))
+                out['CI_cider'] = ci[1] - ci[0]
             compiled.append([out['params'], out])
     else:
         raise ValueError('Unknown split %s' % split)
@@ -169,23 +180,20 @@ def crawl_results_paper(fltr=[], exclude=[], split="test", verbose=False, reset=
             if fn_model in fn_models:
                 if verbose:
                     print('finetuned model exists')
-                fn_outputs = get_results(fn_model, split, verbose)
+                fn_outputs = get_results(fn_model, split, verbose, get_cid=True)
             else:
                 fn_outputs = []
 
-            print('Retrieved:', len(outputs), len(fn_outputs))
             outputs_dict = {}
             for params, res in outputs:
                 outputs_dict[params['beam_size']] = [params, res]
             if fn_outputs:
                 for params, res in fn_outputs:
-                    print('beam:', params['beam_size'], res["CIDEr"])
                     if params['beam_size'] in outputs_dict:
                         outputs_dict[params['beam_size']].append(res)
                     else:
                         outputs_dict[params['beam_size']] = [params, None, res]
             for beam_size, results in outputs_dict.items():
-                print('len res:', len(results))
                 if len(results) == 3:
                     params, res, fn_res = results
                 else:
@@ -198,7 +206,7 @@ def crawl_results_paper(fltr=[], exclude=[], split="test", verbose=False, reset=
                     perf = [0] * (len(PERF) + 1)
                 row += perf
                 if fn_res:
-                    row += get_perf(fn_res)
+                    row += get_perf(fn_res, get_cid=True)
                 else:
                     row += (len(PERF) + 1) * [0]
                 tab.add_row(row)
@@ -285,13 +293,14 @@ if __name__ == "__main__":
         fltr_concat = '_' + fltr_concat
     if args.reset:
         fltr_concat += '_reset'
-    SELECT = PAPER_FIELDS_FULL
-    if args.abridged:
-        SELECT = PAPER_FIELDS_SHORT
     if args.paper:
         print('Setting up split=test')
         split = 'test'
-        filename = "results/%s%s_%s" % (split, fltr_concat, socket.gethostname())
+        filename = "results/%s%s" % (split, fltr_concat)  # socket.gethostname())
+        SELECT = PAPER_FIELDS_FULL
+        if args.abridged:
+            SELECT = PAPER_FIELDS_SHORT
+            filename += '_abr'
         tab = crawl_results_paper(fltr, exc, split, verbose, args.reset)
         print(tab.get_string(sortby=args.sort, reversesort=True, fields=PAPER_FIELDS_FULL))
         print('saving latex table in %s.tex' % filename)
