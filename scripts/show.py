@@ -313,6 +313,8 @@ if __name__ == "__main__":
             filename += '_abr'
         if not args.beam == -1:
             filename += '_bw%d' % args.beam
+            PAPER_FIELDS_FULL.remove('Beam')
+            PAPER_FIELDS_SHORT.remove('Beam')
         tab = crawl_results_paper(fltr, exc, split, verbose, args.reset, args.beam)
         print(tab.get_string(sortby=args.sort, reversesort=True, fields=PAPER_FIELDS_FULL))
         print('saving latex table in %s.tex' % filename)
