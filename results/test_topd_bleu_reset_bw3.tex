@@ -1,0 +1,10 @@
+|c|c|c|c|c|c|c|c|c|c|c|c|c|c|
+\midrule
+Model & Init & Loss & Reward & Sampling & Bleu_4_ph1 & CIDEr_ph1 & Bleu_1_ph2 & Bleu_4_ph2 & ROUGE_L_ph2 & SPICE_ph2 & METEOR_ph2 & CIDEr_ph2 & CI CIDEr\\
+\midrule
+Top-down & random & Seq & bleu4 mode0 & $\V$ & 31.35 & 97.79 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+Top-down & random & Seq & bleu4 mode0 & $\V_{batch}$ & 31.44 & 98.74 & 72.98 & 32.48 & 54.10 & 18.85 & 25.89 & 101.05 & 0.28\\
+Top-down & random & Seq & bleu4 mode0 & $\V_{refs}$ & 31.79 & 98.34 & 73.41 & 32.69 & 54.31 & 18.90 & 25.83 & 101.35 & 0.44\\
+Top-down & random & Seq & bleu4 mode1 & $\V$ & 31.73 & 98.99 & 73.39 & 32.89 & 54.33 & 19.03 & 26.10 & 102.60 & 0.73\\
+Top-down & random & Seq & bleu4 mode3 & $\V_{batch}$ & 31.54 & 98.25 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+\midrule

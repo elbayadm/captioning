@@ -239,10 +239,10 @@ def eval_split(cnn_model, model, loader, logger, eval_kwargs={}):
         loss_evals = loss_evals + 1
         # TODO Only leave one feature for each image, in case duplicate sample
         seq, probs = model.sample(fc_unique, att_unique,
-                                  {'beam_size': beam_size,
-                                   "forbid_unk": forbid_unk,
-                                   "sample_max": sample_max,
-                                   "temperature": temperature})
+                                  opt={'beam_size': beam_size,
+                                       "forbid_unk": forbid_unk,
+                                       "sample_max": sample_max,
+                                       "temperature": temperature})
         sent_scores = probs.cpu().numpy().sum(axis=1)
         sents = utils.decode_sequence(loader.get_vocab(), seq)
         for k, sent in enumerate(sents):

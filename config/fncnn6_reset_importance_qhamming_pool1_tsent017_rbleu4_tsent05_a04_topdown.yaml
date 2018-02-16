@@ -1,4 +1,4 @@
-modelname : importance_qhamming_pool1_tsent017_rbleu4_tsent05_a04_topdown
+modelname : fncnn6_reset_importance_qhamming_pool1_tsent017_rbleu4_tsent05_a04_topdown
 start_from : save/importance_qhamming_pool1_tsent017_rbleu4_tsent05_a04_topdown
 start_from_best : 1
 

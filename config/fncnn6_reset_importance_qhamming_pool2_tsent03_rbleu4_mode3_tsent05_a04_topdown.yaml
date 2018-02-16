@@ -1,5 +1,5 @@
-modelname : fncnn6_reset_importance_qhamming_pool2_tsent03_rbleu4_mode3_tsent05_a05_topdown
-start_from : save/importance_qhamming_pool2_tsent03_rbleu4_mode3_tsent05_a05_topdown
+modelname : fncnn6_reset_importance_qhamming_pool2_tsent03_rbleu4_mode3_tsent05_a04_topdown
+start_from : save/importance_qhamming_pool2_tsent03_rbleu4_mode3_tsent05_a04_topdown
 start_from_best : 1
 
 caption_model : top_down
@@ -7,7 +7,7 @@ cnn_model : resnet152
 input_data : data/coco/cocotalk
 # loss:
 loss_version : seq
-alpha_sent : 0.5
+alpha_sent : 0.4
 
 stratify_reward : 0
 reward : bleu4

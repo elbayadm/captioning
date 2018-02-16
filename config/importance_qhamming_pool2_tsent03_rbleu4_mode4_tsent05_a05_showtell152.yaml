@@ -1,16 +1,16 @@
-modelname : importance_qhamming_pool2_tsent03_rbleu4_mode3_tsent05_a04_topdown
+modelname : importance_qhamming_pool2_tsent03_rbleu4_mode4_tsent05_a05_showtell152
 
-caption_model : top_down
+caption_model : show_tell
 cnn_model : resnet152
 input_data : data/coco/cocotalk
 # loss:
 loss_version : seq
-alpha_sent : 0.4
+alpha_sent : 0.5
 
 stratify_reward : 0
 reward : bleu4
 tau_sent : 0.5
-refs_mode : 3
+refs_mode : 4
 
 importance_sampler : hamming
 tau_sent_q : 0.3
