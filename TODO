@@ -3,5 +3,4 @@ when done fn fncnn6_reset_importance_qhamming_pool1_tsent017_rbleu4_tsent05_a04_
 Mode 4 ?
 
 cmp_eval:
-fncnn6_reset_importance_qhamming_pool2_tsent03_rbleu4_mode3_tsent05_a04_topdown
-fncnn6_reset_importance_qhamming_pool1_tsent017_rbleu4_tsent05_a04_topdown
+fncnn mode1 pool2
