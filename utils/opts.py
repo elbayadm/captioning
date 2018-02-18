@@ -477,8 +477,50 @@ def parse_eval_opt():
 
 def parse_ens_opt():
     parser = configargparse.ArgParser()
-    parser.add('-c', '--config', is_config_file=True, help='Config file path')
     # Data input settings
-    parser.add('--model', nargs="+", action="append",
-                        help='Model(s) to evaluate')
+    parser.add('--models', nargs="+", action="append", help='Model(s) to evaluate')
+    parser.add('--ensemblename', type=str, default="ensemble", help='Name for saving')
+    parser.add('--start_from_best', type=int, default=1,
+               help="Whether to start from the best saved model (1) or the from the last checkpoint (0)")
+
+    parser = add_generic(parser)
+    parser = add_eval_params(parser)
+    parser = add_scheduled_sampling(parser)
+    parser = add_optim_params(parser)
+    parser = add_loss_params(parser)
+    parser.add('--num_images', type=int, default=-1,
+               help='how many images to use when periodically evaluating the loss? (-1 = all)')
+    parser.add('--dump_images', type=int, default=0,
+               help='Dump images into vis/imgs folder for vis? (1=yes,0=no)')
+    parser.add('--dump_json', type=int, default=1,
+               help='Dump json with predictions into vis folder? (1=yes,0=no)')
+    parser.add('--output', type=str,
+               help='results file name')
+    parser.add('--dump_path', type=int, default=0,
+               help='Write image paths along with predictions into vis json? (1=yes,0=no)')
+    # For evaluation on a folder of images:
+    parser.add('--image_folder', type=str, default='',
+               help='If this is nonempty then will predict on the images in this folder path')
+    parser.add('--image_list', type=str,
+               help='List of image from folder')
+    parser.add('--max_images', type=int, default=-1,
+               help='If not -1 limit the number of evaluated images')
+    parser.add('--image_root', type=str, default='data/coco/images',
+               help='In case the image paths have to be preprended with a root path to an image folder')
+    # For evaluation on MSCOCO images from some split:
+    parser.add('--input_h5', type=str, default='',
+               help='path to the h5file containing the preprocessed dataset')
+    parser.add('--input_json', type=str, default='',
+               help='path to the json file containing additional info and vocab. empty = fetch from model checkpoint.')
+    parser.add('--split', type=str, default='val',
+               help='if running on MSCOCO images, which split to use: val|test|train')
+    # misc
+    parser.add('--fliplr_eval', type=int, default=0,
+               help='add flipped image')
+
+
+    args = parser.parse_args()
+    args.ensemblename = 'save/' + args.ensemblename
+    args.logger = create_logger('%s/eval.log' % args.ensemblename)
+    return args
 

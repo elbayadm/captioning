@@ -1,27 +1,24 @@
 """
 Evaluate an ensemble of models (Show & Tell)
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
+import pickle
+import numpy as np
+from .ShowTellModel import ShowTellModel
+from .TopDownModel import TopDownModel
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import *
-import misc.utils as utils
-import _pickle as pickle
-import numpy as np
-from misc.ShowTellModel import ShowTellModel
-import misc.loss as loss
+
 
 class Ensemble(nn.Module):
     def __init__(self, models, cnn_models, opt):
         super(Ensemble, self).__init__()
         self.opt = opt
-        for model in models:
-            assert(type(model) == ShowTellModel)
+        # for model in models:
+            # assert(type(model) == ShowTellModel)
         # Store each model as a component of the overall network
+        self.model_type = type(models[0])
         self.models = models
         self.cnn_models = cnn_models
         self.n_models = len(models)
@@ -30,32 +27,6 @@ class Ensemble(nn.Module):
         self.ss_prob = 0
         self.ss_vocab = 0
         self.logger = opt.logger
-
-    def define_loss(self, loader_vocab):
-        opt = self.opt
-        if opt.raml_loss:
-            # D = np.eye(opt.vocab_size + 1, dtype="float32")
-            # D = np.random.uniform(size=(opt.vocab_size + 1,
-                                        # opt.vocab_size + 1)).astype(np.float32)
-            # D = pickle.load(open('data/Glove/cocotalk_similarities_v2.pkl', 'rb'),
-                            # encoding='iso-8859-1')
-            D = pickle.load(open(opt.similarity_matrix, 'rb'), encoding='iso-8859-1')
-
-            D = D.astype(np.float32)
-            D = Variable(torch.from_numpy(D)).cuda()
-            crit = loss.SmoothLanguageModelCriterion(Dist=D,
-                                                      loader_vocab=loader_vocab,
-                                                      opt=opt)
-        elif opt.bootstrap_loss:
-            # Using importance sampling loss:
-            crit = loss.ImportanceLanguageModelCriterion(opt)
-
-        elif opt.combine_caps_losses:
-            crit = loss.MultiLanguageModelCriterion(opt.seq_per_img)
-        else:
-            opt.logger.warn('Using baseline loss criterion')
-            crit = loss.LanguageModelCriterion(opt)
-        self.crit = crit
 
     def get_feats(self, images):
         att_feats_ens = []
@@ -125,10 +96,13 @@ class Ensemble(nn.Module):
         # combine the probabilities:
         logprobs = torch.stack(logprobs, dim=1)
         logprobs = torch.mean(logprobs, dim=1).squeeze(1)
-        return  logprobs
-
+        return logprobs
 
     def sample(self, fc_feats, att_feats, opt={}):
+        # print('Model type:', self.model_type)
+        if self.model_type == TopDownModel:
+            return self.sample_att(fc_feats, att_feats, opt)
+
         sample_max = opt.get('sample_max', 1)
         # print('Sample max:', sample_max)
         beam_size = opt.get('beam_size', 1)
@@ -138,20 +112,14 @@ class Ensemble(nn.Module):
         if beam_size > 1:
             return self.sample_beam(fc_feats, att_feats, opt)
 
-
         batch_size = fc_feats[0].size(0)
-
         seq = torch.LongTensor(self.seq_length, batch_size).zero_()
         seqLogprobs = torch.FloatTensor(self.seq_length, batch_size)
-
-        # lets process every image independently for now, for simplicity
         state = []
         for model in self.models:
             model_state = model.init_hidden(batch_size)
-            # print('Initial length:', [torch.sum(st).data[0] for st in model_state])
             state.append(model_state)
         for t in range(self.seq_length + 2):
-            # print('At step ',t, ' states:', [torch.sum(ss).data[0] for st in state for ss in st])
             xt = []
             if t == 0:
                 for e, model in enumerate(self.models):
@@ -164,12 +132,13 @@ class Ensemble(nn.Module):
                     it = it.view(-1).long()
                 else:
                     if temperature == 1.0:
-                        prob_prev = torch.exp(logprobs.data).cpu() # fetch prev distribution: shape Nx(M+1)
+                        prob_prev = torch.exp(logprobs.data).cpu()
+                        # fetch prev distribution: shape Nx(M+1)
                     else:
-                        # scale logprobs by temperature
                         prob_prev = torch.exp(torch.div(logprobs.data, temperature)).cpu()
                     it = torch.multinomial(prob_prev, 1).cuda()
-                    sampleLogprobs = logprobs.gather(1, Variable(it, requires_grad=False)) # gather the logprobs at sampled positions
+                    sampleLogprobs = logprobs.gather(1, Variable(it, requires_grad=False))
+                    # gather the logprobs at sampled positions
                     it = it.view(-1).long() # and flatten indices for downstream processing
 
                 for model in self.models:
@@ -207,20 +176,17 @@ class Ensemble(nn.Module):
         forbid_unk = opt.get('forbid_unk', 1)
         seq = torch.LongTensor(self.seq_length, batch_size).zero_()
         seqLogprobs = torch.FloatTensor(self.seq_length, batch_size)
-        # lets process every image independently for now, for simplicity
 
         self.done_beams = [[] for _ in range(batch_size)]
         for k in range(batch_size):
             state = []
             for model in self.models:
                 model_state = model.init_hidden(beam_size)
-                # print('Initial length:', [torch.sum(st).data[0] for st in model_state])
                 state.append(model_state)
             beam_seq = torch.LongTensor(self.seq_length, beam_size).zero_()
             beam_seq_logprobs = torch.FloatTensor(self.seq_length, beam_size).zero_()
             beam_logprobs_sum = torch.zeros(beam_size) # running sum of logprobs for each beam
             for t in range(self.seq_length + 2):
-                # print('At step ',t, ' states:', [torch.sum(ss).data[0] for st in state for ss in st])
                 xt = []
                 if t == 0:
                     for e, model in enumerate(self.models):
@@ -243,123 +209,211 @@ class Ensemble(nn.Module):
                         rows = 1
                     for c in range(cols):
                         for q in range(rows):
-                            # compute logprob of expanding beam q with word in (sorted) position c
                             local_logprob = ys[q,c]
                             candidate_logprob = beam_logprobs_sum[q] + local_logprob
                             candidates.append({'c':ix.data[q,c], 'q':q, 'p':candidate_logprob.data[0], 'r':local_logprob.data[0]})
                     candidates = sorted(candidates, key=lambda x: -x['p'])
 
-                    # construct new beams
                     new_state = [[_.clone() for _ in state_] for state_ in state]
                     if t > 2:
-                        # we'll need these as reference when we fork beams around
                         beam_seq_prev = beam_seq[:t-2].clone()
                         beam_seq_logprobs_prev = beam_seq_logprobs[:t-2].clone()
                     for vix in range(beam_size):
                         v = candidates[vix]
-                        # fork beam index q into index vix
                         if t > 2:
                             beam_seq[:t-2, vix] = beam_seq_prev[:, v['q']]
                             beam_seq_logprobs[:t-2, vix] = beam_seq_logprobs_prev[:, v['q']]
 
-                        # rearrange recurrent states
                         for e in range(self.n_models):
                             for state_ix in range(len(new_state[e])):
-                                # copy over state in previous beam q to new beam at vix
                                 new_state[e][state_ix][0, vix] = state[e][state_ix][0, v['q']] # dimension one is time step
 
-                        # append new end terminal at the end of this beam
                         beam_seq[t-2, vix] = v['c'] # c'th word is the continuation
                         beam_seq_logprobs[t-2, vix] = v['r'] # the raw logprob here
                         beam_logprobs_sum[vix] = v['p'] # the new (sum) logprob along this beam
 
                         if v['c'] == 0 or t == self.seq_length + 1:
-                            # END token special case here, or we reached the end.
-                            # add the beam to a set of done beams
                             self.done_beams[k].append({'seq': beam_seq[:, vix].clone(),
                                                       'logps': beam_seq_logprobs[:, vix].clone(),
                                                        'p': beam_logprobs_sum[vix]
                                                        })
-                    # encode as vectors
                     it = beam_seq[t-2]
                     for model in self.models:
                         xt.append(model.embed(Variable(it.cuda())))
-                        # print("next token embedding:", xt)
 
                 if t >= 2:
                     for e in range(self.n_models):
                         state[e] = new_state[e]
-                #  print "State:", state
                 logprobs = []
                 for e, model in enumerate(self.models):
                     out_, st_ = model.core(xt[e].unsqueeze(0), state[e])
                     state[e] = st_
-                    # print('Output proba:', torch.sum(out_))
-                    # print('state updated:', [torch.sum(tok).data[0] for tok in st_])
                     probs_ = F.log_softmax(model.logit(out_.squeeze(0)))
                     if forbid_unk:
                         probs_ = probs_[:, :-1]
                     probs_ = probs_.unsqueeze(1)
                     logprobs.append(probs_)
-                # either take the max or the average ( for now the max):
-                # print("Logprobs:", logprobs)
                 logprobs = torch.stack(logprobs, dim=1)
-                # Max of probas
-                # logprobs, _ = torch.max(logprobs, dim=0)
                 # Mean of probas
                 logprobs = torch.mean(logprobs, dim=1).squeeze(1)
-                # Sum of probas:
-                # logprobs = torch.log(torch.sum(torch.exp(logprobs), dim=0))
-                # logprobs = logprobs[0]
-                # print('logprobs:', logprobs)
             self.done_beams[k] = sorted(self.done_beams[k], key=lambda x: -x['p'])
             seq[:, k] = self.done_beams[k][0]['seq'] # the first beam has highest cumulative score
             seqLogprobs[:, k] = self.done_beams[k][0]['logps']
         # return the samples and their log likelihoods
         return seq.transpose(0, 1), seqLogprobs.transpose(0, 1)
 
-    def step(self, data):
-        opt = self.opt
-        if opt.bootstrap_loss:
-            if opt.bootstrap_version in ["cider", "cider-exp"]:
-                tmp = [data['images'], data['labels'], data['masks'], data['scores'], data['cider']]
-                tmp = [Variable(torch.from_numpy(_), requires_grad=False).cuda() for _ in tmp]
-                images, labels, masks, scores, s_scores= tmp
 
-            elif opt.bootstrap_version in ["bleu4", "bleu4-exp"]:
-                tmp = [data['images'], data['labels'], data['masks'], data['scores'], data['bleu']]
-                tmp = [Variable(torch.from_numpy(_), requires_grad=False).cuda() for _ in tmp]
-                images, labels, masks, scores, s_scores = tmp
-            elif opt.bootstrap_version in ["infersent", "infersent-exp"]:
-                tmp = [data['images'], data['labels'], data['masks'], data['scores'], data['infersent']]
-                tmp = [Variable(torch.from_numpy(_), requires_grad=False).cuda() for _ in tmp]
-                images, labels, masks, scores, s_scores = tmp
-            else:
-                raise ValueError('Unknown bootstrap distribution %s' % opt.bootstrap_version)
-            if "exp" in opt.bootstrap_version:
-                print('Original rewards:', torch.mean(s_scores))
-                s_scores = torch.exp(torch.div(s_scores, opt.raml_tau))
-                print('Tempering the reward:', torch.mean(s_scores))
-            r_scores = torch.div(s_scores, torch.exp(scores))
-            opt.logger.debug('Mean importance scores: %.3e' % torch.mean(r_scores).data[0])
-        else:
-            tmp = [data['images'], data['labels'], data['masks'], data['scores']]
-            tmp = [Variable(torch.from_numpy(_), requires_grad=False).cuda() for _ in tmp]
-            images, labels, masks, scores = tmp
+    def sample_att(self, fc_feats, att_feats, opt={}):
+        beam_size = opt.get('beam_size', 10)
+        batch_size = fc_feats[0].size(0)
+        forbid_unk = opt.get('forbid_unk', 1)
+        # embed fc and att feats
+        p_att_feats = []
+        for e, model in enumerate(self.models):
+            fc_feats[e] = model.fc_embed(fc_feats[e])
+            att_feats[e] = model.att_embed(att_feats[e].contiguous().view(-1,
+                                                                          model.att_feat_size)
+                                           ).view(*(att_feats[e].size()[:-1] + (model.rnn_size,)))
 
-        if opt.caption_model == 'show_tell_raml':
-            probs, reward = self.forward(images, labels)
-            raml_scores = reward * Variable(torch.ones(scores.size()))
-            # raml_scores = Variable(torch.ones(scores.size()))
-            print('Raml reward:', reward)
-            real_loss, loss = self.crit(probs, labels[:, 1:], masks[:, 1:], raml_scores)
-        else:
-            if opt.bootstrap_loss:
-                real_loss, loss = self.crit(self.forward(images, labels),
-                                            labels[:, 1:], masks[:, 1:], r_scores)
-            else:
-                real_loss, loss = self.crit(self.forward(images, labels),
-                                            labels[:, 1:], masks[:, 1:], scores)
-        return real_loss, loss
+            # Project the attention feats first to reduce memory and computation comsumptions.
+            p_att_feats.append(model.ctx2att(att_feats[e].view(-1,
+                                                               model.rnn_size)))
+            p_att_feats[e] = p_att_feats[e].view(*(att_feats[e].size()[:-1] +
+                                                   (model.att_hid_size,)))
 
+        seq = torch.LongTensor(self.seq_length, batch_size).zero_()
+        seqLogprobs = torch.FloatTensor(self.seq_length, batch_size)
+        # lets process every image independently for now, for simplicity
 
+        self.done_beams = [[] for _ in range(batch_size)]
+        for k in range(batch_size):
+            state = []
+            tmp_fc_feats = []
+            tmp_att_feats = []
+            tmp_p_att_feats = []
+            for e, model in enumerate(self.models):
+                model_state = model.init_hidden(beam_size)
+                state.append(model_state)
+
+                tmp_fc_feats.append(fc_feats[e][k:k+1].expand(beam_size, fc_feats[e].size(1)))
+                tmp_att_feats.append(att_feats[e][k:k+1].expand(*((beam_size,) +
+                                                                  att_feats[e].size()[1:])).contiguous())
+                tmp_p_att_feats.append(p_att_feats[e][k:k+1].expand(*((beam_size,) +
+                                                                      p_att_feats[e].size()[1:])).contiguous())
+
+            for t in range(1):
+                if t == 0:  # input <bos>
+                    it = fc_feats[0].data.new(beam_size).long().zero_()
+
+                logprobs = []
+                for e, model in enumerate(self.models):
+                    _logprobs, state[e] = model.get_logprobs_state(Variable(it).cuda(),
+                                                                   tmp_fc_feats[e],
+                                                                   tmp_att_feats[e],
+                                                                   tmp_p_att_feats[e],
+                                                                   state[e], t)
+
+                    logprobs.append(_logprobs)
+                logprobs = torch.stack(logprobs, dim=1)
+                # Mean of probas
+                logprobs = torch.mean(logprobs, dim=1).squeeze(1)
+
+            # FIME
+            self.done_beams[k] = self.beam_search(state, logprobs, tmp_fc_feats, tmp_att_feats, tmp_p_att_feats, opt)
+            seq[:, k] = self.done_beams[k][0]['seq']  # the first beam has highest cumulative score
+            seqLogprobs[:, k] = self.done_beams[k][0]['logps']
+        # return the samples and their log likelihoods
+        return seq.transpose(0, 1), seqLogprobs.transpose(0, 1)
+
+    def beam_search(self, state, logprobs, tmp_fc_feats, tmp_att_feats, tmp_p_att_feats, opt):
+
+        def beam_step(logprobsf, beam_size, t, beam_seq, beam_seq_logprobs, beam_logprobs_sum, state):
+            ys, ix = torch.sort(logprobsf,1,True)
+            candidates = []
+            cols = min(beam_size, ys.size(1))
+            rows = beam_size
+            if t == 0:
+                rows = 1
+            for c in range(cols):  # for each column (word, essentially)
+                for q in range(rows):  # for each beam expansion
+                    local_logprob = ys[q, c]
+                    candidate_logprob = beam_logprobs_sum[q] + local_logprob
+                    candidates.append({'c': ix[q, c],
+                                       'q': q,
+                                       'p': candidate_logprob,
+                                       'r': local_logprob})
+            candidates = sorted(candidates,  key=lambda x: -x['p'])
+            new_state = [[_.clone() for _ in state_] for state_ in state]
+            # new_state = [_.clone() for _ in state]
+            if t >= 1:
+                beam_seq_prev = beam_seq[:t].clone()
+                beam_seq_logprobs_prev = beam_seq_logprobs[:t].clone()
+            for vix in range(beam_size):
+                v = candidates[vix]
+                if t >= 1:
+                    beam_seq[:t, vix] = beam_seq_prev[:, v['q']]
+                    beam_seq_logprobs[:t, vix] = beam_seq_logprobs_prev[:, v['q']]
+                for e in range(self.n_models):
+                    for state_ix in range(len(new_state[e])):
+                        new_state[e][state_ix][:, vix] = state[e][state_ix][:, v['q']] # dimension one is time step
+                beam_seq[t, vix] = v['c']  # c'th word is the continuation
+                beam_seq_logprobs[t, vix] = v['r']  # the raw logprob here
+                beam_logprobs_sum[vix] = v['p']  # the new (sum) logprob along this beam
+            state = new_state
+            return beam_seq, beam_seq_logprobs, beam_logprobs_sum, state, candidates
+
+        # start beam search
+        beam_size = opt.get('beam_size', 10)
+
+        beam_seq = torch.LongTensor(self.seq_length, beam_size).zero_()
+        beam_seq_logprobs = torch.FloatTensor(self.seq_length, beam_size).zero_()
+        beam_logprobs_sum = torch.zeros(beam_size) # running sum of logprobs for each beam
+        done_beams = []
+
+        for t in range(self.seq_length):
+            logprobsf = logprobs.data.float() # lets go to CPU for more efficiency in indexing operations
+            logprobsf[:,logprobsf.size(1)-1] =  logprobsf[:, logprobsf.size(1)-1] - 1000
+
+            beam_seq,\
+            beam_seq_logprobs,\
+            beam_logprobs_sum,\
+            state,\
+            candidates_divm = beam_step(logprobsf,
+                                        beam_size,
+                                        t,
+                                        beam_seq,
+                                        beam_seq_logprobs,
+                                        beam_logprobs_sum,
+                                        state)
+
+            for vix in range(beam_size):
+                # if time's up... or if end token is reached then copy beams
+                if beam_seq[t, vix] == 0 or t == self.seq_length - 1:
+                    final_beam = {
+                        'seq': beam_seq[:, vix].clone(),
+                        'logps': beam_seq_logprobs[:, vix].clone(),
+                        'p': beam_logprobs_sum[vix]
+                    }
+                    done_beams.append(final_beam)
+                    # don't continue beams from finished sequences
+                    beam_logprobs_sum[vix] = -1000
+
+            # encode as vectors
+            it = beam_seq[t]
+            # TODO check that every submodel has get_logprobs defined
+            logprobs = []
+            for e, model in enumerate(self.models):
+
+                _logprobs, state[e] = model.get_logprobs_state(Variable(it.cuda()),
+                                                               tmp_fc_feats[e],
+                                                               tmp_att_feats[e],
+                                                               tmp_p_att_feats[e],
+                                                               state[e], t)
+
+                logprobs.append(_logprobs)
+            logprobs = torch.stack(logprobs, dim=1)
+            # Mean of probas
+            logprobs = torch.mean(logprobs, dim=1).squeeze(1)
+
+        done_beams = sorted(done_beams, key=lambda x: -x['p'])[:beam_size]
+        return done_beams
