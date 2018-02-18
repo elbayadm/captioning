@@ -1,8 +1,0 @@
-results.zip
-  captions_val2014_[alg]_results.json
-  captions_test2014_[alg]_results.json
-
-Json entries:
-[{
-"image_id" : int, "caption" : str,
-}]

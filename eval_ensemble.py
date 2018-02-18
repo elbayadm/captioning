@@ -63,7 +63,7 @@ def eval_external_ensemble(ensemble, loader, eval_kwargs={}):
         for k, sent in enumerate(sents):
             spath = short_path(data['infos'][k]['file_path'])
             print_sampled(spath, sent)
-            entry = {'image_path': spath, 'caption': sent}
+            entry = {'image_id': spath, 'caption': sent}
             predictions.append(entry)
             #  logger.debug('image %s: %s' %(entry['image_id'], entry['caption']))
         ix0 = data['bounds']['it_pos_now']
