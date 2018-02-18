@@ -1,8 +1,9 @@
-when done fn fncnn6_reset_importance_qhamming_pool1_tsent017_rbleu4_tsent05_a04_topdown.yaml
 
-Mode 4 ?
+Fulltrain:
+2 - submitted single model (ecp)
+4 - to submit
+Ensemble - mean : submitted (univ)
 
-cmp_eval:
-fncnn mode1 pool2
-/home/thoth/melbayad/scratch/work/torchcap/save/fncnn6_reset_importance_qhamming_pool2_tsent03_rbleu4_mode3_tsent05_a04_topdown
-/home/thoth/melbayad/scratch/work/torchcap/save/fncnn6_reset_importance_qhamming_pool2_tsent03_rbleu4_tsent05_a04_topdown
+
+
+
