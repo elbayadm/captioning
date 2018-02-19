@@ -3,10 +3,13 @@ Fulltrain:
 Submitted:
 single model (2) (ecp)
 Ensemble of 5 models (mean) (univ)
+Ensemble of 4 models (mean) (redgnsmaha)
 
 To submit:
 Single model (4): singleModel4.zip
-Ensemble of 4 models (mean)
+Ensemble of 4 models (max)
+Ensemble of 4 models (logmean)
+
 
 
 Finetune:
