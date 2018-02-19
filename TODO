@@ -1,9 +1,14 @@
 
 Fulltrain:
-2 - submitted single model (ecp)
-4 - to submit
-Ensemble - mean : submitted (univ)
+Submitted:
+single model (2) (ecp)
+Ensemble of 5 models (mean) (univ)
 
+To submit:
+Single model (4): singleModel4.zip
+Ensemble of 4 models (mean)
 
-
-
+/home/thoth/melbayad/scratch/work/torchcap/save/combine_importance_qhamming_limited2_tsent03_rcider_tsent05_a04_word_coco_tword009_idf10_a03_topdown_WE_genconf
+/home/thoth/melbayad/scratch/work/torchcap/save/combine_importance_qhamming_pool2_tsent03_rbleu4_tsent05_a04_word_coco_tword009_idf10_a03_topdown_WE_fulltrain_2
+/home/thoth/melbayad/scratch/work/torchcap/save/combine_importance_qhamming_pool2_tsent03_rbleu4_tsent05_a04_word_coco_tword009_idf10_a03_topdown_WE_fulltrain_1
+/home/thoth/melbayad/scratch/work/torchcap/save/combine_importance_qhamming_pool2_tsent03_rbleu4_tsent05_a04_word_coco_tword009_idf10_a03_topdown_WE_fulltrain_4

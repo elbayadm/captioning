@@ -482,6 +482,9 @@ def parse_ens_opt():
     parser.add('--ensemblename', type=str, default="ensemble", help='Name for saving')
     parser.add('--start_from_best', type=int, default=1,
                help="Whether to start from the best saved model (1) or the from the last checkpoint (0)")
+    parser.add('--ensemble_mode', type=str, default="mean",
+               help="from mean (of logp), max or logmean (of p itslef)")
+
 
     parser = add_generic(parser)
     parser = add_eval_params(parser)

@@ -27,6 +27,7 @@ class Ensemble(nn.Module):
         self.ss_prob = 0
         self.ss_vocab = 0
         self.logger = opt.logger
+        self.ensemble_mode = opt.ensemble_mode
 
     def get_feats(self, images):
         att_feats_ens = []
@@ -95,7 +96,12 @@ class Ensemble(nn.Module):
         logprobs = [torch.cat([_.unsqueeze(1) for _ in outputs[e][1:]], 1).contiguous() for e in range(self.n_models)]
         # combine the probabilities:
         logprobs = torch.stack(logprobs, dim=1)
-        logprobs = torch.mean(logprobs, dim=1).squeeze(1)
+        if self.ensemble_mode == "mean":
+            logprobs = torch.mean(logprobs, dim=1).squeeze(1)
+        elif self.ensemble_mode == "max":
+            logprobs, _ = torch.max(logprobs, dim=1)
+        elif self.ensemble_mode == "logmean":
+            logprobs = torch.log(torch.mean(torch.exp(logprobs), dim=1).squeeze(1))
         return logprobs
 
     def sample(self, fc_feats, att_feats, opt={}):
@@ -254,8 +260,13 @@ class Ensemble(nn.Module):
                     probs_ = probs_.unsqueeze(1)
                     logprobs.append(probs_)
                 logprobs = torch.stack(logprobs, dim=1)
-                # Mean of probas
-                logprobs = torch.mean(logprobs, dim=1).squeeze(1)
+                if self.ensemble_mode == "mean":
+                    logprobs = torch.mean(logprobs, dim=1).squeeze(1)
+                elif self.ensemble_mode == "max":
+                    logprobs, _ = torch.max(logprobs, dim=1)
+                elif self.ensemble_mode == "logmean":
+                    logprobs = torch.log(torch.mean(torch.exp(logprobs), dim=1).squeeze(1))
+
             self.done_beams[k] = sorted(self.done_beams[k], key=lambda x: -x['p'])
             seq[:, k] = self.done_beams[k][0]['seq'] # the first beam has highest cumulative score
             seqLogprobs[:, k] = self.done_beams[k][0]['logps']
@@ -315,8 +326,12 @@ class Ensemble(nn.Module):
 
                     logprobs.append(_logprobs)
                 logprobs = torch.stack(logprobs, dim=1)
-                # Mean of probas
-                logprobs = torch.mean(logprobs, dim=1).squeeze(1)
+                if self.ensemble_mode == "mean":
+                    logprobs = torch.mean(logprobs, dim=1).squeeze(1)
+                elif self.ensemble_mode == "max":
+                    logprobs, _ = torch.max(logprobs, dim=1)
+                elif self.ensemble_mode == "logmean":
+                    logprobs = torch.log(torch.mean(torch.exp(logprobs), dim=1).squeeze(1))
 
             # FIME
             self.done_beams[k] = self.beam_search(state, logprobs, tmp_fc_feats, tmp_att_feats, tmp_p_att_feats, opt)
@@ -364,6 +379,7 @@ class Ensemble(nn.Module):
 
         # start beam search
         beam_size = opt.get('beam_size', 10)
+        ensemble_mode = opt.get('ensemble_mode', 'mean')
 
         beam_seq = torch.LongTensor(self.seq_length, beam_size).zero_()
         beam_seq_logprobs = torch.FloatTensor(self.seq_length, beam_size).zero_()
@@ -413,7 +429,13 @@ class Ensemble(nn.Module):
                 logprobs.append(_logprobs)
             logprobs = torch.stack(logprobs, dim=1)
             # Mean of probas
-            logprobs = torch.mean(logprobs, dim=1).squeeze(1)
+
+            if ensemble_mode == "mean":
+                logprobs = torch.mean(logprobs, dim=1).squeeze(1)
+            elif ensemble_mode == "max":
+                logprobs, _ = torch.max(logprobs, dim=1)
+            elif ensemble_mode == "logmean":
+                logprobs = torch.log(torch.mean(torch.exp(logprobs), dim=1).squeeze(1))
 
         done_beams = sorted(done_beams, key=lambda x: -x['p'])[:beam_size]
         return done_beams
