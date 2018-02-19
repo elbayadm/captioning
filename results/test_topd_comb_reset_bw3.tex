@@ -1,0 +1,9 @@
+|c|c|c|c|c|c|c|c|c|c|c|c|c|c|
+\midrule
+Model & Init & Loss & Reward & Sampling & Bleu_4_ph1 & CIDEr_ph1 & Bleu_1_ph2 & Bleu_4_ph2 & ROUGE_L_ph2 & SPICE_ph2 & METEOR_ph2 & CIDEr_ph2 & CI CIDEr\\
+\midrule
+Top-down & random & Word-Seq & cider & $\V_{batch}$ & 31.79 & 98.66 & 73.61 & 32.67 & 54.08 & 18.74 & 25.72 & 101.41 & 0.53\\
+Top-down & random & Word-Seq & cider & $\V_{refs}$ & 31.68 & 98.51 & 74.28 & 33.34 & 54.66 & 19.07 & 26.00 & 103.81 & 0.36\\
+Top-down & random & Word-Seq & hamming Vpool=1 & $\V_{batch}$ & 31.37 & 98.12 & 73.86 & 33.32 & 54.34 & 18.89 & 25.86 & 102.90 & 0.47\\
+Top-down & random & Word-Seq & hamming Vpool=2 & $\V_{refs}$ & 31.70 & 98.57 & 73.56 & 33.00 & 54.19 & 18.63 & 25.72 & 101.72 & 0.28\\
+\midrule
