@@ -13,4 +13,9 @@ Ensemble of 4 models (logmean)
 
 
 Finetune:
-Comb Fulltrain bleu /1 2 3 /4 5
+Comb Fulltrain bleu
+/1
+/2(lig)
+3
+/4
+5
