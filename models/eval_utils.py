@@ -173,6 +173,7 @@ def track_rnn_decode(cnn_model, model, loader, logger, eval_kwargs={}):
     sampl = []
     logp_sampl = []
     sids = []
+    attention = []
     while True:
         data = loader.get_batch(split, batch_size=5, seq_per_img=seq_per_img)
         n = n + loader.batch_size
@@ -182,10 +183,11 @@ def track_rnn_decode(cnn_model, model, loader, logger, eval_kwargs={}):
         att_feats, fc_feats, att_unique, fc_unique = cnn_model.forward_caps(images,
                                                                             seq_per_img,
                                                                             return_unique=True)
-        seq, probs = model.sample(fc_unique, att_unique, True, eval_kwargs)
+        seq, probs, alphas = model.sample(fc_unique, att_unique, True, eval_kwargs)
         logp.append(probs.cpu().numpy())
         # print('logp:', logp[-1])
         sampl.append(seq.cpu().numpy())
+        attention.append(alphas.cpu().numpy())
         ix0 = data['bounds']['it_pos_now']
         ix1 = data['bounds']['it_max']
         if val_images_use != -1:
@@ -195,7 +197,7 @@ def track_rnn_decode(cnn_model, model, loader, logger, eval_kwargs={}):
         if n >= ix1:
             logger.warn('Evaluated the required samples (%s)' % n)
             break
-    return sids, logp, sampl
+    return sids, logp, sampl, attention
 
 
 def eval_split(cnn_model, model, loader, logger, eval_kwargs={}):

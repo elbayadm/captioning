@@ -94,7 +94,7 @@ class AttentionModel(DecoderModel):
                 break
             xt = self.embed(it)
             # print('token w:', xt.size())
-            output, state = self.core(xt, fc_feats, att_feats, p_att_feats, state, i)
+            output, state, _ = self.core(xt, fc_feats, att_feats, p_att_feats, state, i)
             output = F.log_softmax(self.logit(output))
             outputs.append(output)
 
@@ -106,7 +106,7 @@ class AttentionModel(DecoderModel):
         """
         # 'it' is Variable contraining a word index
         xt = self.embed(it)
-        output, state = self.core(xt, tmp_fc_feats, tmp_att_feats, tmp_p_att_feats, state, step)
+        output, state, _ = self.core(xt, tmp_fc_feats, tmp_att_feats, tmp_p_att_feats, state, step)
         logprobs = F.log_softmax(self.logit(output))
 
         return logprobs, state
@@ -140,7 +140,7 @@ class AttentionModel(DecoderModel):
                     it = fc_feats.data.new(beam_size).long().zero_()
                     xt = self.embed(Variable(it, requires_grad=False))
 
-                output, state = self.core(xt, tmp_fc_feats, tmp_att_feats, tmp_p_att_feats, state, t)
+                output, state, _ = self.core(xt, tmp_fc_feats, tmp_att_feats, tmp_p_att_feats, state, t)
                 logprobs = F.log_softmax(self.logit(output))
 
             self.done_beams[k] = self.beam_search(state, logprobs, tmp_fc_feats, tmp_att_feats, tmp_p_att_feats, opt=opt)
@@ -171,6 +171,7 @@ class AttentionModel(DecoderModel):
         seq = []
         seqLogprobs = []
         tokLogprobs = []
+        alphas = []
         for t in range(self.seq_length + 1):
             if t == 0: # input <bos>
                 it = fc_feats.data.new(batch_size).long().zero_()
@@ -202,14 +203,15 @@ class AttentionModel(DecoderModel):
 
                 seqLogprobs.append(sampleLogprobs.view(-1))
 
-            output, state = self.core(xt, fc_feats, att_feats, p_att_feats, state, t)
+            output, state, att = self.core(xt, fc_feats, att_feats, p_att_feats, state, t)
             logprobs = F.log_softmax(self.logit(output))
             tokLogprobs.append(torch.exp(logprobs))
+            alphas.append(att)
 
         if not track:
             return torch.cat([_.unsqueeze(1) for _ in seq], 1), torch.cat([_.unsqueeze(1) for _ in seqLogprobs], 1)
         else:
-            return torch.cat([_.unsqueeze(1) for _ in seq], 1), torch.cat([_.unsqueeze(1) for _ in tokLogprobs], 1).data
+            return torch.cat([_.unsqueeze(1) for _ in seq], 1), torch.cat([_.unsqueeze(1) for _ in tokLogprobs], 1).data, torch.cat([_.unsqueeze(1) for _ in alphas], 1).data
 
 
 

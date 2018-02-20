@@ -68,11 +68,11 @@ if __name__ == "__main__":
     eval_kwargs['val_images_use'] = 60
     opt.save_stats = 10
     # eval_kwargs['val_images_use'] = -1
-    ids, probs, sampled = track_rnn_decode(cnn_model,
-                                           model,
-                                           loader,
-                                           opt.logger,
-                                           eval_kwargs)
+    ids, probs, sampled, attention = track_rnn_decode(cnn_model,
+                                                      model,
+                                                      loader,
+                                                      opt.logger,
+                                                      eval_kwargs)
     # Evaluate etropy & kl div:
     stats = {}
     enp = np.mean([entropy(probs[batch][n, c, :])
@@ -86,7 +86,8 @@ if __name__ == "__main__":
         opt.logger.info('Saving results up to %d samples' % opt.save_stats)
         RES = {"ids": ids[:opt.save_stats],
                "probas": probs[:opt.save_stats],
-               "sampled": sampled[:opt.save_stats]}
+               "sampled": sampled[:opt.save_stats],
+               "attention": attention[:opt.save_stats]}
         pickle.dump(RES, open(output+'.tr', 'wb'))
     opt.logger.info('Dumping the entropies and kl divs')
     pickle.dump(stats, open(output+'.entropy', 'wb'))
