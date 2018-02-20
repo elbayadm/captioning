@@ -3,7 +3,7 @@ import argparse
 import os
 import os.path as osp
 import logging
-from .colorstreamhandler import ColorStreamHandler
+from colorstreamhandler import ColorStreamHandler
 
 
 def add_vae_params(parser):

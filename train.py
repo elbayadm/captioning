@@ -7,7 +7,6 @@ import os.path as osp
 import sys
 import pickle
 import subprocess
-import utils
 
 
 def exec_cmd(command):
@@ -36,6 +35,8 @@ def train(opt):
     except:
         print("Failed to get gpu_id (setting gpu_id to %d)" % opt.gpu_id)
         gpu_id = str(opt.gpu_id)
+        # beware seg fault if tf after torch!!
+    import tensorflow as tf
     os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_id)
     import torch
     opt.logger.warn('GPU ID: %s | available memory: %dM' \
@@ -43,12 +44,11 @@ def train(opt):
     import torch.nn as nn
     from torch.autograd import Variable
     import torch.optim as optim
-    import tensorflow as tf
-
     from loader import DataLoader
     import models.eval_utils as evald
     import models.cnn as cnn
     import models.setup as ms
+    import utils
     import utils.logging as lg
 
     # reproducibility:
@@ -233,5 +233,6 @@ def train(opt):
             break
 
 if __name__ == "__main__":
-    opt = utils.parse_opt()
+    from opts import parse_opt
+    opt = parse_opt()
     train(opt)
