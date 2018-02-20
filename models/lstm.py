@@ -275,7 +275,7 @@ class Attention(nn.Module):
         att_feats_ = att_feats.view(-1, att_size, self.rnn_size) # batch * att_size * att_feat_size
         att_res = torch.bmm(weight.unsqueeze(1), att_feats_).squeeze(1) # batch * att_feat_size
 
-        return att_res
+        return att_res, weight
 
 
 

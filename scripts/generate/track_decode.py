@@ -1,8 +1,9 @@
+import os
 import sys
-import json
+import subprocess
 import time
 import os.path as osp
-from six.moves import cPickle as pickle
+import pickle
 import numpy as np
 from scipy.stats import entropy
 sys.path.append('.')
@@ -12,8 +13,35 @@ from models.eval_utils import track_rnn_decode
 import models.setup as ms
 import models.cnn as cnn
 
+
+def exec_cmd(command):
+    # return stdout, stderr output of a command
+    return subprocess.Popen(command, shell=True,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE).communicate()
+
+
+def get_gpu_memory(gpuid):
+    # Get the current gpu usage.
+    result, _ = exec_cmd('nvidia-smi -i %d --query-gpu=memory.free \
+                         --format=csv,nounits,noheader' % int(gpuid))
+    # Convert lines into a dictionary
+    result = int(result.strip())
+    return result
+
+
 if __name__ == "__main__":
     opt = opts.parse_eval_opt()
+    # setup gpu
+    try:
+        gpu_id = int(subprocess.check_output('gpu_getIDs.sh', shell=True))
+    except:
+        print("Failed to get gpu_id (setting gpu_id to %d)" % opt.gpu_id)
+        gpu_id = str(opt.gpu_id)
+    os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_id)
+    opt.logger.warn('GPU ID: %s | available memory: %dM' \
+                    % (os.environ['CUDA_VISIBLE_DEVICES'], get_gpu_memory(gpu_id)))
+
     if opt.start_from_best:
         flag = '-best'
         opt.logger.warn('Starting from the best saved model')
@@ -43,6 +71,7 @@ if __name__ == "__main__":
     cnn_model.eval()
     # Create the Data Loader instance
     start = time.time()
+    print('Split:', opt.split)
     if len(opt.image_folder) == 0:
         loader = DataLoader(opt)
     else:
@@ -65,8 +94,8 @@ if __name__ == "__main__":
     # opt.score_ground_truth = True
     eval_kwargs = vars(opt)
     eval_kwargs['beam_size'] = 1
-    eval_kwargs['val_images_use'] = 60
-    opt.save_stats = 10
+    eval_kwargs['val_images_use'] = -1
+    opt.save_stats = 50
     # eval_kwargs['val_images_use'] = -1
     ids, probs, sampled, attention = track_rnn_decode(cnn_model,
                                                       model,

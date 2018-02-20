@@ -35,7 +35,7 @@ class TopDownCore(nn.Module):
 
         h_att, c_att = self.att_lstm(att_lstm_input, (state[0][0], state[1][0]))
 
-        att = self.attention(h_att, att_feats, p_att_feats)
+        att, weights = self.attention(h_att, att_feats, p_att_feats)
 
         lang_lstm_input = torch.cat([att, h_att], 1)
 
@@ -44,7 +44,7 @@ class TopDownCore(nn.Module):
         output = F.dropout(h_lang, self.drop_prob_lm, self.training)
         state = (torch.stack([h_att, h_lang]), torch.stack([c_att, c_lang]))
 
-        return output, state, att
+        return output, state, weights
 
 
 
