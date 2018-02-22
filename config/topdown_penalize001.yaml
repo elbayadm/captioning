@@ -1,0 +1,10 @@
+modelname : topdown_penalize001
+caption_model : top_down
+cnn_model : resnet152
+
+batch_size : 10
+input_data : data/coco/cocotalk
+
+# Loss:
+loss_version : ml
+penalize_confidence : .01

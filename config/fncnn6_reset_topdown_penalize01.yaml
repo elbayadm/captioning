@@ -1,0 +1,23 @@
+modelname : fncnn6_reset_topdown_penalize01
+start_from : save/topdown_penalize01
+start_from_best : 1
+
+caption_model : top_down
+cnn_model : resnet152
+
+batch_size : 10
+input_data : data/coco/cocotalk
+
+# Loss:
+loss_version : ml
+penalize_confidence : .1
+
+reset_optimizer : 1
+finetune_cnn_after : 0
+finetune_cnn_slice : 6
+learning_rate : 1e-4
+learning_rate_decay_start : 5
+learning_rate_decay_rate : 0.8
+learning_rate_decay_every: 4
+max_epochs : 30
+
