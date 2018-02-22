@@ -8,9 +8,7 @@ import sys
 import pickle
 import json
 import subprocess
-import utils
-from utils.language_eval import language_eval
-
+from opts import parse_eval_opt
 
 def exec_cmd(command):
     # return stdout, stderr output of a command
@@ -29,7 +27,7 @@ def get_gpu_memory(gpuid):
 
 
 if __name__ == "__main__":
-    opt = utils.parse_eval_opt()
+    opt = parse_eval_opt()
     if not opt.output:
         evaldir = '%s/evaluations/%s' % (opt.modelname, opt.split)
         if not osp.exists(evaldir):
@@ -49,9 +47,12 @@ if __name__ == "__main__":
             print("Failed to get gpu_id (setting gpu_id to %d)" % opt.gpu_id)
             gpu_id = str(opt.gpu_id)
         os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_id)
+        import tensorflow as tf
         import torch
         opt.logger.warn('GPU ID: %s | available memory: %dM' \
                         % (os.environ['CUDA_VISIBLE_DEVICES'], get_gpu_memory(gpu_id)))
+        from utils.language_eval import language_eval
+        import utils
         from loader import DataLoader, DataLoaderRaw
         import models.eval_utils as evald
         import models.cnn as cnn
