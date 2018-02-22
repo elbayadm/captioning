@@ -51,7 +51,6 @@ if __name__ == "__main__":
         import torch
         opt.logger.warn('GPU ID: %s | available memory: %dM' \
                         % (os.environ['CUDA_VISIBLE_DEVICES'], get_gpu_memory(gpu_id)))
-        from utils.language_eval import language_eval
         import utils
         from loader import DataLoader, DataLoaderRaw
         import models.eval_utils as evald
@@ -162,6 +161,8 @@ if __name__ == "__main__":
         if opt.dump_json:
             json.dump(preds, open(opt.output + '.json', 'w'))
     else:
+        from utils.language_eval import language_eval
+
         opt.logger.warn('Evaluating already generated caps')
         # Possibly you've already evaluated the lossess:
         try:
