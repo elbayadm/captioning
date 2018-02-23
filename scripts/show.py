@@ -319,7 +319,7 @@ if __name__ == "__main__":
         print(tab.get_string(sortby=args.sort, reversesort=True, fields=PAPER_FIELDS_FULL))
         print('saving latex table in %s.tex' % filename)
         with open(filename+'.tex', 'w') as f:
-            tex = get_latex(tab, sortby="Loss",
+            tex = get_latex(tab, sortby=args.sort,
                             reversesort=False, fields=SELECT)
             f.write("\n".join(tex))
     else:
