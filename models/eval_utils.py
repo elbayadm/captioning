@@ -2,10 +2,9 @@ import json
 import numpy as np
 import torch
 from torch.autograd import Variable
-import utils
-from utils.language_eval import language_eval
-import pickle as pickle
+from utils import decode_sequence
 from utils.logging import print_sampled
+from utils.language_eval  import language_eval
 
 
 def short_path(path):
@@ -52,7 +51,7 @@ def generate_caps(encoder, decoder, crit, loader, eval_kwargs={}):
         tmp = [Variable(torch.from_numpy(_), volatile=True).cuda() for _ in tmp]
         labels, masks = tmp
         tr = 0
-        gt = utils.decode_sequence(loader.get_vocab(), labels[:,1:].data)
+        gt = decode_sequence(loader.get_vocab(), labels[:,1:].data)
         SENTS += gt
         blob_batch = { "id": ids[0], "gt": gt, "sampled": []}
         for igt in gt:
@@ -80,8 +79,8 @@ def generate_caps(encoder, decoder, crit, loader, eval_kwargs={}):
                                                  "sample_max": sample_max,
                                                  "temperature": temperature})
 
-            sents = utils.decode_sequence(loader.get_vocab(), seq)
-            #  ssents = utils.decode_sequence(loader.get_vocab(), sseq)
+            sents = decode_sequence(loader.get_vocab(), seq)
+            #  ssents = decode_sequence(loader.get_vocab(), sseq)
             gen_SENTS += sents
             #  gen_SENTS += ssents
             for isent in sents:
@@ -246,7 +245,7 @@ def eval_split(cnn_model, model, loader, logger, eval_kwargs={}):
                                        "sample_max": sample_max,
                                        "temperature": temperature})
         sent_scores = probs.cpu().numpy().sum(axis=1)
-        sents = utils.decode_sequence(loader.get_vocab(), seq)
+        sents = decode_sequence(loader.get_vocab(), seq)
         for k, sent in enumerate(sents):
             if loader.flip:
                 entry = {'image_id': data['infos'][k // 2]['id'],
@@ -326,7 +325,7 @@ def eval_external(cnn_model, model, loader, eval_kwargs={}):
                                "sample_max": sample_max,
                                "temperature": temperature}
                               )
-        sents = utils.decode_sequence(loader.get_vocab(), seq)
+        sents = decode_sequence(loader.get_vocab(), seq)
 
         for k, sent in enumerate(sents):
             spath = short_path(data['infos'][k]['file_path'])
@@ -408,7 +407,7 @@ def eval_multiple(cnn_model, model, crit, loader, eval_kwargs={}):
             output = output.cpu().data.numpy()
             # sum over seq_length
             gt_scores = [np.sum(output[seq_length * i: seq_length * (i+1)]) for i in np.arange(N)]
-            gt_sents =  utils.decode_sequence(loader.get_vocab(), labels[:,1:].data)
+            gt_sents =  decode_sequence(loader.get_vocab(), labels[:,1:].data)
             real_loss, loss = crit(probs, labels[:,1:], masks[:,1:], scores)
             loss_sum = loss_sum + loss.data[0]
             loss_evals = loss_evals + 1
@@ -421,7 +420,7 @@ def eval_multiple(cnn_model, model, crit, loader, eval_kwargs={}):
             seq, probs = model.sample(fc_feats, att_feats, eval_kwargs)
             sent_scores = probs.cpu().numpy().sum(axis=1)
             #set_trace()
-            sents = utils.decode_sequence(loader.get_vocab(), seq)
+            sents = decode_sequence(loader.get_vocab(), seq)
             print('Gen:', len(sents), len(sent_scores))
             for k, sent in enumerate(sents):
                 # print('id:', data['infos'][k]['id'])

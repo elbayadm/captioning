@@ -1,28 +1,14 @@
+"""
+Main training loop
+"""
+
 import random
-from math import exp
-import numpy as np
 import time
 import os
-import os.path as osp
 import sys
-import pickle
-import subprocess
-
-
-def exec_cmd(command):
-    # return stdout, stderr output of a command
-    return subprocess.Popen(command, shell=True,
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE).communicate()
-
-
-def get_gpu_memory(gpuid):
-    # Get the current gpu usage.
-    result, _ = exec_cmd('nvidia-smi -i %d --query-gpu=memory.free \
-                         --format=csv,nounits,noheader' % int(gpuid))
-    # Convert lines into a dictionary
-    result = int(result.strip())
-    return result
+from math import exp
+import numpy as np
+from options import parse_opt, get_gpu_memory
 
 
 def train(opt):
@@ -31,16 +17,16 @@ def train(opt):
     """
     # setup gpu
     try:
+        import subprocess
         gpu_id = int(subprocess.check_output('gpu_getIDs.sh', shell=True))
     except:
         print("Failed to get gpu_id (setting gpu_id to %d)" % opt.gpu_id)
         gpu_id = str(opt.gpu_id)
-        # beware seg fault if tf after torch!!
-    import tensorflow as tf
     os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_id)
-    import torch
     opt.logger.warn('GPU ID: %s | available memory: %dM' \
                     % (os.environ['CUDA_VISIBLE_DEVICES'], get_gpu_memory(gpu_id)))
+    from tensorboardX import SummaryWriter
+    import torch
     import torch.nn as nn
     from torch.autograd import Variable
     import torch.optim as optim
@@ -60,7 +46,8 @@ def train(opt):
     opt.seq_length = loader.seq_length
     opt.lr_wait = 0
 
-    tf_summary_writer = tf.summary.FileWriter(opt.eventname)
+    tb_writer = SummaryWriter(opt.eventname)
+    # tb_writer = tf.summary.FileWriter(opt.eventname)
     iteration, epoch, opt, infos, history = ms.recover_infos(opt)
     if opt.shift_epoch:
         opt.logger.warn('Resetting epoch count (%d -> 0)' % epoch)
@@ -100,7 +87,7 @@ def train(opt):
     lg.log_optimizer(opt, optimizers)
     # Main loop
     # To save before training:
-    # iteration -= 1
+    iteration -= 1
     val_losses = []
     while True:
         if update_lr_flag:
@@ -179,7 +166,7 @@ def train(opt):
             update_lr_flag = True
         # Write the training loss summary
         if iteration % opt.losses_log_every == 0:
-            lg.log_epoch(tf_summary_writer, iteration, opt,
+            lg.log_epoch(tb_writer, iteration, opt,
                          losses, stats, grad_norm,
                          model)
             history['loss'][iteration] = losses['train_loss']
@@ -202,14 +189,14 @@ def train(opt):
                                                          opt.logger,
                                                          eval_kwargs)
             # Write validation result into summary
-            lg.add_summary_value(tf_summary_writer, 'validation_loss',
+            lg.add_summary_value(tb_writer, 'validation_loss',
                                  val_loss, iteration)
-            lg.add_summary_value(tf_summary_writer, 'validation_ML_loss',
+            lg.add_summary_value(tb_writer, 'validation_ML_loss',
                                  val_ml_loss, iteration)
 
             for k, v in lang_stats.items():
-                lg.add_summary_value(tf_summary_writer, k, v, iteration)
-            tf_summary_writer.flush()
+                lg.add_summary_value(tb_writer, k, v, iteration)
+            tb_writer.file_writer.flush()
             history['val_perf'][iteration] = {'loss': val_loss,
                                               'ml_loss': val_ml_loss,
                                               'lang_stats': lang_stats,
@@ -233,6 +220,5 @@ def train(opt):
             break
 
 if __name__ == "__main__":
-    from opts import parse_opt
     opt = parse_opt()
     train(opt)

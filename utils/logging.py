@@ -1,7 +1,6 @@
 import copy
 from six.moves import cPickle as pickle
 import torch
-import tensorflow as tf
 import os.path as osp
 
 _OKGREEN = '\033[92m'
@@ -51,7 +50,7 @@ def log_epoch(writer, iteration, opt,
         add_summary_value(writer, 'recon_loss', train_recon_loss, iteration)
     except:
         pass
-    writer.flush()
+    writer.file_writer.flush()
 
 def save_model(model, cnn_model, optimizers, opt,
                iteration, epoch, loader, best_val_score,
@@ -136,11 +135,11 @@ def log_optimizer(opt, optimizers):
 
 
 
-
-def add_summary_value(writer, key, value, iteration, collections=None):
+def add_summary_value_old(writer, key, value, iteration, collections=None):
     """
-    Add value to tensorflow events
+    Add value to tensorboard events
     """
+    # add import tensorflow as tf
     _summary = tf.summary.scalar(name=key,
                                  tensor=tf.Variable(value),
                                  collections=collections)
@@ -148,6 +147,11 @@ def add_summary_value(writer, key, value, iteration, collections=None):
     writer.add_summary(summary, iteration)
 
 
+def add_summary_value(writer, key, value, iteration):
+    """
+    Add value to tensorboard events
+    """
+    writer.add_scalar(key, value, iteration)
 
 
 def save_ens_model(ens_model, optimizer, opt,
