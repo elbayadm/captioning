@@ -65,7 +65,7 @@ class HammingUnigramSampler(object):
         # substitution options
         self.limited = opt.limited_vocab_sub
         self.tau_word = opt.tau_word
-        self.unigram_disrtib = pl('data/coco/unigram_coco.pkl')[0]  # FIXME define in opts and resave in 1D
+        self.unigram_disrtib = pl('data/coco/unigram_coco.distrib')[0]  # FIXME save as 1D
         self.version = 'Hamming-Unigram (Vpool=%d, tau=%.2f)' % (self.limited, self.tau)
 
     def sample(self, logp, labels):
