@@ -1,7 +1,14 @@
 import os.path as osp
+import pickle
+import numpy as np
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
+
+
+def pl(path):
+    return pickle.load(open(path, 'rb'),
+                       encoding='iso-8859-1').astype(np.float32)
 
 
 def short_path(path):

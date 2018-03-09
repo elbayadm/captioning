@@ -1,7 +1,7 @@
 """
 Stratified sampler for the reward associated to
 the negative hamming distance
-Sampling w.r.t the token similarity used in the word-level smoothing
+Sampling w.r.t the unigram distribution
 """
 import math
 import numpy as np
@@ -9,7 +9,7 @@ from scipy.misc import comb
 import pickle
 import torch
 from torch.autograd import Variable
-
+from utils import pl
 
 def normalize_reward(distrib):
     """
@@ -47,7 +47,7 @@ def hamming_Z(m, v, tau):
     return np.clip(Z, a_max=1e30, a_min=1)
 
 
-class HammingSimSampler(object):
+class HammingUnigramSampler(object):
     """
     Sample a hamming distance and alter the truth wrt to words similarity
     """
@@ -65,16 +65,8 @@ class HammingSimSampler(object):
         # substitution options
         self.limited = opt.limited_vocab_sub
         self.tau_word = opt.tau_word
-        M = pickle.load(open(opt.similarity_matrix, 'rb'), encoding='iso-8859-1')
-        if opt.rare_tfidf:
-            IDF = pickle.load(open('data/coco/idf_coco_01.pkl', 'rb'))
-            M -= self.tau_word * opt.rare_tfidf * IDF
-        M = M.astype(np.float32)
-        n, d = M.shape
-        print('Sim matrix:', n, 'x', d, ' V=', opt.vocab_size)
-        assert n == d and n == opt.vocab_size, 'Similarity matrix has incompatible shape'
-        self.words_distribs = M
-        self.version = 'Hamming-Sim (Vpool=%d, tau=%.2f)' % (self.limited, self.tau)
+        self.unigram_disrtib = pl('data/coco/unigram_coco.pkl')[0]  # FIXME define in opts and resave in 1D
+        self.version = 'Hamming-Unigram (Vpool=%d, tau=%.2f)' % (self.limited, self.tau)
 
     def sample(self, logp, labels):
         """
@@ -110,40 +102,32 @@ class HammingSimSampler(object):
         change_index = np.random.randint(seq_length, size=(batch_size, select))
         rows = np.arange(batch_size).reshape(-1, 1).repeat(select, axis=1)
         # select substitutes
-        if self.limited == 1:
-            # get distributions of selected tokens and limit to the batch_vocab
-            indices = preds[rows, change_index].flatten()
-            p = self.words_distribs[indices][:, batch_vocab]
-            if self.tau_word:
-                p = np.exp(p/self.tau_word)
-            p = normalize_reward(p)
-            select_index = np.zeros((batch_size, select))
-            for i in range(batch_size):
-                for ss in range(select):
-                    select_index[i, ss] = np.random.choice(batch_vocab, p=p[i * select + ss])
+        if self.limited == 1:  # In-batch vocabulary substitution
+            batch_vocab = np.delete(np.unique(refs), 0)
+            lv = len(batch_vocab)
+        elif self.limited == 2:  # In-image vocabulary substitution
+            num_img = batch_size // self.seq_per_img
+            refs_per_image = np.split(refs, num_img)
+            im_vocab = [np.delete(np.unique(chunk), 0) for chunk in refs_per_image]
+            del refs_per_image
+            lv = np.max([len(chunk) for chunk in im_vocab])
+        else:  # Full vocabulary substitution
+            lv = self.vocab_size
 
+        # Select subs:
+        if self.limited == 1:
+            select_index = np.random.choice(batch_vocab,
+                                            size=(batch_size, select),
+                                            p=self.unigram_disrtib[batch_vocab])
         elif self.limited == 2:
-            # get distributions of selected tokens and limit to the batch_vocab
-            indices = preds[rows, change_index]
-            p = [self.words_distribs[indices[i]][:, im_vocab[i // self.seq_per_img]] for i in range(batch_size)]
-            # print("distance:", select, "indices:", indices[0], "p item shape:", p[0].shape, "im vocab:", im_vocab[0].shape)
-            if self.tau_word:
-                p = [np.exp(pp/self.tau_word) for pp in p]
-            p = [normalize_reward(pp) for pp in p]
-            select_index = np.zeros((batch_size, select))
-            for i in range(batch_size):
-                for ss in range(select):
-                    select_index[i, ss] = np.random.choice(im_vocab[i // self.seq_per_img], p=p[i][ss])
+            select_index = np.vstack([np.random.choice(chunk,
+                                                       size=(self.seq_per_img, select),
+                                                       p=self.unigram_disrtib[chunk])
+                                      for chunk in im_vocab])
         else:
-            indices = preds[rows, change_index].flatten()
-            p = self.words_distribs[indices][:, 4:]
-            if self.tau_word:
-                p = np.exp(p/self.tau_word)
-            p = normalize_reward(p)
-            select_index = np.zeros((batch_size, select))
-            for i in range(batch_size):
-                for ss in range(select):
-                    select_index[i, ss] = np.random.choice(np.arange(4, self.vocab_size), p=p[i * select + ss])
+            select_index = np.random.choice(self.vocab_size,
+                                            size=(batch_size, select),
+                                            p=self.unigram_disrtib)
 
         preds[rows, change_index] = select_index
         preds_matrix = np.hstack((np.zeros((batch_size, 1)), preds))  # padd <BOS>

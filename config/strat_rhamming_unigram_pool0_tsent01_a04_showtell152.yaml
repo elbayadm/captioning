@@ -1,4 +1,4 @@
-modelname : debug
+modelname : strat_rhamming_unigram_pool0_tsent01_a04_showtell152
 caption_model : show_tell 
 cnn_model : resnet152
 

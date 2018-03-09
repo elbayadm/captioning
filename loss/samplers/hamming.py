@@ -1,6 +1,7 @@
 """
 Stratified sampler for the reward associated to
 the negative hamming distance
+Sampling uniformly
 """
 import math
 import numpy as np
