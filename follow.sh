@@ -1,4 +1,6 @@
 #! /usr/bin/env zsh
+# Track the performance of the currently running jobs
+
 # Run in edgar
 track_myjobs_edgar(){
     jobs=("${(@f)$(oarstat | grep melbayad | grep W=24)}")
