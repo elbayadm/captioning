@@ -24,6 +24,7 @@ The json file has a dict that contains:
 """
 
 import os
+import sys
 import json
 import argparse
 import random
@@ -31,11 +32,13 @@ from random import shuffle, seed
 import string
 import nltk
 from nltk.corpus import stopwords
-# non-standard dependencies:
 import h5py
 import numpy as np
 from scipy.misc import imread, imresize
 from six.moves import cPickle as pickle
+sys.path.insert(0, ".")
+from utils import pl, pd
+
 
 def tokenize(sentence):
     return nltk.word_tokenize(str(sentence).lower().translate(None, string.punctuation))
@@ -66,7 +69,6 @@ def build_vocab(imgs, params):
     # vocab = [w for w, n in counts.items() if (n > count_thr and w not in stops)]
     bad_words = [w for w, n in counts.items() if (n <= count_thr)]
     vocab = [w for w, n in counts.items() if (n > count_thr)]
-
     bad_count = sum(counts[w] for w in bad_words)
     print('number of bad words: %d/%d = %.2f%%' % (len(bad_words), len(counts), len(bad_words)*100.0/len(counts)))
     print('number of words in vocab would be %d' % (len(vocab), ))
@@ -87,6 +89,13 @@ def build_vocab(imgs, params):
     for i in range(max_len+1):
         print('%2d: %10d   %f%%' % (i, sent_lengths.get(i, 0), sent_lengths.get(i, 0)*100.0/sum_len))
 
+    # Dump the statistics for later use:
+    pd({"counts": counts,
+        "vocab": vocab,
+        "bad words": bad_words,
+        "lengths": sent_lengths},
+       "data/coco/cocotalk.stats")
+
     # lets now produce the final annotations
     if bad_count > 0:
         # additional special UNK token we will use below to map infrequent words to
@@ -100,61 +109,6 @@ def build_vocab(imgs, params):
             img['final_captions'].append(caption)
 
     return vocab
-
-
-def encode_captions_syn(imgs, params, wtoi):
-    """
-    encode all captions into one large array, which will be 1-indexed.
-    also produces label_start_ix and label_end_ix which store 1-indexed
-    and inclusive (Lua-style) pointers to the first and last caption for
-    each image in the dataset.
-    """
-    max_length = params['max_length']
-    N = len(imgs)
-    M = sum(len(img['final_captions']) for img in imgs) # total number of captions
-    label_arrays = []
-    label_syn_arrays = []
-    label_start_ix = np.zeros(N, dtype='uint32') # note: these will be one-indexed
-    label_end_ix = np.zeros(N, dtype='uint32')
-    label_length = np.zeros(M, dtype='uint32')
-    caption_counter = 0
-    S  = pickle.load(open('data/Glove/nearest_neighbors.pkl', 'r'), encoding="iso-8859-1")
-    counter = 1
-    for i, img in enumerate(imgs):
-        n = len(img['final_captions'])
-        assert n > 0, 'error: some image has no captions'
-        Li = np.zeros((n, max_length), dtype='uint32')
-        Li_syn = np.zeros((n, max_length), dtype='uint32')
-
-        for j, s in enumerate(img['final_captions']):
-            label_length[caption_counter] = min(max_length, len(s)) # record the length of this sequence
-            caption_counter += 1
-            for k, w in enumerate(s):
-                if k < max_length:
-                    index = int(wtoi[w])
-                    print("%s(%d)" % (w, index))
-                    Li[j, k] = index
-                    if len(S[index]['neighbors']):
-                        synindex = S[index]['neighbors'].keys()[0]
-                        print("synonym %s(%d)" % (S[index]['neighbors'][synindex]['word'], synindex))
-                        Li_syn[j, k] = synindex
-                    else:
-                        Li_syn[j, k] = index
-        # note: word indices are 1-indexed, and captions are padded with zeros
-        label_arrays.append(Li)
-        label_syn_arrays.append(Li_syn)
-        label_start_ix[i] = counter
-        label_end_ix[i] = counter + n - 1
-        counter += n
-    L = np.concatenate(label_arrays, axis=0) # put all the labels together
-    L_syn = np.concatenate(label_syn_arrays, axis=0) # put all the labels together
-
-    assert L.shape[0] == M, 'lengths don\'t match? that\'s weird'
-    assert L_syn.shape[0] == M, 'lengths don\'t match? that\'s weird (syn)'
-
-    assert np.all(label_length > 0), 'error: some caption had no words?'
-    print('encoded captions to array of size ', L.shape)
-    return L, L_syn, label_start_ix, label_end_ix, label_length
 
 
 def encode_captions(imgs, params, wtoi):

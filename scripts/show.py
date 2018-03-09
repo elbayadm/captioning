@@ -9,7 +9,7 @@ from prettytable import PrettyTable
 from html import escape
 import numpy as np
 import scipy.stats as st
-from parse import *
+from parse_options import *
 
 
 PERF = ['Bleu_1', 'Bleu_4', 'ROUGE_L', 'SPICE', 'METEOR', 'CIDEr']

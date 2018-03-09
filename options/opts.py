@@ -93,8 +93,9 @@ def add_loss_params(parser):
 
     # loss_version == word params
     parser.add('--similarity_matrix', type=str,
-               default='data/Glove/cocotalk_similarities_v2.pkl',
+               default='data/coco/glove_w15d300_coco_cocotalk.sim',
                help='path to the pre-computed similarity matrix between the vocab words')
+    # Experimental to prove that using glove embeddings amount to using the cooccurence proba.
     parser.add('--use_cooc', type=int, default=0,
                help='Use cooccurrences matrix instead of glove similarities')
     parser.add('--margin_sim', type=float,
@@ -103,8 +104,12 @@ def add_loss_params(parser):
                default=0, help='whether or not to restrain to a subset of similarities\
                0 : the full vocabulary,\
                1 : the 5 captions vocabulary')
-    parser.add('--rare_tfidf', type=float,
+    parser.add('--promote_rarity', type=float,
                default=0, help='increase the similarity of rare words')
+    parser.add('--rarity_matrix', type=str,
+               default='data/coco/promote_rare.matrix',
+               help='path to the pre-computed similarity matrix between the vocab words')
+
     parser.add('--alpha_word', type=float,
                default=0.9, help='Scalar used to weigh the word loss\
                the final loss = alpha * word + (1-alpha) ml')

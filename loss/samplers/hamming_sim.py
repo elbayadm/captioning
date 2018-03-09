@@ -6,9 +6,9 @@ Sampling w.r.t the token similarity used in the word-level smoothing
 import math
 import numpy as np
 from scipy.misc import comb
-import pickle
 import torch
 from torch.autograd import Variable
+from utils import pl
 
 
 def normalize_reward(distrib):
@@ -65,9 +65,10 @@ class HammingSimSampler(object):
         # substitution options
         self.limited = opt.limited_vocab_sub
         self.tau_word = opt.tau_word
-        M = pickle.load(open(opt.similarity_matrix, 'rb'), encoding='iso-8859-1')
-        if opt.rare_tfidf:
-            IDF = pickle.load(open('data/coco/idf_coco_01.pkl', 'rb'))
+        # Load the similarity matrix:
+        M = pl(opt.similarity_matrix)
+        if opt.promote_rarity:
+            IDF = pl(opt.rarity_matrix)
             M -= self.tau_word * opt.rare_tfidf * IDF
         M = M.astype(np.float32)
         n, d = M.shape

@@ -8,7 +8,12 @@ from torch.autograd import Variable
 
 def pl(path):
     return pickle.load(open(path, 'rb'),
-                       encoding='iso-8859-1').astype(np.float32)
+                       encoding='iso-8859-1')
+
+
+def pd(obj, path):
+    pickle.dump(obj, open(path, 'wb'),
+                protocol=pickle.HIGHEST_PROTOCOL)
 
 
 def short_path(path):

@@ -1,8 +1,8 @@
-import pickle
 import numpy as np
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
+from utils import pl
 from .utils import get_ml_loss, get_indices_vocab, to_contiguous
 
 
@@ -35,11 +35,11 @@ class WordSmoothCriterion(nn.Module):
         self.alpha = opt.alpha_word
         self.tau_word = opt.tau_word
         # Load the similarity matrix:
-        M = pickle.load(open(opt.similarity_matrix, 'rb'), encoding='iso-8859-1')
-        if not self.use_cooc:
+        M = pl(opt.similarity_matrix)
+        if not self.use_cooc:  # deprecated
             M = M - 1  # = -D_ij
-        if opt.rare_tfidf:
-            IDF = pickle.load(open('data/coco/idf_coco_01.pkl', 'rb'))
+        if opt.promote_rarity:
+            IDF = pl(opt.rarity_matrix)
             M -= self.tau_word * opt.rare_tfidf * IDF
         M = M.astype(np.float32)
         n, d = M.shape
