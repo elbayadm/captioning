@@ -8,7 +8,7 @@ import sys
 import pickle
 import json
 import subprocess
-from opts import parse_eval_opt
+from options import parse_eval_opt
 
 def exec_cmd(command):
     # return stdout, stderr output of a command
