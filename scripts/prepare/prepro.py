@@ -89,6 +89,13 @@ def build_vocab(imgs, params):
     for i in range(max_len+1):
         print('%2d: %10d   %f%%' % (i, sent_lengths.get(i, 0), sent_lengths.get(i, 0)*100.0/sum_len))
 
+
+    # lets now produce the final annotations
+    if bad_count > 0:
+        # additional special UNK token we will use below to map infrequent words to
+        print('inserting the special UNK token')
+        vocab.append('UNK')
+
     # Dump the statistics for later use:
     pd({"counts": counts,
         "vocab": vocab,
@@ -96,11 +103,6 @@ def build_vocab(imgs, params):
         "lengths": sent_lengths},
        "data/coco/cocotalk.stats")
 
-    # lets now produce the final annotations
-    if bad_count > 0:
-        # additional special UNK token we will use below to map infrequent words to
-        print('inserting the special UNK token')
-        vocab.append('UNK')
     for img in imgs:
         img['final_captions'] = []
         for sent in img['sentences']:
