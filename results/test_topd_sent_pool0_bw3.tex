@@ -1,0 +1,12 @@
+|c|c|c|c|c|c|c|c|c|c|c|c|c|c|
+\midrule
+Model & Init & Loss & Reward & Sampling & Bleu_4_ph1 & CIDEr_ph1 & Bleu_1_ph2 & Bleu_4_ph2 & ROUGE_L_ph2 & SPICE_ph2 & METEOR_ph2 & CIDEr_ph2 & CI CIDEr\\
+\midrule
+Top-down & random & Seq & bleu4 mode0 & $\V$ & 31.35 & 97.79 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+Top-down & random & Seq & bleu4 mode1 & $\V$ & 31.73 & 98.99 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+Top-down & random & Seq & cider & $\V$ & 31.16 & 98.16 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+Top-down & random & Seq & hamming Vpool=0 & $\V$ & 31.21 & 97.40 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+Top-down & random & Seq & hamming-sim Vpool=0 & $\V$ unigram & 31.22 & 97.25 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+Top-down & random & Seq, lazy & cider & $\V$ & 31.39 & 97.91 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+Top-down & random & Seq, lazy & hamming Vpool=0 & $\V$ & 31.39 & 98.10 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+\midrule
