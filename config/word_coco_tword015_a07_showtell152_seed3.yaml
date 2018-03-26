@@ -1,0 +1,14 @@
+modelname : word_coco_tword015_a07_showtell152_seed3
+caption_model : show_tell 
+cnn_model : resnet152
+seed : 3
+batch_size : 10
+input_data : data/coco/cocotalk
+
+# Loss:
+loss_version : word
+similarity_matrix : data/Glove/train_coco_similarities.pkl
+promote_rarity: 0
+tau_word : 0.15
+alpha_word : 0.7
+

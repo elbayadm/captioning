@@ -1,0 +1,8 @@
+modelname : topdown_resnet152_msc_seed4
+caption_model : top_down
+cnn_model : resnet152
+seed : 4
+
+batch_size : 10
+input_data : data/coco/cocotalk
+

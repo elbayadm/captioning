@@ -1,0 +1,11 @@
+|c|c|c|c|c|c|c|c|c|c|c|c|c|c|
+\midrule
+Model & Init & Loss & Reward & Sampling & Bleu_4_ph1 & CIDEr_ph1 & Bleu_1_ph2 & Bleu_4_ph2 & ROUGE_L_ph2 & SPICE_ph2 & METEOR_ph2 & CIDEr_ph2 & CI CIDEr\\
+\midrule
+Show \& Tell & random & Seq, lazy & hamming Vpool=1 & $\V_{batch}$ & 29.14 & 90.51 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+Show \& Tell & random & Word-Seq & hamming Vpool=1 & $\V_{batch}$ & 29.90 & 91.15 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+Top-down & random & Word-Seq & hamming Vpool=1 & $\V_{batch}$ & 31.37 & 98.12 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+Show \& Tell & random & Seq & hamming Vpool=1 & $\V_{batch}$ & 29.44 & 90.79 & 71.34 & 30.99 & 0 & 0 & 0 & 95.43 & 0.82\\
+Top-down & random & Seq, lazy & hamming Vpool=1 & $\V_{batch}$ & 31.72 & 98.21 & 73.24 & 32.59 & 0 & 0 & 0 & 100.84 & 0.56\\
+Top-down & random & Seq & hamming Vpool=1 & $\V_{batch}$ & 31.60 & 98.34 & 72.98 & 32.61 & 0 & 0 & 0 & 101.12 & 0.55\\
+\midrule

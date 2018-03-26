@@ -149,7 +149,7 @@ def add_loss_params(parser):
 
     # CIDEr specific
     parser.add('--cider_df', type=str,
-               default='data/coco-train-df.p', help='path to dataset n-grams frequency')
+               default='data/coco/cider/coco-train-df.p', help='path to dataset n-grams frequency')
 
     # Hamming specific
     parser.add('--limited_vocab_sub', type=int,

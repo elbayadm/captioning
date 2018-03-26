@@ -38,7 +38,7 @@ if [ $BQ ]; then
            -t besteffort -t idempotent \
            -p $oarprop \
            -O  save/$JOB/stdout -E save/$JOB/stderr\
-           'python train.py -c config/'$JOB'.yaml'"
+           'source activate safe && python train.py -c config/'$JOB'.yaml'"
     echo 'Running' $cmd
     eval $cmd
 else

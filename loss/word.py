@@ -40,7 +40,7 @@ class WordSmoothCriterion(nn.Module):
             M = M - 1  # = -D_ij
         if opt.promote_rarity:
             IDF = pl(opt.rarity_matrix)
-            M -= self.tau_word * opt.rare_tfidf * IDF
+            M -= self.tau_word * opt.promote_rarity * IDF
         M = M.astype(np.float32)
         n, d = M.shape
         print('Sim matrix:', n, 'x', d, ' V=', opt.vocab_size)
