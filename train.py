@@ -94,7 +94,7 @@ def train(opt):
         if update_lr_flag:
             # Assign the learning rate
             opt = utils.manage_lr(epoch, opt, val_losses)
-            utils.scale_lr(optimizers, opt.scale_lr) # set the decayed rate
+            utils.scale_lr(optimizers, opt.scale_lr)  # set the decayed rate
             lg.log_optimizer(opt, optimizers)
             # Assign the scheduled sampling prob
             if opt.scheduled_sampling_strategy == "step":
@@ -181,7 +181,7 @@ def train(opt):
             eval_kwargs = {'split': 'val',
                            'dataset': opt.input_data + '.json'}
             eval_kwargs.update(vars(opt))
-            eval_kwargs['batch_size'] = 5  #FIXME
+            # eval_kwargs['batch_size'] = 5  # FIXME
             # print("eval kwargs: ", eval_kwargs)
             (val_ml_loss, val_loss,
              predictions, lang_stats) = evald.eval_split(cnn_model,
@@ -203,7 +203,7 @@ def train(opt):
                                               'lang_stats': lang_stats,
                                               'predictions': predictions}
             val_losses.insert(0, val_loss)
-            # Save model if is improving on validation result
+            # Save model if it improves CIDEr
             if opt.language_eval == 1:
                 current_score = lang_stats['CIDEr']
             else:

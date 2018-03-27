@@ -1,0 +1,33 @@
+modelname : fncnn6_reset_baseline_showtell152_seed4
+start_from : save/baseline_showtell152_seed4
+start_from_best : 1
+
+caption_model : show_tell
+seed : 4
+
+restart : 1
+val_images_use : -1
+save_checkpoint_every : 4000
+
+optim_alpha : 0.8
+
+finetune_cnn_after : -1
+cnn_model : resnet152
+
+fc_feat_size : 2048
+rnn_size : 512
+
+batch_size : 10
+input_data : data/coco/cocotalk
+
+beam_size : 3
+
+reset_optimizer : 1
+finetune_cnn_after : 0
+finetune_cnn_slice : 6
+learning_rate : 1e-4
+learning_rate_decay_start : 5
+learning_rate_decay_rate : 0.8
+learning_rate_decay_every: 4
+max_epochs : 30
+
