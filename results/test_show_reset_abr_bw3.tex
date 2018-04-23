@@ -1,0 +1,18 @@
+|c|c|c|c|c|c|
+\midrule
+Loss & Reward & Sampling & Bleu_4_ph2 & METEOR_ph2 & CIDEr_ph2\\
+\midrule
+Seq, lazy & hamming Vpool=0 & $\V$ & 30.43 & 24.74 & 94.26\\
+Seq & cider & $\V$ & 30.46 & 24.86 & 94.40\\
+Seq, lazy & hamming Vpool=2 & $\V_{refs}$ & 31.23 & 24.99 & 95.34\\
+Seq, lazy & cider & $\V_{batch}$ & 31.00 & 25.07 & 95.56\\
+Seq, lazy & cider & $\V_{refs}$ & 31.06 & 24.91 & 95.66\\
+Seq & cider & $\V_{batch}$ & 31.17 & 25.02 & 95.78\\
+Seq & constant & $\V_{refs}$ & 31.41 & 24.96 & 96.18\\
+Seq & hamming Vpool=2 & $\V_{refs}$ & 31.63 & 25.05 & 96.22\\
+Seq, lazy & cider & $\V$ & 31.18 & 25.17 & 96.32\\
+Seq & hamming Vpool=0 & $\V$ & 31.16 & 25.19 & 96.37\\
+Seq & hamming Vpool=1 & $\V_{batch}$ & 31.15 & 25.13 & 96.53\\
+Seq, lazy & hamming Vpool=1 & $\V_{batch}$ & 31.13 & 25.20 & 96.65\\
+Seq & cider & $\V_{refs}$ & 31.41 & 25.08 & 96.81\\
+\midrule

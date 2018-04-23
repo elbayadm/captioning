@@ -1,0 +1,11 @@
+|c|c|c|c|c|c|c|c|
+\midrule
+Loss & Reward & Sampling & Bleu_1_ph2 & Bleu_4_ph2 & METEOR_ph2 & CIDEr_ph2 & CI CIDEr\\
+\midrule
+Seq, lazy & cider & $\V$ & 0 & 0 & 0 & 0 & 0\\
+Seq, lazy & cider & $\V_{refs}$ & 0 & 0 & 0 & 0 & 0\\
+Seq, lazy & hamming Vpool=0 & $\V$ & 0 & 0 & 0 & 0 & 0\\
+Seq, lazy & hamming Vpool=1 & $\V_{batch}$ & 0 & 0 & 0 & 0 & 0\\
+Seq, lazy & hamming Vpool=2 & $\V_{refs}$ & 0 & 0 & 0 & 0 & 0\\
+Seq, lazy & cider & $\V_{batch}$ & 71.02 & 30.33 & 0 & 94.18 & 0.66\\
+\midrule

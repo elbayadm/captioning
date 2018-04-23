@@ -1,0 +1,11 @@
+|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|
+\midrule
+Model & Init & Loss & Reward & Sampling & Beam & Bleu_4_ph1 & CIDEr_ph1 & Bleu_1_ph2 & Bleu_4_ph2 & ROUGE_L_ph2 & SPICE_ph2 & METEOR_ph2 & CIDEr_ph2 & CI CIDEr\\
+\midrule
+Show \& Tell & random & Seq, lazy & cider & $\V$ & 3 & 29.24 & 90.30 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+Show \& Tell & random & Seq, lazy & cider & $\V_{refs}$ & 3 & 29.63 & 90.75 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+Show \& Tell & random & Seq, lazy & hamming Vpool=0 & $\V$ & 3 & 29.11 & 89.60 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+Show \& Tell & random & Seq, lazy & hamming Vpool=1 & $\V_{batch}$ & 3 & 29.14 & 90.51 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+Show \& Tell & random & Seq, lazy & hamming Vpool=2 & $\V_{refs}$ & 3 & 29.67 & 90.79 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+Show \& Tell & random & Seq, lazy & cider & $\V_{batch}$ & 3 & 29.29 & 90.81 & 71.02 & 30.33 & 0 & 0 & 0 & 94.18 & 0.66\\
+\midrule

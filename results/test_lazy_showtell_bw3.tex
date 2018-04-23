@@ -2,11 +2,10 @@
 \midrule
 Model & Init & Loss & Reward & Sampling & Bleu_4_ph1 & CIDEr_ph1 & Bleu_1_ph2 & Bleu_4_ph2 & ROUGE_L_ph2 & SPICE_ph2 & METEOR_ph2 & CIDEr_ph2 & CI CIDEr\\
 \midrule
-Show \& Tell & random & Seq & hamming Vpool=0 & $\V$ & 29.08 & 90.08 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
-Show \& Tell & random & Seq & hamming-sim Vpool=0 & $\V$ unigram & 29.38 & 91.13 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+Show \& Tell & random & Seq, lazy & cider & $\V$ & 29.24 & 90.30 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+Show \& Tell & random & Seq, lazy & cider & $\V_{refs}$ & 29.63 & 90.75 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
 Show \& Tell & random & Seq, lazy & hamming Vpool=0 & $\V$ & 29.11 & 89.60 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
 Show \& Tell & random & Seq, lazy & hamming Vpool=1 & $\V_{batch}$ & 29.14 & 90.51 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
 Show \& Tell & random & Seq, lazy & hamming Vpool=2 & $\V_{refs}$ & 29.67 & 90.79 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
-Show \& Tell & random & Seq & hamming Vpool=1 & $\V_{batch}$ & 29.44 & 90.79 & 71.34 & 30.99 & 0 & 0 & 0 & 95.43 & 0.82\\
-Show \& Tell & random & Seq & hamming Vpool=2 & $\V_{refs}$ & 29.88 & 91.66 & 71.58 & 31.15 & 0 & 0 & 0 & 95.56 & 0.82\\
+Show \& Tell & random & Seq, lazy & cider & $\V_{batch}$ & 29.29 & 90.81 & 71.02 & 30.33 & 0 & 0 & 0 & 94.18 & 0.66\\
 \midrule

@@ -32,10 +32,11 @@ PAPER_FIELDS_FULL = ['Model', 'Init', 'Loss', 'Reward', 'Sampling', "Beam",
                      ]
 
 PAPER_FIELDS_SHORT = ['Loss', 'Reward', 'Sampling', "Beam",
-                      'Bleu_1_ph2',
+                      # 'Bleu_1_ph2',
                       'Bleu_4_ph2',
                       'METEOR_ph2',
-                      'CIDEr_ph2', 'CI CIDEr'
+                      'CIDEr_ph2',
+                      # 'CI CIDEr'
                       ]
 
 
@@ -316,7 +317,7 @@ if __name__ == "__main__":
             PAPER_FIELDS_FULL.remove('Beam')
             PAPER_FIELDS_SHORT.remove('Beam')
         tab = crawl_results_paper(fltr, exc, split, verbose, args.reset, args.beam)
-        print(tab.get_string(sortby=args.sort, reversesort=True, fields=PAPER_FIELDS_FULL))
+        print(tab.get_string(sortby=args.sort, reversesort=True, fields=SELECT))
         print('saving latex table in %s.tex' % filename)
         with open(filename+'.tex', 'w') as f:
             tex = get_latex(tab, sortby=args.sort,

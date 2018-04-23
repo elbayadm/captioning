@@ -1,0 +1,12 @@
+|c|c|c|c|c|c|c|c|
+\midrule
+Loss & Reward & Sampling & Bleu_1_ph2 & Bleu_4_ph2 & METEOR_ph2 & CIDEr_ph2 & CI CIDEr\\
+\midrule
+Word & Glove sim xIDF & None & 0 & 0 & 0 & 0 & 0\\
+Word-Seq & cider & $\V_{batch}$ & 0 & 0 & 0 & 0 & 0\\
+Word-Seq & cider & $\V_{refs}$ & 0 & 0 & 0 & 0 & 0\\
+Word-Seq & hamming Vpool=1 & $\V_{batch}$ & 0 & 0 & 0 & 0 & 0\\
+Word-Seq & hamming Vpool=2 & $\V_{refs}$ & 0 & 0 & 0 & 0 & 0\\
+Word & Glove sim & None & 71.45 & 30.95 & 0 & 94.67 & 0.53\\
+Word & Glove sim xIDF & None & 72.23 & 31.89 & 0 & 96.97 & 0.29\\
+\midrule

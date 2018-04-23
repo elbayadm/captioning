@@ -1,0 +1,16 @@
++-----------------------------------------------------------------------------------------+------------------+------------+
+|                                          model                                          |       mem        | time/batch |
++-----------------------------------------------------------------------------------------+------------------+------------+
+|                                baseline_showtell152_time                                | titan x (12207M) |    0.35    |
+|                         word_coco_tword015_a07_showtell152_time                         | titan x (12207M) |    0.36    |
+|                    strat_rhamming_pool1_tsent017_a04_showtell152_time                   | titan x (12207M) |    0.40    |
+|                  strat_lazy_rhamming_pool0_tsent01_a04_showtell152_time                 | titan x (12207M) |    0.35    |
+|                  strat_lazy_rhamming_pool2_tsent03_a05_showtell152_time                 | titan x (12207M) |    0.34    |
+|  combine_strat_rhamming_pool2_tsent03_a05_word_coco_tword009_idf10_a07_showtell152_time | titan x (12207M) |    0.45    |
+|                    strat_rhamming_pool0_tsent01_a04_showtell152_time                    | titan x (12207M) |    0.39    |
+|                    strat_rhamming_pool2_tsent03_a05_showtell152_time                    | titan x (12207M) |    0.40    |
+|                 strat_lazy_rhamming_pool1_tsent017_a04_showtell152_time                 | titan x (12207M) |    0.34    |
+| combine_strat_rhamming_pool1_tsent017_a04_word_coco_tword009_idf10_a07_showtell152_time | titan x (12207M) |    0.51    |
+| combine_strat_rhamming_pool1_tsent017_a04_word_coco_tword009_idf10_a07_showtell152_time | titan x (12207M) |    0.42    |
+|  combine_strat_rhamming_pool0_tsent01_a04_word_coco_tword009_idf10_a07_showtell152_time | titan x (12207M) |    0.45    |
++-----------------------------------------------------------------------------------------+------------------+------------+
