@@ -1,0 +1,11 @@
+|c|c|c|c|c|c|c|c|c|c|c|c|c|
+\midrule
+Model & Init & Loss & Reward & Sampling & Bleu_4_ph1 & CIDEr_ph1 & Bleu_1_ph2 & Bleu_4_ph2 & ROUGE_L_ph2 & SPICE_ph2 & METEOR_ph2 & CIDEr_ph2\\
+\midrule
+Top-down & random & Seq, lazy & cider & $\V_{batch}$ & 31.53 & 97.91 & 73.18 & 32.60 & 54.18 & 18.76 & 25.76 & 101.30\\
+Top-down & random & Seq & cider & $\V$ & 31.16 & 98.16 & 73.08 & 32.51 & 54.12 & 18.91 & 25.89 & 101.84\\
+Top-down & random & Seq & cider & $\V_{refs}$ & 31.67 & 98.57 & 73.42 & 32.91 & 54.52 & 18.98 & 26.00 & 102.23\\
+Top-down & random & Seq, lazy & cider & $\V_{refs}$ & 31.84 & 98.61 & 73.92 & 33.10 & 54.57 & 19.02 & 25.87 & 102.64\\
+Top-down & random & Seq, lazy & cider & $\V$ & 31.39 & 97.91 & 73.55 & 33.19 & 54.53 & 19.12 & 26.11 & 102.94\\
+Top-down & random & Seq & cider & $\V_{batch}$ & 31.27 & 97.83 & 73.50 & 33.04 & 54.48 & 19.15 & 26.13 & 102.98\\
+\midrule
