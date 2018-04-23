@@ -1,0 +1,11 @@
+|c|c|c|c|c|c|c|c|c|c|c|c|c|
+\midrule
+Model & Init & Loss & Reward & Sampling & Bleu_4_ph1 & CIDEr_ph1 & Bleu_1_ph2 & Bleu_4_ph2 & ROUGE_L_ph2 & SPICE_ph2 & METEOR_ph2 & CIDEr_ph2\\
+\midrule
+Show \& Tell & random & Seq & cider & $\V$ & 29.29 & 91.01 & 71.05 & 30.46 & 52.38 & 17.69 & 24.86 & 94.40\\
+Show \& Tell & random & Seq, lazy & cider & $\V_{batch}$ & 29.29 & 90.81 & 71.47 & 31.00 & 52.94 & 17.90 & 25.07 & 95.56\\
+Show \& Tell & random & Seq, lazy & cider & $\V_{refs}$ & 29.63 & 90.75 & 71.82 & 31.06 & 52.89 & 17.87 & 24.91 & 95.66\\
+Show \& Tell & random & Seq & cider & $\V_{batch}$ & 29.46 & 91.07 & 71.51 & 31.17 & 52.80 & 17.89 & 25.02 & 95.78\\
+Show \& Tell & random & Seq, lazy & cider & $\V$ & 29.24 & 90.30 & 71.43 & 31.18 & 52.88 & 18.00 & 25.17 & 96.32\\
+Show \& Tell & random & Seq & cider & $\V_{refs}$ & 30.04 & 91.99 & 71.93 & 31.41 & 53.16 & 17.93 & 25.08 & 96.81\\
+\midrule
