@@ -28,7 +28,8 @@ PAPER_FIELDS_FULL = ['Model', 'Init', 'Loss', 'Reward', 'Sampling', "Beam",
                      'Bleu_4_ph1', 'CIDEr_ph1',
                      'Bleu_1_ph2', 'Bleu_4_ph2',
                      'ROUGE_L_ph2', 'SPICE_ph2',
-                     'METEOR_ph2', 'CIDEr_ph2', 'CI CIDEr',
+                     'METEOR_ph2', 'CIDEr_ph2',
+                     # 'CI CIDEr',
                      ]
 
 PAPER_FIELDS_SHORT = ['Loss', 'Reward', 'Sampling', "Beam",

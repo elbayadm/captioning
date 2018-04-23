@@ -41,7 +41,8 @@ def nameit(params):
             row_loss = "Seq"
             reward = params['reward']
             if "hamming" in reward:
-                reward += " Vpool=%d" % params['limited_vocab_sub']
+                reward = "Hamming"
+                # reward += " Vpool=%d" % params['limited_vocab_sub']
             elif "bleu" in reward:
                 reward += ' mode%d' % (params.get('refs_mode', 1))
             if not params['stratify_reward']:
@@ -56,12 +57,12 @@ def nameit(params):
             if params.get('lazy_rnn', 0):
                 row_loss += ', lazy'
             row_reward = reward
-            if 'Vpool=1' in sampling:
-                _sampling = "$\\V_{batch}$"
-            elif 'Vpool=2' in sampling:
-                _sampling = "$\\V_{refs}$"
-            elif 'Vpool=0' in sampling:
+            if params['limited_vocab_sub'] == 0:
                 _sampling = "$\\V$"
+            elif params['limited_vocab_sub'] == 1:
+                _sampling = "$\\V_{batch}$"
+            elif params['limited_vocab_sub'] == 2:
+                _sampling = "$\\V_{refs}$"
 
             if 'sim' in sampling:
                 _sampling += ' unigram'
