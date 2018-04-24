@@ -51,4 +51,3 @@ else
 fi
 
 
-echo $JOB >> RUNNING
