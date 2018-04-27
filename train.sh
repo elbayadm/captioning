@@ -15,7 +15,7 @@ while getopts 'bmlk' flag; do
 done
 shift $((OPTIND-1))
 JOB=$1
-JOBSH=${JOB:0:30}
+JOBSH=${JOB:0:50}
 echo traininig $JOB
 mkdir -p 'save/'$JOB
 
