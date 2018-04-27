@@ -167,6 +167,7 @@ class DecoderModel(nn.Module):
             #beam_seq_logprobs : log-probability of each decision made, same size as beam_seq
             #beam_logprobs_sum : joint log-probability of each beam
 
+            # print('input devices:', beam_logprobs_sum.device, logprobsf.device)
             ys,ix = torch.sort(logprobsf,1,True)
             candidates = []
             cols = min(beam_size, ys.size(1))
@@ -208,9 +209,9 @@ class DecoderModel(nn.Module):
         opt = kwargs['opt']
         beam_size = opt.get('beam_size', 10)
 
-        beam_seq = torch.LongTensor(self.seq_length, beam_size).zero_()
-        beam_seq_logprobs = torch.FloatTensor(self.seq_length, beam_size).zero_()
-        beam_logprobs_sum = torch.zeros(beam_size) # running sum of logprobs for each beam
+        beam_seq = torch.LongTensor(self.seq_length, beam_size).zero_().cuda()
+        beam_seq_logprobs = torch.FloatTensor(self.seq_length, beam_size).zero_().cuda()
+        beam_logprobs_sum = torch.zeros(beam_size).cuda() # running sum of logprobs for each beam
         done_beams = []
 
         for t in range(self.seq_length):
