@@ -1,4 +1,4 @@
-#! /usr/bin/bash
+#! /usr/bin/env bash
 BQ=''
 TX=''
 K40=''
@@ -25,9 +25,9 @@ if [ $TX ]; then
     echo $oarprop
 else 
     if [ $K40 ]; then
-        oarprop="\"gpumem>"$MEM"\""
+        oarprop="\"gpumem>'$MEM'\""
     else
-        oarprop="\"not gpumodel='k40m' and gpumem>"$MEM"\""
+        oarprop="\"not gpumodel='k40m' and gpumem>'$MEM'\""
     fi
 fi
 echo "OAR requirements:" $oarprop 
