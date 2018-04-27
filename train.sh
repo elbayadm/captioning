@@ -20,7 +20,7 @@ echo traininig $JOB
 mkdir -p 'save/'$JOB
 
 if [ $K40 ]; then
-    oarprop=""
+    oarprop="\"gpumem>'4000'\""
 else
     oarprop="\"gpumodel<>'k40m'\""
 fi

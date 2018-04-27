@@ -117,6 +117,7 @@ def get_results(model, split='val', verbose=False, get_cid=False):
     if split == "val":
         # Read training results:
         if osp.exists('%s/infos.pkl' % model_dir):
+            print('Reading the model infos (%s)' % model)
             infos = pickle.load(open('%s/infos.pkl' % model_dir, 'rb'))
             tr_res = infos['val_result_history']
             iters = list(tr_res)
@@ -227,6 +228,7 @@ def crawl_results_paper(fltr=[], exclude=[], split="test", verbose=False, reset=
 def crawl_results(fltr='', exclude=None, split="val", save_pkl=False, verbose=False):
     models = glob.glob('save/*')
     models = [model for model in models if is_required(model, fltr, exclude)]
+    print('Found models:', models)
     recap = {}
     tab = PrettyTable()
     tab.field_names = FIELDS
@@ -288,6 +290,7 @@ if __name__ == "__main__":
 
 
     args = parser.parse_args()
+    print('Arguments:', vars(args))
     split = args.split
     verbose = args.verbose
     fltr = args.filter

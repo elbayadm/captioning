@@ -1,0 +1,4 @@
+[ADMISSION RULE] Automatically redirect in the besteffort queue
+[ADMISSION RULE] Automatically add the besteffort constraint on the resources
+[ADMISSION RULE] Modify resource description with type constraints
+OAR_JOB_ID=-5
