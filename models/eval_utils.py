@@ -235,8 +235,8 @@ def eval_split(cnn_model, model, loader, logger, eval_kwargs={}):
                                                                             return_unique=True)
         ml_loss, loss, stats = model.step(data, att_feats, fc_feats, train=False)
         # print('Scores : ', stats)
-        ml_loss_sum += ml_loss.data[0]
-        loss_sum += loss.data[0]
+        ml_loss_sum += ml_loss.item()
+        loss_sum += loss.item()
         loss_evals = loss_evals + 1
         # TODO Only leave one feature for each image, in case duplicate sample
         seq, probs = model.sample(fc_unique, att_unique,
@@ -409,7 +409,7 @@ def eval_multiple(cnn_model, model, crit, loader, eval_kwargs={}):
             gt_scores = [np.sum(output[seq_length * i: seq_length * (i+1)]) for i in np.arange(N)]
             gt_sents =  decode_sequence(loader.get_vocab(), labels[:,1:].data)
             real_loss, loss = crit(probs, labels[:,1:], masks[:,1:], scores)
-            loss_sum = loss_sum + loss.data[0]
+            loss_sum = loss_sum + loss.item()
             loss_evals = loss_evals + 1
 
         # forward the model to also get generated samples for each image
@@ -463,7 +463,7 @@ def eval_multiple(cnn_model, model, crit, loader, eval_kwargs={}):
             predictions.pop()
 
         if verbose:
-            print('evaluating validation preformance... %d/%d (%f)' %(ix0 - 1, ix1, loss.data[0]))
+            print('evaluating validation preformance... %d/%d (%f)' %(ix0 - 1, ix1, loss.item()))
 
         if data['bounds']['wrapped']:
             break

@@ -144,13 +144,13 @@ def train(opt):
         grad_norm.append(utils.clip_gradient(optimizers, opt.grad_clip))
         for optimizer in optimizers:
             optimizer.step()
-        train_loss = loss.data[0]
+        train_loss = loss.item()
         if np.isnan(train_loss):
             sys.exit('Loss is nan')
-        train_ml_loss = ml_loss.data[0]
+        train_ml_loss = ml_loss.item()
         try:
-            train_kld_loss = kld_loss.data[0]
-            train_recon_loss = recon_loss.data[0]
+            train_kld_loss = kld_loss.item()
+            train_recon_loss = recon_loss.item()
         except:
             pass
         #  grad_norm = [utils.get_grad_norm(optimizer)]

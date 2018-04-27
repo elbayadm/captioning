@@ -94,7 +94,7 @@ class WordSmoothCriterion(nn.Module):
         output = - logp * mask.repeat(1, sim.size(1)) * smooth_target
 
         if self.normalize_batch:
-            if torch.sum(mask).data[0] > 0:
+            if torch.sum(mask).item() > 0:
                 output = torch.sum(output) / torch.sum(binary_mask)
             else:
                 self.logger.warn("Smooth targets weights sum to 0")
