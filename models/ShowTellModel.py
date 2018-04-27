@@ -115,7 +115,7 @@ class ShowTellModel(DecoderModel):
             state = self.init_hidden(beam_size)
             beam_seq = torch.LongTensor(self.seq_length, beam_size).zero_()
             beam_seq_logprobs = torch.FloatTensor(self.seq_length, beam_size).zero_()
-            beam_logprobs_sum = torch.zeros(beam_size)  # running sum of logprobs for each beam
+            beam_logprobs_sum = torch.zeros(beam_size).cuda()  # running sum of logprobs for each beam
             for t in range(self.seq_length + 2):
                 if t == 0:
                     xt = self.img_embed(fc_feats[k:k+1]).expand(beam_size, self.input_encoding_size)

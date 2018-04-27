@@ -15,7 +15,7 @@ while getopts 'bmlk' flag; do
 done
 shift $((OPTIND-1))
 JOB=$1
-
+JOBSH=${JOB:0:30}
 echo traininig $JOB
 mkdir -p 'save/'$JOB
 
@@ -34,7 +34,7 @@ echo "OAR requirements:" $oarprop
 
 if [ $BQ ]; then
     echo "Submitting to besteffort queue"
-    cmd="oarsub -l \"walltime=24:0:0\" -n $JOB \
+    cmd="oarsub -l \"walltime=24:0:0\" -n $JOBSH \
            -t besteffort -t idempotent \
            -p $oarprop \
            -O  save/$JOB/stdout -E save/$JOB/stderr\
@@ -43,7 +43,7 @@ if [ $BQ ]; then
     eval $cmd
 else
     echo "Submitting to default queue"
-    cmd="oarsub -l \"walltime=24:0:0\" -n $JOB \
+    cmd="oarsub -l \"walltime=24:0:0\" -n $JOBSH \
             -O  save/$JOB/stdout -E save/$JOB/stderr\
             -p $oarprop\
             'python train.py -c config/'$JOB'.yaml'"
