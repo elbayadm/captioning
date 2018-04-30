@@ -118,7 +118,15 @@ def get_results(model, split='val', verbose=False, get_cid=False):
         # Read training results:
         if osp.exists('%s/infos.pkl' % model_dir):
             print('Reading the model infos (%s)' % model)
-            infos = pickle.load(open('%s/infos.pkl' % model_dir, 'rb'))
+            try:
+                infos = pickle.load(open('%s/infos.pkl' % model_dir, 'rb'))
+            except:
+                try:
+                    print('Loading infos-best instead')
+                    infos = pickle.load(open('%s/infos-best.pkl' % model_dir, 'rb'))
+                except:
+                    print('Both infos files are corrupted')
+
             tr_res = infos['val_result_history']
             iters = list(tr_res)
             cids = [tr_res[it]['lang_stats']['CIDEr'] for it in iters]
