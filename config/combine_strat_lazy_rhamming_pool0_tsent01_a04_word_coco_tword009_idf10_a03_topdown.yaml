@@ -1,0 +1,21 @@
+modelname : combine_strat_lazy_rhamming_pool0_tsent01_a04_word_coco_tword009_idf10_a03_topdown
+
+caption_model : top_down
+cnn_model : resnet152
+
+batch_size : 10
+input_data : data/coco/cocotalk
+
+# Loss:
+loss_version : seq
+reward : hamming
+tau_sent : .1
+alpha_sent : 0.4
+limited_vocab_sub : 0
+
+combine_loss : 1
+tau_word: 0.09
+promote_rarity : 1
+similarity_matrix : data/Glove/train_coco_similarities.pkl
+alpha_word : 0.3
+lazy_rnn : 1
