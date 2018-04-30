@@ -47,7 +47,7 @@ if __name__ == "__main__":
             print("Failed to get gpu_id (setting gpu_id to %d)" % opt.gpu_id)
             gpu_id = str(opt.gpu_id)
         os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_id)
-        import tensorflow as tf
+        # import tensorflow as tf
         import torch
         opt.logger.warn('GPU ID: %s | available memory: %dM' \
                         % (os.environ['CUDA_VISIBLE_DEVICES'], get_gpu_memory(gpu_id)))
