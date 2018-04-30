@@ -170,7 +170,7 @@ def train(opt):
             lg.log_epoch(tb_writer, iteration, opt,
                          losses, stats, grad_norm,
                          model)
-            history['loss'][iteration] = losses['train_loss']
+            history['loss'][iteration] = float(losses['train_loss'])
             history['lr'][iteration] = opt.current_lr
             history['ss_prob'][iteration] = model.ss_prob
             history['scores_stats'][iteration] = stats

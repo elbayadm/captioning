@@ -21,8 +21,8 @@ PAPER_FIELDS = ["Model", 'Init',
                [perf + '_ph1' for perf in PERF] + \
                ['Perplexity_ph1'] + \
                [perf + '_ph2' for perf in PERF] + \
-               ['CI CIDEr'] + \
                ['Perplexity_ph2']
+               # ['CI CIDEr'] + \
 
 PAPER_FIELDS_FULL = ['Model', 'Init', 'Loss', 'Reward', 'Sampling', "Beam",
                      'Bleu_4_ph1', 'CIDEr_ph1',
@@ -154,6 +154,7 @@ def get_results(model, split='val', verbose=False, get_cid=False):
     elif split == "test":
         # Read post-results
         results = sorted(glob.glob('%s/evaluations/test/*.res' % model_dir))
+        print('Found results:', results)
         compiled = []
         for res in results:
             out = pickle.load(open(res, 'rb'))
@@ -194,7 +195,7 @@ def crawl_results_paper(fltr=[], exclude=[], split="test", verbose=False, reset=
             if fn_model in fn_models:
                 if verbose:
                     print('finetuned model exists')
-                fn_outputs = get_results(fn_model, split, verbose, get_cid=True)
+                fn_outputs = get_results(fn_model, split, verbose, get_cid=False)
             else:
                 fn_outputs = []
 
@@ -220,7 +221,7 @@ def crawl_results_paper(fltr=[], exclude=[], split="test", verbose=False, reset=
                     perf = [0] * (len(PERF) + 1)
                 row += perf
                 if fn_res:
-                    row += get_perf(fn_res, get_cid=True)
+                    row += get_perf(fn_res, get_cid=False)
                 else:
                     row += (len(PERF) + 2) * [0]
 
