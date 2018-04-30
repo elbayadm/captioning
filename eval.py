@@ -133,7 +133,7 @@ if __name__ == "__main__":
         # opt.score_ground_truth = True
         eval_kwargs = {'split': 'val',
                        'dataset': opt.input_data + '.json',
-                       "all_metrics": True}
+                       "all_metrics": False}
         eval_kwargs.update(vars(opt))
         print('evaluation setting:')
         print('Split: %s\nBatch: %d\nBeam: %d\nArgMax: %d\nT: %.2e\nForbid UNK: %d' % (eval_kwargs['split'],
