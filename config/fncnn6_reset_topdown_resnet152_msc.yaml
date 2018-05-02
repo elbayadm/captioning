@@ -3,7 +3,6 @@ start_from : save/topdown_resnet152_msc
 start_from_best : 1
 caption_model : top_down
 
-cnn_learning_rate : 1.
 cnn_model : resnet152
 
 batch_size : 10
@@ -17,4 +16,5 @@ learning_rate_decay_start : 5
 learning_rate_decay_rate : 0.8
 learning_rate_decay_every: 4
 max_epochs : 30
+cnn_learning_rate : 1.
 
