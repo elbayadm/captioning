@@ -223,8 +223,9 @@ def crawl_results_paper(fltr=[], exclude=[], split="test", verbose=False, reset=
                 if fn_res:
                     row += get_perf(fn_res, get_cid=False)
                 else:
-                    row += (len(PERF) + 2) * [0]
+                    row += (len(PERF) + 1) * [0]
 
+                print('row:', row)
                 if beam == -1:
                     tab.add_row(row)
                 else:
