@@ -2,6 +2,8 @@
 \midrule
 Model & Init & Loss & Reward & Sampling & Bleu_4_ph1 & CIDEr_ph1 & Bleu_1_ph2 & Bleu_4_ph2 & ROUGE_L_ph2 & SPICE_ph2 & METEOR_ph2 & CIDEr_ph2\\
 \midrule
-Show \& Tell & random & Word-Seq, lazy & cider & $\V$ & 29.30 & 93.21 & 0 & 0 & 0 & 0 & 0 & 0\\
-Top-down & random & Word-Seq, lazy & cider & $\V$ & 31.27 & 97.26 & 0 & 0 & 0 & 0 & 0 & 0\\
+Show \& Tell & random & Word-Seq, lazy & Hamming & $\V$ & 29.15 & 91.98 & 70.68 & 30.47 & 0 & 0 & 0 & 95.73\\
+Show \& Tell & random & Word-Seq, lazy & cider & $\V$ & 29.30 & 93.21 & 70.85 & 30.94 & 0 & 0 & 0 & 97.78\\
+Top-down & random & Word-Seq, lazy & cider & $\V$ & 31.27 & 97.26 & 73.08 & 32.61 & 0 & 0 & 0 & 100.24\\
+Top-down & random & Word-Seq, lazy & Hamming & $\V$ & 31.41 & 97.33 & 73.30 & 32.62 & 0 & 0 & 0 & 100.51\\
 \midrule
