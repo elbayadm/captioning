@@ -18,7 +18,6 @@ limited_vocab_sub : 2
 
 combine_loss : 1
 tau_word: 0.09
-rare_tfidf : 1
 similarity_matrix : data/Glove/train_coco_similarities.pkl
 alpha_word : 0.3
 
