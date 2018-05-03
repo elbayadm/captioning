@@ -21,7 +21,6 @@ max_epochs : 30
 # Loss:
 loss_version : word
 similarity_matrix : data/Glove/train_coco_similarities.pkl
-rare_tfidf: 1
 tau_word : 0.09
 alpha_word : 0.3
 
