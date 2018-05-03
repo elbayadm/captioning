@@ -84,7 +84,9 @@ if __name__ == "__main__":
                   "val_images_use", 'input_data', "loss_version", "region_size",
                   "use_adaptive_pooling", "clip_reward",
                   "gpu_id", "max_epochs", "modelname", "config",
-                  "sample_max", "temperature"]
+                  "sample_max", "temperature",
+                  "similarity_matrix",
+                  "cider_df", "init_decoder_W", "init_decoder_Proj"]
         for k in list(vars(infos['opt']).keys()):
             if k not in ignore and "learning" not in k:
                 if k in vars(opt):

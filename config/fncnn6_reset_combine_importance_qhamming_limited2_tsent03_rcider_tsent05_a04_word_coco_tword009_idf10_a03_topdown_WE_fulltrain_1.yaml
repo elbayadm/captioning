@@ -20,14 +20,13 @@ limited_vocab_sub : 2
 
 combine_loss : 1
 tau_word: 0.09
-rare_tfidf : 1
+promote_rarity : 1
 similarity_matrix : data/Glove/train_coco_similarities.pkl
 alpha_word : 0.3
 
 # Initialize W & E
-init_decoder_W:  data/Glove/glove_coco_d512_w15_matrix.pkl
+# some parameters were modified for eval (check the other models)
 freeze_decoder_W : 0
-init_decoder_Proj:  data/Glove/glove_coco_d512_w15_matrix.pkl
 freeze_decoder_Proj : 0
 tie_decoder_W_Proj : 1
 
