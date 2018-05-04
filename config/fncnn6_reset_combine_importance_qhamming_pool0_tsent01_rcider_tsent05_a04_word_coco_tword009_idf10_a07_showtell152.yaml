@@ -1,0 +1,35 @@
+modelname : fncnn6_reset_combine_importance_qhamming_pool0_tsent01_rcider_tsent05_a04_word_coco_tword009_idf10_a07_showtell152
+start_from : save/combine_importance_qhamming_pool0_tsent01_rcider_tsent05_a04_word_coco_tword009_idf10_a07_showtell152
+start_from_best : 1
+
+caption_model : show_tell
+cnn_model : resnet152
+input_data : data/coco/cocotalk
+
+# loss:
+loss_version : seq
+stratify_reward : 0
+reward : cider
+importance_sampler : hamming
+alpha_sent : 0.4
+tau_sent : 0.5
+tau_sent_q : 0.1
+limited_vocab_sub : 0
+
+combine_loss : 1
+tau_word: 0.09
+promote_rarity : 1
+similarity_matrix : data/Glove/train_coco_similarities.pkl
+alpha_word : 0.7
+lazy_rnn : 0
+
+reset_optimizer : 1
+finetune_cnn_after : 0
+finetune_cnn_slice : 6
+learning_rate : 1e-4
+learning_rate_decay_start : 5
+learning_rate_decay_rate : 0.8
+learning_rate_decay_every: 4
+max_epochs : 30
+cnn_learning_rate : 1.
+
