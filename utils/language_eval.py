@@ -168,7 +168,7 @@ def language_eval(dataset, preds, logger,
     # get score per sample:
     preds = None
     if single_metrics:
-        preds = cocoEval.ImgToEval
+        preds = cocoEval.imgToEval
 
     out['vocab_use'] = vocab_use(caps)
     unseen = None
