@@ -9,7 +9,6 @@ confusion_lattices
 *.txt
 *.pkl
 *.pyc
-*.json
 *.log
 *.tr
 coco-caption
