@@ -110,7 +110,9 @@ def language_lm_eval(refs, cands):
     return {'Bleu4': B4}
 
 def language_eval(dataset, preds, logger,
-                  all_metrics=False, get_creativity=True):
+                  all_metrics=False,
+                  single_metrics=False,
+                  get_creativity=True):
     """
     Measure language performance:
         BLEU_1:4, ROUGE_L, CIDER, #FIXME METEOR, SPICE;
@@ -163,6 +165,11 @@ def language_eval(dataset, preds, logger,
         out[metric] = score
 
     caps = [p['caption'] for p in preds_filt]
+    # get score per sample:
+    preds = None
+    if single_metrics:
+        preds = cocoEval.ImgToEval
+
     out['vocab_use'] = vocab_use(caps)
     unseen = None
     if get_creativity:
@@ -173,6 +180,6 @@ def language_eval(dataset, preds, logger,
         unseen = {"3g": cr['unseen 3grams'],
                   "4g": cr['unseen 4grams'],
                   "5g": cr['unseen 5grams']}
-    return out, unseen
+    return out, preds, unseen
 
 

@@ -135,7 +135,8 @@ if __name__ == "__main__":
         # opt.score_ground_truth = True
         eval_kwargs = {'split': 'val',
                        'dataset': opt.input_data + '.json',
-                       "all_metrics": False}
+                       "all_metrics": False,
+                       "single_metrics": True}
         eval_kwargs.update(vars(opt))
         print('evaluation setting:')
         print('Split: %s\nBatch: %d\nBeam: %d\nArgMax: %d\nT: %.2e\nForbid UNK: %d' % (eval_kwargs['split'],
@@ -144,11 +145,11 @@ if __name__ == "__main__":
                                                                                        eval_kwargs['sample_max'],
                                                                                        eval_kwargs['temperature'],
                                                                                        eval_kwargs['forbid_unk']))
-        ml_loss, loss, preds, perf = evald.eval_split(cnn_model,
-                                                      model,
-                                                      loader,
-                                                      opt.logger,
-                                                      eval_kwargs)
+        ml_loss, loss, preds, perf, sc_preds = evald.eval_split(cnn_model,
+                                                                model,
+                                                                loader,
+                                                                opt.logger,
+                                                                eval_kwargs)
 
         print("Finished evaluation in ", (time.time() - start))
         print('ML loss:', ml_loss)
@@ -160,8 +161,12 @@ if __name__ == "__main__":
         perf['params']['logger'] = None
 
         pickle.dump(perf, open(opt.output + ".res", 'wb'))
+
         if opt.dump_json:
             json.dump(preds, open(opt.output + '.json', 'w'))
+            if eval_kwargs['single_metrics']:
+                json.dump(sc_preds, open(opt.output + '.sc_json', 'w'))
+
     else:
         from utils.language_eval import language_eval
 

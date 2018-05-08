@@ -207,6 +207,8 @@ def eval_split(cnn_model, model, loader, logger, eval_kwargs={}):
     lang_eval = eval_kwargs.get('language_eval', 1)
     language_creativity = eval_kwargs.get('language_creativity', 1)
     all_metrics = eval_kwargs.get('all_metrics', 0)
+    single_metrics = eval_kwargs.get('single_metrics', 0)
+
     beam_size = eval_kwargs.get('beam_size', 1)
     sample_max = eval_kwargs.get('sample_max', 1)
     temperature = eval_kwargs.get('temperature', 0.5)
@@ -276,16 +278,17 @@ def eval_split(cnn_model, model, loader, logger, eval_kwargs={}):
             break
     lang_stats = None
     if lang_eval:
-        lang_stats, _ = language_eval(dataset, predictions, logger,
-                                      all_metrics,
-                                      language_creativity)
+        lang_stats, preds, _ = language_eval(dataset, predictions, logger,
+                                             all_metrics, single_metrics,
+                                             language_creativity)
+        print('preds:', preds)
     # Back to training:
     model.train()
     if model.cnn_finetuning:
         logger.warn('Finetuning cnn ON, filtering the BN layers')
         cnn_model.train()
         cnn_model.filter_bn()
-    return ml_loss_sum/loss_evals, loss_sum/loss_evals, predictions, lang_stats
+    return ml_loss_sum/loss_evals, loss_sum/loss_evals, predictions, lang_stats, preds
 
 
 def eval_external(cnn_model, model, loader, eval_kwargs={}):
